@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["app","errors","prefs","resources","webview","window"]};
