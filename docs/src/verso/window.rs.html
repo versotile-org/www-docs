@@ -529,6 +529,7 @@
 <a href="#527" id="527">527</a>
 <a href="#528" id="528">528</a>
 <a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, ops::Deref, rc::Rc};
 
 <span class="kw">use </span>raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
@@ -564,20 +565,20 @@
 
 <span class="doccomment">/// A Verso window is a Winit window containing several web views.
 </span><span class="kw">pub struct </span>Window {
-    <span class="doccomment">/// Access to winit window with webrender context.
+    <span class="doccomment">/// Access to Winit window with webrender context.
     </span>gl_window: Rc&lt;GLWindow&gt;,
     <span class="doccomment">/// The main control panel of this window.
     </span>panel: Panel,
-    <span class="doccomment">/// The web view of this window.
+    <span class="doccomment">/// The WebView of this window.
     </span>webview: <span class="prelude-ty">Option</span>&lt;WebView&gt;,
-    <span class="doccomment">/// Access to webrender gl
+    <span class="doccomment">/// Access to webrender GL
     </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
     <span class="doccomment">/// The mouse physical position in the web view.
     </span>mouse_position: Cell&lt;PhysicalPosition&lt;f64&gt;&gt;,
 }
 
 <span class="kw">impl </span>Window {
-    <span class="doccomment">/// Create a Verso window from winit window.
+    <span class="doccomment">/// Create a Verso window from Winit window.
     </span><span class="kw">pub fn </span>new(window: WinitWindow) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>window_size = window.inner_size();
         <span class="kw">let </span>window_size = Size2D::new(window_size.width <span class="kw">as </span>i32, window_size.height <span class="kw">as </span>i32);
@@ -611,17 +612,17 @@
         }
     }
 
-    <span class="doccomment">/// Set web view ID of this window.
+    <span class="doccomment">/// Set WebView ID of this window.
     </span><span class="kw">pub fn </span>set_webview_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: WebViewId) {
         <span class="self">self</span>.panel.set_id(id);
     }
 
-    <span class="doccomment">/// Return the reference counted GLWindow.
+    <span class="doccomment">/// Return the reference counted `GLWindow`.
     </span><span class="kw">pub fn </span>gl_window(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rc&lt;GLWindow&gt; {
         <span class="kw">return </span><span class="self">self</span>.gl_window.clone();
     }
 
-    <span class="doccomment">/// Handle winit window event.
+    <span class="doccomment">/// Handle Winit window event.
     </span><span class="kw">pub fn </span>handle_winit_window_event(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         servo: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Servo&lt;GLWindow&gt;&gt;,
@@ -653,7 +654,7 @@
                     winit::event::MouseButton::Middle =&gt; servo::script_traits::MouseButton::Middle,
                     <span class="kw">_ </span>=&gt; {
                         <span class="macro">log::warn!</span>(
-                            <span class="string">"Verso Window hasn't supported this mouse button yet: {button:?}"
+                            <span class="string">"Verso Window isn't supporting this mouse button yet: {button:?}"
                         </span>);
                         <span class="kw">return</span>;
                     }
@@ -669,7 +670,7 @@
                 };
                 events.push(EmbedderEvent::MouseWindowEventClass(event));
 
-                <span class="comment">// winit didn't send click event, so we send it after mouse up
+                <span class="comment">// Winit didn't send click event, so we send it after mouse up
                 </span><span class="kw">if </span><span class="kw-2">*</span>state == ElementState::Released {
                     <span class="kw">let </span>event: MouseWindowEvent = MouseWindowEvent::Click(button, position);
                     events.push(EmbedderEvent::MouseWindowEventClass(event));
@@ -728,7 +729,7 @@
             WindowEvent::CloseRequested =&gt; {
                 events.push(EmbedderEvent::Quit);
             }
-            e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Window hasn't supported this window event yet: {e:?}"</span>),
+            e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Window isn't supporting this window event yet: {e:?}"</span>),
         }
     }
 
@@ -807,16 +808,16 @@
                                             <span class="kw">let </span>is_maximized = <span class="self">self</span>.window.is_maximized();
                                             <span class="self">self</span>.window.set_maximized(!is_maximized);
                                         }
-                                        e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel hasn't supported handling this prompt message yet: {e}"</span>)
+                                        e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"</span>)
                                     }
                                 }
                                 <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                             },
-                            <span class="kw">_ </span>=&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel hasn't supported handling this prompt yet"</span>)
+                            <span class="kw">_ </span>=&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel isn't supporting this prompt yet"</span>)
                         },
                         e =&gt; {
                             <span class="macro">log::warn!</span>(
-                                <span class="string">"Verso Panel hasn't supported handling this message yet: {e:?}"
+                                <span class="string">"Verso Panel isn't supporting this message yet: {e:?}"
                             </span>)
                         }
                     }
@@ -854,7 +855,7 @@
                         }
                         e =&gt; {
                             <span class="macro">log::warn!</span>(
-                                <span class="string">"Verso WebView hasn't supported handling this message yet: {e:?}"
+                                <span class="string">"Verso WebView isn't supporting this message yet: {e:?}"
                             </span>)
                         }
                     }
@@ -874,7 +875,7 @@
                         }
                         e =&gt; {
                             <span class="macro">log::warn!</span>(
-                                <span class="string">"Verso Window hasn't supported handling this message yet: {e:?}"
+                                <span class="string">"Verso Window isn't supporting handling this message yet: {e:?}"
                             </span>)
                         }
                     }
@@ -885,7 +886,7 @@
         need_present
     }
 
-    <span class="doccomment">/// Paint offscreen framebuffer to winit window.
+    <span class="doccomment">/// Paint offscreen framebuffer to Winit window.
     </span><span class="kw">pub fn </span>paint(<span class="kw-2">&amp;</span><span class="self">self</span>, servo: <span class="kw-2">&amp;mut </span>Servo&lt;GLWindow&gt;) {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(fbo) = servo.offscreen_framebuffer_id() {
             <span class="kw">let </span>viewport = <span class="self">self</span>.gl_window.get_coordinates().get_flipped_viewport();
@@ -931,11 +932,12 @@
         }
     }
 
-    <span class="doccomment">/// Queues a Winit's [`WindowEvent::RedrawRequested`] event to be emitted that aligns with the windowing system drawing loop.
+    <span class="doccomment">/// Queues a Winit `WindowEvent::RedrawRequested` event to be emitted that aligns with the windowing system drawing loop.
     </span><span class="kw">pub fn </span>request_redraw(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="self">self</span>.window.request_redraw()
     }
-    <span class="doccomment">/// Check if window's web view is animating.
+
+    <span class="doccomment">/// Check if WebView (`GLWindow`) is animating.
     </span><span class="kw">pub fn </span>is_animating(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="self">self</span>.gl_window.is_animating()
     }
@@ -998,18 +1000,18 @@
     }
 }
 
-<span class="doccomment">/// A winit window with webrender rendering context.
+<span class="doccomment">/// A Winit window with webrender rendering context.
 </span><span class="kw">pub struct </span>GLWindow {
     <span class="doccomment">/// Access to webrender rendering context
     </span>rendering_context: RenderingContext,
     <span class="doccomment">/// Animation state set by Servo to indicate if the webview is still rendering.
     </span>animation_state: Cell&lt;AnimationState&gt;,
-    <span class="doccomment">/// Access to winit window
+    <span class="doccomment">/// Access to Winit window
     </span>window: WinitWindow,
 }
 
 <span class="kw">impl </span>GLWindow {
-    <span class="doccomment">/// Create a web view from winit window.
+    <span class="doccomment">/// Create a web view from Winit window.
     </span><span class="kw">pub fn </span>new(window: WinitWindow, rendering_context: RenderingContext) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             rendering_context,
@@ -1018,7 +1020,7 @@
         }
     }
 
-    <span class="doccomment">/// Check if web view is animating.
+    <span class="doccomment">/// Check if WebView (`GLWindow`) is animating.
     </span><span class="kw">pub fn </span>is_animating(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="self">self</span>.animation_state.get() == AnimationState::Animating
     }

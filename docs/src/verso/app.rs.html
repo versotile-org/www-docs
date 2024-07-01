@@ -164,6 +164,8 @@
 <a href="#162" id="162">162</a>
 <a href="#163" id="163">163</a>
 <a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>servo::{
     compositing::{
         windowing::{EmbedderEvent, EmbedderMethods},
@@ -186,7 +188,7 @@
     <span class="doccomment">/// Nothing important to Verso at the moment.
     </span><span class="attr">#[default]
     </span><span class="prelude-val">None</span>,
-    <span class="doccomment">/// One of webviews is animating.
+    <span class="doccomment">/// One of the WebViews is animating.
     </span>Animating,
     <span class="doccomment">/// Verso has shut down.
     </span>Shutdown,
@@ -201,7 +203,7 @@
 }
 
 <span class="kw">impl </span>Verso {
-    <span class="doccomment">/// Create an Verso instance from winit's window and event loop proxy.
+    <span class="doccomment">/// Create a Verso instance from Winit's window and event loop proxy.
     </span><span class="kw">pub fn </span>new(window: WinitWindow, proxy: EventLoopProxy&lt;()&gt;) -&gt; <span class="self">Self </span>{
         resources::init();
         prefs::init();
@@ -237,7 +239,7 @@
 
     <span class="doccomment">/// Run an iteration of Verso handling cycle. An iteration will perform following actions:
     ///
-    /// - Hnadle Winit's event, create Servo's embedder event and push to Verso's event queue.
+    /// - Handle Winit's event, create Servo's embedder event and push to Verso's event queue.
     /// - Consume Servo's messages and then send all embedder events to Servo.
     /// - And the last step is returning the status of Verso.
     </span><span class="kw">pub fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: Event&lt;()&gt;) -&gt; Status {
@@ -248,7 +250,7 @@
     }
 
     <span class="kw">fn </span>handle_winit_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: Event&lt;()&gt;) {
-        <span class="macro">log::trace!</span>(<span class="string">"Verso is creating ebedder event from: {event:?}"</span>);
+        <span class="macro">log::trace!</span>(<span class="string">"Verso is creating embedder event from: {event:?}"</span>);
         <span class="kw">match </span>event {
             Event::Suspended =&gt; {
                 <span class="self">self</span>.status = Status::None;
@@ -262,7 +264,7 @@
             } =&gt; <span class="self">self
                 </span>.window
                 .handle_winit_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>.servo, <span class="kw-2">&amp;mut </span><span class="self">self</span>.events, <span class="kw-2">&amp;</span>event),
-            e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso hasn't supported this event yet: {e:?}"</span>),
+            e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso isn't supporting this event yet: {e:?}"</span>),
         }
     }
 
@@ -293,18 +295,20 @@
         }
     }
 
-    <span class="doccomment">/// Helper method to access Servo instance. This can be used to check if Servo is shut down as well.
+    <span class="doccomment">/// Helper method to access Servo instance.
+    ///
+    /// For instance, this could be used to check if Servo was shut down.
     </span><span class="kw">pub fn </span>servo(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Servo&lt;GLWindow&gt;&gt; {
         <span class="kw-2">&amp;mut </span><span class="self">self</span>.servo
     }
 
-    <span class="doccomment">/// Tell Verso to shutdown Servo safely.
+    <span class="doccomment">/// Tell Verso to shut down Servo safely.
     </span><span class="kw">pub fn </span>shutdown(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="self">self</span>.events.push(EmbedderEvent::Quit);
     }
 }
 
-<span class="doccomment">/// Embedder is required by Servo creation. Servo will use this type to wake up winit's event loop.
+<span class="doccomment">/// Embedder is required by Servo creation. Servo will use this type to wake up Winit's event loop.
 </span><span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">struct </span>Embedder(<span class="kw">pub </span>EventLoopProxy&lt;()&gt;);
 

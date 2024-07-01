@@ -25,9 +25,11 @@
 <a href="#23" id="23">23</a>
 <a href="#24" id="24">24</a>
 <a href="#25" id="25">25</a>
+<a href="#26" id="26">26</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Verso Web Browser
 //!
-//! This is the documentation of Verso's types and items. See [Github page](https://github.com/european-browser/verso) for more general introduction.
+//! This is the documentation of Verso's types and items.
+//! See [GitHub repository](https://github.com/versotile-org/verso) for more general introduction.
 
 </span><span class="attr">#![deny(missing_docs)]
 
@@ -39,15 +41,15 @@
 </span><span class="kw">pub mod </span>prefs;
 <span class="doccomment">/// Utilities to access resource files
 </span><span class="kw">pub mod </span>resources;
-<span class="doccomment">/// Utilities to write tests.
-</span><span class="comment">// pub mod test;
-</span><span class="doccomment">/// Web view types to handle web browsing contexts.
+<span class="doccomment">/// Web view types to handle web browsing contexts.
 </span><span class="kw">pub mod </span>webview;
 <span class="doccomment">/// Verso's window types to handle Winit's window.
 </span><span class="kw">pub mod </span>window;
+<span class="doccomment">/// Utilities to write tests.
+</span><span class="comment">// pub mod test;
 
-<span class="kw">pub use </span>app::{Status, Verso};
+</span><span class="kw">pub use </span>app::{Status, Verso};
 <span class="kw">pub use </span>errors::{Error, <span class="prelude-ty">Result</span>};
-<span class="doccomment">/// Re-exporting `winit` for the sake of convenience.
+<span class="doccomment">/// Re-exporting Winit for the sake of convenience.
 </span><span class="kw">pub use </span>winit;
 </code></pre></div></section></main></body></html>
