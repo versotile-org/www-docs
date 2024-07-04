@@ -530,6 +530,17 @@
 <a href="#528" id="528">528</a>
 <a href="#529" id="529">529</a>
 <a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, ops::Deref, rc::Rc};
 
 <span class="kw">use </span>raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
@@ -555,10 +566,12 @@
 <span class="kw">use </span>winit::{
     dpi::PhysicalPosition,
     event::{ElementState, TouchPhase, WindowEvent},
+    keyboard::ModifiersState,
     window::{CursorIcon, Window <span class="kw">as </span>WinitWindow},
 };
 
 <span class="kw">use crate</span>::{
+    keyboard::keyboard_event_from_winit,
     webview::{Panel, WebView},
     Status,
 };
@@ -575,6 +588,7 @@
     </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
     <span class="doccomment">/// The mouse physical position in the web view.
     </span>mouse_position: Cell&lt;PhysicalPosition&lt;f64&gt;&gt;,
+    modifiers_state: Cell&lt;ModifiersState&gt;,
 }
 
 <span class="kw">impl </span>Window {
@@ -609,6 +623,7 @@
             webview: <span class="prelude-val">None</span>,
             webrender_gl,
             mouse_position: Cell::new(PhysicalPosition::default()),
+            modifiers_state: Cell::new(ModifiersState::default()),
         }
     }
 
@@ -729,6 +744,12 @@
             WindowEvent::CloseRequested =&gt; {
                 events.push(EmbedderEvent::Quit);
             }
+            WindowEvent::ModifiersChanged(modifier) =&gt; <span class="self">self</span>.modifiers_state.set(modifier.state()),
+            WindowEvent::KeyboardInput { event, .. } =&gt; {
+                <span class="kw">let </span>event = keyboard_event_from_winit(<span class="kw-2">&amp;</span>event, <span class="self">self</span>.modifiers_state.get());
+                <span class="macro">log::trace!</span>(<span class="string">"Verso is handling {:?}"</span>, event);
+                events.push(EmbedderEvent::Keyboard(event));
+            }
             e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Window isn't supporting this window event yet: {e:?}"</span>),
         }
     }
@@ -752,7 +773,8 @@
                         }
                         EmbedderMsg::LoadComplete =&gt; {
                             need_present = <span class="bool-val">true</span>;
-                            <span class="kw">let </span>demo_url = ServoUrl::parse(<span class="string">"https://demo.versotile.org"</span>).unwrap();
+                            <span class="comment">// let demo_url = ServoUrl::parse("https://demo.versotile.org").unwrap();
+                            </span><span class="kw">let </span>demo_url = ServoUrl::parse(<span class="string">"https://keyboard-test.space"</span>).unwrap();
                             <span class="kw">let </span>demo_id = TopLevelBrowsingContextId::new();
                             events.push(EmbedderEvent::NewWebView(demo_url, demo_id));
                         }
