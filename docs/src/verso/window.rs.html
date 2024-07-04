@@ -541,6 +541,12 @@
 <a href="#539" id="539">539</a>
 <a href="#540" id="540">540</a>
 <a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, ops::Deref, rc::Rc};
 
 <span class="kw">use </span>raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
@@ -807,30 +813,36 @@
                             ) =&gt; {
                                 <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
                                     <span class="kw">let </span>id = webview.id();
-                                    <span class="kw">match </span>msg.as_str() {
-                                        <span class="string">"PREV" </span>=&gt; {
-                                            events.push(EmbedderEvent::Navigation(
-                                                id,
-                                                TraversalDirection::Back(<span class="number">1</span>),
-                                            ));
+
+                                    <span class="kw">if </span>msg.starts_with(<span class="string">"NAVIGATE_TO:"</span>) {
+                                        <span class="kw">let </span>url = ServoUrl::parse(msg.strip_prefix(<span class="string">"NAVIGATE_TO:"</span>).unwrap()).unwrap();
+                                        events.push(EmbedderEvent::LoadUrl(id, url));
+                                    } <span class="kw">else </span>{
+                                        <span class="kw">match </span>msg.as_str() {
+                                            <span class="string">"PREV" </span>=&gt; {
+                                                events.push(EmbedderEvent::Navigation(
+                                                    id,
+                                                    TraversalDirection::Back(<span class="number">1</span>),
+                                                ));
+                                            }
+                                            <span class="string">"FORWARD" </span>=&gt; {
+                                                events.push(EmbedderEvent::Navigation(
+                                                    id,
+                                                    TraversalDirection::Forward(<span class="number">1</span>),
+                                                ));
+                                            }
+                                            <span class="string">"REFRESH" </span>=&gt; {
+                                                events.push(EmbedderEvent::Reload(id));
+                                            }
+                                            <span class="string">"MINIMIZE" </span>=&gt; {
+                                                <span class="self">self</span>.window.set_minimized(<span class="bool-val">true</span>);
+                                            }
+                                            <span class="string">"MAXIMIZE" </span>=&gt; {
+                                                <span class="kw">let </span>is_maximized = <span class="self">self</span>.window.is_maximized();
+                                                <span class="self">self</span>.window.set_maximized(!is_maximized);
+                                            }
+                                            e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"</span>)
                                         }
-                                        <span class="string">"FORWARD" </span>=&gt; {
-                                            events.push(EmbedderEvent::Navigation(
-                                                id,
-                                                TraversalDirection::Forward(<span class="number">1</span>),
-                                            ));
-                                        }
-                                        <span class="string">"REFRESH" </span>=&gt; {
-                                            events.push(EmbedderEvent::Reload(id));
-                                        }
-                                        <span class="string">"MINIMIZE" </span>=&gt; {
-                                            <span class="self">self</span>.window.set_minimized(<span class="bool-val">true</span>);
-                                        }
-                                        <span class="string">"MAXIMIZE" </span>=&gt; {
-                                            <span class="kw">let </span>is_maximized = <span class="self">self</span>.window.is_maximized();
-                                            <span class="self">self</span>.window.set_maximized(!is_maximized);
-                                        }
-                                        e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"</span>)
                                     }
                                 }
                                 <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
