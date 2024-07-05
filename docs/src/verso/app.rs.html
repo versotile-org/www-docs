@@ -166,7 +166,15 @@
 <a href="#164" id="164">164</a>
 <a href="#165" id="165">165</a>
 <a href="#166" id="166">166</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>servo::{
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<span class="kw">use </span>servo::{
     compositing::{
         windowing::{EmbedderEvent, EmbedderMethods},
         CompositeTarget,
@@ -200,6 +208,8 @@
     window: Window,
     events: Vec&lt;EmbedderEvent&gt;,
     status: Status,
+    <span class="doccomment">/// The clipboard. `None` if the platform or desktop environment is not support.
+    </span>clipboard: <span class="prelude-ty">Option</span>&lt;Clipboard&gt;,
 }
 
 <span class="kw">impl </span>Verso {
@@ -234,6 +244,7 @@
             window,
             events: <span class="macro">vec!</span>[],
             status: Status::None,
+            clipboard: <span class="prelude-val">None</span>,
         }
     }
 
@@ -273,9 +284,12 @@
             <span class="kw">return</span>;
         };
 
-        <span class="kw">let </span>need_present =
-            <span class="self">self</span>.window
-                .handle_servo_messages(servo, <span class="kw-2">&amp;mut </span><span class="self">self</span>.events, <span class="kw-2">&amp;mut </span><span class="self">self</span>.status);
+        <span class="kw">let </span>need_present = <span class="self">self</span>.window.handle_servo_messages(
+            servo,
+            <span class="kw-2">&amp;mut </span><span class="self">self</span>.events,
+            <span class="kw-2">&amp;mut </span><span class="self">self</span>.status,
+            <span class="kw-2">&amp;mut </span><span class="self">self</span>.clipboard,
+        );
 
         <span class="macro">log::trace!</span>(<span class="string">"Verso is handling embedder events: {:?}"</span>, <span class="self">self</span>.events);
         <span class="kw">if </span>servo.handle_events(<span class="self">self</span>.events.drain(..)) {
