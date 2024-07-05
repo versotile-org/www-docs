@@ -208,8 +208,7 @@
     window: Window,
     events: Vec&lt;EmbedderEvent&gt;,
     status: Status,
-    <span class="doccomment">/// The clipboard. `None` if the platform or desktop environment is not support.
-    </span>clipboard: <span class="prelude-ty">Option</span>&lt;Clipboard&gt;,
+    clipboard: Clipboard,
 }
 
 <span class="kw">impl </span>Verso {
@@ -244,7 +243,8 @@
             window,
             events: <span class="macro">vec!</span>[],
             status: Status::None,
-            clipboard: <span class="prelude-val">None</span>,
+            clipboard: Clipboard::new()
+                .expect(<span class="string">"Clipboard isn't supported in this platform or desktop environment."</span>),
         }
     }
 
