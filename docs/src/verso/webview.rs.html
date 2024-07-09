@@ -250,13 +250,19 @@
 <a href="#248" id="248">248</a>
 <a href="#249" id="249">249</a>
 <a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>servo::{
     base::id::WebViewId,
     compositing::windowing::EmbedderEvent,
-    embedder_traits::{EmbedderMsg, PromptDefinition},
+    embedder_traits::{CompositorEventVariant, EmbedderMsg, PromptDefinition},
     euclid::Size2D,
     script_traits::TraversalDirection,
     url::ServoUrl,
@@ -353,7 +359,13 @@
                         e
                     );
                 }
-            }
+            },
+            EmbedderMsg::EventDelivered(event) =&gt; {
+                <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
+                    events.push(EmbedderEvent::RaiseWebViewToTop(w, <span class="bool-val">false</span>));
+                    events.push(EmbedderEvent::FocusWebView(w));
+                } 
+            },
             e =&gt; {
                 <span class="macro">log::warn!</span>(<span class="string">"Verso WebView isn't supporting this message yet: {e:?}"</span>)
             }
