@@ -32,22 +32,22 @@
 
 </span><span class="attr">#![deny(missing_docs)]
 
-</span><span class="doccomment">/// Main entry types and functions.
-</span><span class="kw">pub mod </span>app;
-<span class="doccomment">/// Utilities to read options and preferences.
+</span><span class="doccomment">/// Utilities to read options and preferences.
 </span><span class="kw">pub mod </span>config;
 <span class="doccomment">/// Error and result types.
 </span><span class="kw">pub mod </span>errors;
 <span class="doccomment">/// Utilities to handle keyboard inputs and states.
 </span><span class="kw">pub mod </span>keyboard;
+<span class="doccomment">/// Main entry types and functions.
+</span><span class="kw">pub mod </span>verso;
 <span class="doccomment">/// Web view types to handle web browsing contexts.
 </span><span class="kw">pub mod </span>webview;
 <span class="doccomment">/// Verso's window types to handle Winit's window.
 </span><span class="kw">pub mod </span>window;
+<span class="kw">pub use </span>errors::{Error, <span class="prelude-ty">Result</span>};
 <span class="doccomment">/// Utilities to write tests.
 </span><span class="comment">// pub mod test;
-</span><span class="kw">pub use </span>app::{Status, Verso};
-<span class="kw">pub use </span>errors::{Error, <span class="prelude-ty">Result</span>};
+</span><span class="kw">pub use </span>verso::Verso;
 <span class="doccomment">/// Re-exporting Winit for the sake of convenience.
 </span><span class="kw">pub use </span>winit;
 </code></pre></div></section></main></body></html>

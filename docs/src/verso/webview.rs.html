@@ -256,12 +256,37 @@
 <a href="#254" id="254">254</a>
 <a href="#255" id="255">255</a>
 <a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>arboard::Clipboard;
+<span class="kw">use </span>compositing_traits::ConstellationMsg;
+<span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>servo::{
     base::id::WebViewId,
-    compositing::windowing::EmbedderEvent,
+    compositing::{webview::UnknownWebView, IOCompositor},
     embedder_traits::{CompositorEventVariant, EmbedderMsg, PromptDefinition},
     euclid::Size2D,
     script_traits::TraversalDirection,
@@ -270,7 +295,10 @@
     TopLevelBrowsingContextId,
 };
 
-<span class="kw">use </span><span class="kw">crate</span>::window::Window;
+<span class="kw">use crate</span>::{
+    verso::send_to_constellation,
+    window::{GLWindow, Window},
+};
 
 <span class="doccomment">/// A web view is an area to display web browsing context. It's what user will treat as a "web page".
 </span><span class="kw">pub struct </span>WebView {
@@ -305,19 +333,17 @@
     <span class="doccomment">/// Handle servo messages with corresponding web view ID.
     </span><span class="kw">pub fn </span>handle_servo_messages_with_webview(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        events: <span class="kw-2">&amp;mut </span>Vec&lt;EmbedderEvent&gt;,
+        webview_id: WebViewId,
+        message: EmbedderMsg,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
-        w: WebViewId,
-        m: EmbedderMsg,
-        need_present: <span class="kw-2">&amp;mut </span>bool,
     ) {
-        <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {w:?} is handling servo message: {m:?}"</span>,);
-        <span class="kw">match </span>m {
-            EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {
-                <span class="kw-2">*</span>need_present = <span class="bool-val">false</span>;
-            }
+        <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling servo message: {message:?}"</span>,);
+        <span class="kw">match </span>message {
+            EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {}
             EmbedderMsg::LoadComplete =&gt; {
-                <span class="kw-2">*</span>need_present = <span class="bool-val">true</span>;
+                <span class="self">self</span>.window.request_redraw();
             }
             EmbedderMsg::WebViewOpened(w) =&gt; {
                 <span class="kw">let </span>webview = WebView::new(w);
@@ -327,27 +353,32 @@
                 <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
                 <span class="kw">let </span><span class="kw-2">mut </span>rect = DeviceIntRect::from_size(size).to_f32();
                 rect.min.y = rect.max.y.min(<span class="number">76.</span>);
-                events.push(EmbedderEvent::FocusWebView(w));
-                events.push(EmbedderEvent::MoveResizeWebView(w, rect));
+                send_to_constellation(sender, ConstellationMsg::FocusWebView(w));
+                compositor.move_resize_webview(w, rect);
             }
             EmbedderMsg::AllowNavigationRequest(id, _url) =&gt; {
                 <span class="comment">// TODO should provide a API for users to check url
-                </span>events.push(EmbedderEvent::AllowNavigationResponse(id, <span class="bool-val">true</span>));
+                </span>send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">true</span>));
             }
             EmbedderMsg::WebViewClosed(_w) =&gt; {
                 <span class="self">self</span>.webview = <span class="prelude-val">None</span>;
             }
             EmbedderMsg::WebViewFocused(w) =&gt; {
-                events.push(EmbedderEvent::ShowWebView(w, <span class="bool-val">false</span>));
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(UnknownWebView(webview_id)) = compositor.show_webview(w, <span class="bool-val">false</span>) {
+                    <span class="macro">log::warn!</span>(<span class="string">"{webview_id}: ShowWebView on unknown webview id"</span>);
+                }
             }
             EmbedderMsg::GetClipboardContents(sender) =&gt; {
                 <span class="kw">let </span>contents = clipboard.get_text().unwrap_or_else(|e| {
-                    <span class="macro">log::warn!</span>(<span class="string">"Verso WebView {w:?} failed to get clipboard content: {}"</span>, e);
+                    <span class="macro">log::warn!</span>(
+                        <span class="string">"Verso WebView {webview_id:?} failed to get clipboard content: {}"</span>,
+                        e
+                    );
                     String::new()
                 });
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(contents) {
                     <span class="macro">log::warn!</span>(
-                        <span class="string">"Verso WebView {w:?} failed to send clipboard content: {}"</span>,
+                        <span class="string">"Verso WebView {webview_id:?} failed to send clipboard content: {}"</span>,
                         e
                     );
                 }
@@ -355,17 +386,21 @@
             EmbedderMsg::SetClipboardContents(text) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = clipboard.set_text(text) {
                     <span class="macro">log::warn!</span>(
-                        <span class="string">"Verso WebView {w:?} failed to set clipboard contents: {}"</span>,
+                        <span class="string">"Verso WebView {webview_id:?} failed to set clipboard contents: {}"</span>,
                         e
                     );
                 }
-            },
+            }
             EmbedderMsg::EventDelivered(event) =&gt; {
                 <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
-                    events.push(EmbedderEvent::RaiseWebViewToTop(w, <span class="bool-val">false</span>));
-                    events.push(EmbedderEvent::FocusWebView(w));
-                } 
-            },
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(UnknownWebView(webview_id)) =
+                        compositor.raise_webview_to_top(webview_id, <span class="bool-val">false</span>)
+                    {
+                        <span class="macro">log::warn!</span>(<span class="string">"{webview_id}: RaiseWebViewToTop on unknown webview id"</span>);
+                    }
+                    send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
+                }
+            }
             e =&gt; {
                 <span class="macro">log::warn!</span>(<span class="string">"Verso WebView isn't supporting this message yet: {e:?}"</span>)
             }
@@ -411,87 +446,98 @@
     <span class="doccomment">/// Handle servo messages with main panel.
     </span><span class="kw">pub fn </span>handle_servo_messages_with_panel(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        events: <span class="kw-2">&amp;mut </span>Vec&lt;EmbedderEvent&gt;,
+        panel_id: WebViewId,
+        message: EmbedderMsg,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
-        p: WebViewId,
-        m: EmbedderMsg,
-        need_present: <span class="kw-2">&amp;mut </span>bool,
     ) {
-        <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {p:?} is handling servo message: {m:?}"</span>,);
-        <span class="kw">match </span>m {
-            EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {
-                <span class="kw-2">*</span>need_present = <span class="bool-val">false</span>;
-            }
+        <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {panel_id:?} is handling servo message: {message:?}"</span>,);
+        <span class="kw">match </span>message {
+            EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {}
             EmbedderMsg::LoadComplete =&gt; {
-                <span class="kw-2">*</span>need_present = <span class="bool-val">true</span>;
+                <span class="self">self</span>.window.request_redraw();
                 <span class="comment">// let demo_url = ServoUrl::parse("https://demo.versotile.org").unwrap();
                 </span><span class="kw">let </span>demo_url = ServoUrl::parse(<span class="string">"https://keyboard-test.space"</span>).unwrap();
                 <span class="kw">let </span>demo_id = TopLevelBrowsingContextId::new();
-                events.push(EmbedderEvent::NewWebView(demo_url, demo_id));
+                send_to_constellation(sender, ConstellationMsg::NewWebView(demo_url, demo_id));
             }
             EmbedderMsg::AllowNavigationRequest(id, _url) =&gt; {
                 <span class="comment">// The panel shouldn't navigate to other pages.
-                </span>events.push(EmbedderEvent::AllowNavigationResponse(id, <span class="bool-val">false</span>));
+                </span>send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">false</span>));
             }
             EmbedderMsg::WebViewOpened(w) =&gt; {
                 <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
                 <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
                 <span class="kw">let </span>rect = DeviceIntRect::from_size(size).to_f32();
-                events.push(EmbedderEvent::FocusWebView(w));
-                events.push(EmbedderEvent::MoveResizeWebView(w, rect));
+                send_to_constellation(sender, ConstellationMsg::FocusWebView(w));
+                compositor.move_resize_webview(w, rect);
             }
             EmbedderMsg::WebViewClosed(_w) =&gt; {
-                events.push(EmbedderEvent::Quit);
+                compositor.maybe_start_shutting_down();
             }
             EmbedderMsg::WebViewFocused(w) =&gt; {
-                events.push(EmbedderEvent::ShowWebView(w, <span class="bool-val">false</span>));
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(UnknownWebView(webview_id)) = compositor.show_webview(w, <span class="bool-val">false</span>) {
+                    <span class="macro">log::warn!</span>(<span class="string">"{webview_id}: ShowWebView on unknown webview id"</span>);
+                }
             }
             EmbedderMsg::HistoryChanged(..) | EmbedderMsg::ChangePageTitle(..) =&gt; {
-                <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {m:?}"</span>)
+                <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
             }
-            EmbedderMsg::Prompt(definition, _origin) =&gt; <span class="kw">match </span>definition {
-                PromptDefinition::Input(msg, _defaut, sender) =&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
-                        <span class="kw">let </span>id = webview.id();
+            EmbedderMsg::Prompt(definition, _origin) =&gt; {
+                <span class="kw">match </span>definition {
+                    PromptDefinition::Input(msg, <span class="kw">_</span>, prompt_sender) =&gt; {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
+                            <span class="kw">let </span>id = webview.id();
 
-                        <span class="kw">if </span>msg.starts_with(<span class="string">"NAVIGATE_TO:"</span>) {
-                            <span class="kw">let </span>url =
-                                ServoUrl::parse(msg.strip_prefix(<span class="string">"NAVIGATE_TO:"</span>).unwrap()).unwrap();
-                            events.push(EmbedderEvent::LoadUrl(id, url));
-                        } <span class="kw">else </span>{
-                            <span class="kw">match </span>msg.as_str() {
-                                <span class="string">"PREV" </span>=&gt; {
-                                    events.push(EmbedderEvent::Navigation(
-                                        id,
-                                        TraversalDirection::Back(<span class="number">1</span>),
-                                    ));
+                            <span class="kw">if </span>msg.starts_with(<span class="string">"NAVIGATE_TO:"</span>) {
+                                <span class="kw">let </span>url =
+                                    ServoUrl::parse(msg.strip_prefix(<span class="string">"NAVIGATE_TO:"</span>).unwrap())
+                                        .unwrap();
+                                send_to_constellation(sender, ConstellationMsg::LoadUrl(id, url));
+                            } <span class="kw">else </span>{
+                                <span class="kw">match </span>msg.as_str() {
+                                    <span class="string">"PREV" </span>=&gt; {
+                                        send_to_constellation(
+                                            sender,
+                                            ConstellationMsg::TraverseHistory(
+                                                id,
+                                                TraversalDirection::Back(<span class="number">1</span>),
+                                            ),
+                                        );
+                                        <span class="comment">// TODO Set EmbedderMsg::Status to None
+                                    </span>}
+                                    <span class="string">"FORWARD" </span>=&gt; {
+                                        send_to_constellation(
+                                            sender,
+                                            ConstellationMsg::TraverseHistory(
+                                                id,
+                                                TraversalDirection::Forward(<span class="number">1</span>),
+                                            ),
+                                        );
+                                        <span class="comment">// TODO Set EmbedderMsg::Status to None
+                                    </span>}
+                                    <span class="string">"REFRESH" </span>=&gt; {
+                                        send_to_constellation(sender, ConstellationMsg::Reload(id));
+                                    }
+                                    <span class="string">"MINIMIZE" </span>=&gt; {
+                                        <span class="self">self</span>.window.set_minimized(<span class="bool-val">true</span>);
+                                    }
+                                    <span class="string">"MAXIMIZE" </span>=&gt; {
+                                        <span class="kw">let </span>is_maximized = <span class="self">self</span>.window.is_maximized();
+                                        <span class="self">self</span>.window.set_maximized(!is_maximized);
+                                    }
+                                    e =&gt; <span class="macro">log::warn!</span>(
+                                        <span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"
+                                    </span>),
                                 }
-                                <span class="string">"FORWARD" </span>=&gt; {
-                                    events.push(EmbedderEvent::Navigation(
-                                        id,
-                                        TraversalDirection::Forward(<span class="number">1</span>),
-                                    ));
-                                }
-                                <span class="string">"REFRESH" </span>=&gt; {
-                                    events.push(EmbedderEvent::Reload(id));
-                                }
-                                <span class="string">"MINIMIZE" </span>=&gt; {
-                                    <span class="self">self</span>.window.set_minimized(<span class="bool-val">true</span>);
-                                }
-                                <span class="string">"MAXIMIZE" </span>=&gt; {
-                                    <span class="kw">let </span>is_maximized = <span class="self">self</span>.window.is_maximized();
-                                    <span class="self">self</span>.window.set_maximized(!is_maximized);
-                                }
-                                e =&gt; <span class="macro">log::warn!</span>(
-                                    <span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"
-                                </span>),
                             }
                         }
+                        <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
                     }
-                    <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
+                    <span class="kw">_ </span>=&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel isn't supporting this prompt yet"</span>),
                 }
-                <span class="kw">_ </span>=&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Panel isn't supporting this prompt yet"</span>),
-            },
+            }
             EmbedderMsg::GetClipboardContents(sender) =&gt; {
                 <span class="kw">let </span>contents = clipboard.get_text().unwrap_or_else(|e| {
                     <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to get clipboard content: {}"</span>, e);

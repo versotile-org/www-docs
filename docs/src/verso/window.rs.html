@@ -430,29 +430,16 @@
 <a href="#428" id="428">428</a>
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
-<a href="#431" id="431">431</a>
-<a href="#432" id="432">432</a>
-<a href="#433" id="433">433</a>
-<a href="#434" id="434">434</a>
-<a href="#435" id="435">435</a>
-<a href="#436" id="436">436</a>
-<a href="#437" id="437">437</a>
-<a href="#438" id="438">438</a>
-<a href="#439" id="439">439</a>
-<a href="#440" id="440">440</a>
-<a href="#441" id="441">441</a>
-<a href="#442" id="442">442</a>
-<a href="#443" id="443">443</a>
-<a href="#444" id="444">444</a>
-<a href="#445" id="445">445</a>
-<a href="#446" id="446">446</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, ops::Deref, rc::Rc};
 
+<span class="kw">use </span>compositing_traits::ConstellationMsg;
+<span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 <span class="kw">use </span>servo::{
     base::id::WebViewId,
-    compositing::windowing::{
-        AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
+    compositing::{
+        windowing::{AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowMethods},
+        IOCompositor,
     },
     embedder_traits::{Cursor, EmbedderMsg},
     euclid::{Point2D, Scale, Size2D},
@@ -464,7 +451,7 @@
         ScrollLocation,
     },
     webrender_traits::RenderingContext,
-    Servo,
+    Servo, TopLevelBrowsingContextId,
 };
 <span class="kw">use </span>surfman::{Connection, GLApi, SurfaceType};
 <span class="kw">use </span>winit::{
@@ -476,8 +463,8 @@
 
 <span class="kw">use crate</span>::{
     keyboard::keyboard_event_from_winit,
+    verso::send_to_constellation,
     webview::{Panel, WebView},
-    Status,
 };
 
 <span class="kw">use </span>arboard::Clipboard;
@@ -547,27 +534,22 @@
     <span class="doccomment">/// Handle Winit window event.
     </span><span class="kw">pub fn </span>handle_winit_window_event(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        servo: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Servo&lt;GLWindow&gt;&gt;,
-        events: <span class="kw-2">&amp;mut </span>Vec&lt;EmbedderEvent&gt;,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         event: <span class="kw-2">&amp;</span>winit::event::WindowEvent,
     ) {
         <span class="kw">match </span>event {
             WindowEvent::RedrawRequested =&gt; {
-                <span class="kw">let </span><span class="prelude-val">Some</span>(servo) = servo.as_mut() <span class="kw">else </span>{
-                    <span class="kw">return</span>;
-                };
-
-                <span class="self">self</span>.paint(servo);
-                events.push(EmbedderEvent::Idle);
+                compositor.present();
             }
             WindowEvent::Resized(size) =&gt; {
                 <span class="kw">let </span>size = Size2D::new(size.width, size.height);
-                <span class="kw">let _ </span>= <span class="self">self</span>.resize(size.to_i32(), events);
+                <span class="kw">let _ </span>= <span class="self">self</span>.resize(size.to_i32(), compositor);
             }
             WindowEvent::CursorMoved { position, .. } =&gt; {
-                <span class="kw">let </span>event: DevicePoint = DevicePoint::new(position.x <span class="kw">as </span>f32, position.y <span class="kw">as </span>f32);
+                <span class="kw">let </span>cursor: DevicePoint = DevicePoint::new(position.x <span class="kw">as </span>f32, position.y <span class="kw">as </span>f32);
                 <span class="self">self</span>.mouse_position.set(<span class="kw-2">*</span>position);
-                events.push(EmbedderEvent::MouseWindowMoveEventClass(event));
+                compositor.on_mouse_window_move_event_class(cursor);
             }
             WindowEvent::MouseInput { state, button, .. } =&gt; {
                 <span class="kw">let </span>button: servo::script_traits::MouseButton = <span class="kw">match </span>button {
@@ -590,16 +572,16 @@
                     ElementState::Pressed =&gt; MouseWindowEvent::MouseDown(button, position),
                     ElementState::Released =&gt; MouseWindowEvent::MouseUp(button, position),
                 };
-                events.push(EmbedderEvent::MouseWindowEventClass(event));
+                compositor.on_mouse_window_event_class(event);
 
                 <span class="comment">// Winit didn't send click event, so we send it after mouse up
                 </span><span class="kw">if </span><span class="kw-2">*</span>state == ElementState::Released {
                     <span class="kw">let </span>event: MouseWindowEvent = MouseWindowEvent::Click(button, position);
-                    events.push(EmbedderEvent::MouseWindowEventClass(event));
+                    compositor.on_mouse_window_event_class(event);
                 }
             }
             WindowEvent::TouchpadMagnify { delta, .. } =&gt; {
-                events.push(EmbedderEvent::Zoom(<span class="number">1.0 </span>+ <span class="kw-2">*</span>delta <span class="kw">as </span>f32));
+                compositor.on_zoom_window_event(<span class="number">1.0 </span>+ <span class="kw-2">*</span>delta <span class="kw">as </span>f32);
             }
             WindowEvent::MouseWheel { delta, phase, .. } =&gt; {
                 <span class="comment">// FIXME: Pixels per line, should be configurable (from browser setting?) and vary by zoom level.
@@ -616,13 +598,13 @@
                 };
 
                 <span class="comment">// Wheel Event
-                </span>events.push(EmbedderEvent::Wheel(
+                </span>compositor.on_wheel_event(
                     WheelDelta { x, y, z: <span class="number">0.0</span>, mode },
                     DevicePoint::new(
                         <span class="self">self</span>.mouse_position.get().x <span class="kw">as </span>f32,
                         <span class="self">self</span>.mouse_position.get().y <span class="kw">as </span>f32,
                     ),
-                ));
+                );
 
                 <span class="comment">// Scroll Event
                 // Do one axis at a time.
@@ -639,83 +621,64 @@
                     TouchPhase::Cancelled =&gt; TouchEventType::Cancel,
                 };
 
-                events.push(EmbedderEvent::Scroll(
+                compositor.on_scroll_event(
                     ScrollLocation::Delta(LayoutVector2D::new(x <span class="kw">as </span>f32, y <span class="kw">as </span>f32)),
                     DeviceIntPoint::new(
                         <span class="self">self</span>.mouse_position.get().x <span class="kw">as </span>i32,
                         <span class="self">self</span>.mouse_position.get().y <span class="kw">as </span>i32,
                     ),
                     phase,
-                ));
+                );
             }
             WindowEvent::CloseRequested =&gt; {
-                events.push(EmbedderEvent::Quit);
+                compositor.maybe_start_shutting_down();
             }
             WindowEvent::ModifiersChanged(modifier) =&gt; <span class="self">self</span>.modifiers_state.set(modifier.state()),
             WindowEvent::KeyboardInput { event, .. } =&gt; {
                 <span class="kw">let </span>event = keyboard_event_from_winit(<span class="kw-2">&amp;</span>event, <span class="self">self</span>.modifiers_state.get());
                 <span class="macro">log::trace!</span>(<span class="string">"Verso is handling {:?}"</span>, event);
-                events.push(EmbedderEvent::Keyboard(event));
+                <span class="kw">let </span>msg = ConstellationMsg::Keyboard(event);
+                send_to_constellation(sender, msg);
             }
             e =&gt; <span class="macro">log::warn!</span>(<span class="string">"Verso Window isn't supporting this window event yet: {e:?}"</span>),
         }
     }
 
-    <span class="doccomment">/// Handle servo messages and return a boolean to indicate servo needs to present or not.
-    </span><span class="kw">pub fn </span>handle_servo_messages(
+    <span class="doccomment">/// Handle servo messages.
+    </span><span class="kw">pub fn </span>handle_servo_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        servo: <span class="kw-2">&amp;mut </span>Servo&lt;GLWindow&gt;,
-        events: <span class="kw-2">&amp;mut </span>Vec&lt;EmbedderEvent&gt;,
-        status: <span class="kw-2">&amp;mut </span>Status,
+        webview_id: <span class="prelude-ty">Option</span>&lt;TopLevelBrowsingContextId&gt;,
+        message: EmbedderMsg,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
-    ) -&gt; bool {
-        <span class="kw">let </span><span class="kw-2">mut </span>need_present = <span class="bool-val">false</span>;
-        servo.get_events().into_iter().for_each(|(w, m)| {
-            <span class="kw">match </span>w {
-                <span class="comment">// Handle message in Verso Panel
-                </span><span class="prelude-val">Some</span>(p) <span class="kw">if </span>p == <span class="self">self</span>.panel.id() =&gt; {
-                    <span class="self">self</span>.handle_servo_messages_with_panel(
-                        events,
-                        clipboard,
-                        p,
-                        m,
-                        <span class="kw-2">&amp;mut </span>need_present,
-                    );
-                }
-                <span class="comment">// Handle message in Verso WebView
-                </span><span class="prelude-val">Some</span>(w) =&gt; {
-                    <span class="self">self</span>.handle_servo_messages_with_webview(
-                        events,
-                        clipboard,
-                        w,
-                        m,
-                        <span class="kw-2">&amp;mut </span>need_present,
-                    );
-                }
-                <span class="comment">// Handle message in Verso Window
-                </span><span class="prelude-val">None </span>=&gt; {
-                    <span class="macro">log::trace!</span>(<span class="string">"Verso Window is handling servo message: {m:?}"</span>);
-                    <span class="kw">match </span>m {
-                        EmbedderMsg::ReadyToPresent(_w) =&gt; {
-                            need_present = <span class="bool-val">true</span>;
-                        }
-                        EmbedderMsg::SetCursor(cursor) =&gt; {
-                            <span class="self">self</span>.set_cursor_icon(cursor);
-                        }
-                        EmbedderMsg::Shutdown =&gt; {
-                            <span class="kw-2">*</span>status = Status::Shutdown;
-                        }
-                        e =&gt; {
-                            <span class="macro">log::warn!</span>(
-                                <span class="string">"Verso Window isn't supporting handling this message yet: {e:?}"
-                            </span>)
-                        }
+    ) {
+        <span class="kw">match </span>webview_id {
+            <span class="comment">// // Handle message in Verso Panel
+            </span><span class="prelude-val">Some</span>(p) <span class="kw">if </span>p == <span class="self">self</span>.panel.id() =&gt; {
+                <span class="self">self</span>.handle_servo_messages_with_panel(p, message, sender, compositor, clipboard);
+            }
+            <span class="comment">// Handle message in Verso WebView
+            </span><span class="prelude-val">Some</span>(w) =&gt; {
+                <span class="self">self</span>.handle_servo_messages_with_webview(w, message, sender, compositor, clipboard);
+            }
+            <span class="comment">// Handle message in Verso Window
+            </span><span class="prelude-val">None </span>=&gt; {
+                <span class="macro">log::trace!</span>(<span class="string">"Verso Window is handling servo message: {message:?}"</span>);
+                <span class="kw">match </span>message {
+                    EmbedderMsg::ReadyToPresent(_w) =&gt; {
+                        <span class="self">self</span>.window.request_redraw();
+                    }
+                    EmbedderMsg::SetCursor(cursor) =&gt; {
+                        <span class="self">self</span>.set_cursor_icon(cursor);
+                    }
+                    EmbedderMsg::Shutdown =&gt; {}
+                    e =&gt; {
+                        <span class="macro">log::warn!</span>(<span class="string">"Verso Window isn't supporting handling this message yet: {e:?}"</span>)
                     }
                 }
             }
-        });
-
-        need_present
+        }
     }
 
     <span class="doccomment">/// Paint offscreen framebuffer to Winit window.
@@ -775,17 +738,22 @@
     }
 
     <span class="doccomment">/// Resize the rendering context and all web views.
-    </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;</span><span class="self">self</span>, size: Size2D&lt;i32, DevicePixel&gt;, events: <span class="kw-2">&amp;mut </span>Vec&lt;EmbedderEvent&gt;) {
+    </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;</span><span class="self">self</span>, size: Size2D&lt;i32, DevicePixel&gt;, compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;) {
         <span class="kw">let _ </span>= <span class="self">self</span>.gl_window.rendering_context.resize(size.to_untyped());
-        events.push(EmbedderEvent::WindowResize);
+        <span class="kw">let </span>need_resize = compositor.on_resize_window_event();
 
         <span class="kw">let </span>rect = DeviceIntRect::from_size(size).to_f32();
-        events.push(EmbedderEvent::MoveResizeWebView(<span class="self">self</span>.panel.id(), rect));
+        compositor.move_resize_webview(<span class="self">self</span>.panel.id(), rect);
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(w) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
             <span class="kw">let </span><span class="kw-2">mut </span>rect = DeviceIntRect::from_size(size).to_f32();
             rect.min.y = rect.max.y.min(<span class="number">76.</span>);
-            events.push(EmbedderEvent::MoveResizeWebView(w.id(), rect));
+            compositor.move_resize_webview(w.id(), rect);
+        }
+
+        <span class="kw">if </span>need_resize {
+            compositor.repaint_synchronously();
+            compositor.present();
         }
     }
 
