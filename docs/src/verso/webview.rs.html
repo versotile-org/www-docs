@@ -277,15 +277,13 @@
 <a href="#275" id="275">275</a>
 <a href="#276" id="276">276</a>
 <a href="#277" id="277">277</a>
-<a href="#278" id="278">278</a>
-<a href="#279" id="279">279</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>servo::{
-    base::id::WebViewId,
+    base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId},
     compositing::{webview::UnknownWebView, IOCompositor},
     embedder_traits::{CompositorEventVariant, EmbedderMsg, PromptDefinition},
     euclid::Size2D,
@@ -339,7 +337,7 @@
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
     ) {
-        <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling servo message: {message:?}"</span>,);
+        <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
             EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {}
             EmbedderMsg::LoadComplete =&gt; {
@@ -420,25 +418,23 @@
 /// - Maximize the window: `window.prompt('MAXIMIZE')`
 /// - Navigate to a specific URL: `window.prompt('NAVIGATE_TO:${url}')`
 </span><span class="kw">pub struct </span>Panel {
-    id: <span class="prelude-ty">Option</span>&lt;WebViewId&gt;,
+    id: WebViewId,
 }
 
 <span class="kw">impl </span>Panel {
     <span class="doccomment">/// Create a panel from Winit window.
     </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ id: <span class="prelude-val">None </span>}
-    }
-
-    <span class="doccomment">/// Set web view ID of this panel.
-    </span><span class="kw">pub fn </span>set_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: WebViewId) {
-        <span class="self">self</span>.id = <span class="prelude-val">Some</span>(id);
+        <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
+        </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
+        <span class="kw">let </span>id = TopLevelBrowsingContextId::new();
+        <span class="self">Self </span>{ id }
     }
 
     <span class="doccomment">/// Get web view ID of this panel.
     ///
     /// We assume this is always called after `set_id`. Calling before it will cause panic.
     </span><span class="kw">pub fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WebViewId {
-        <span class="self">self</span>.id.unwrap()
+        <span class="self">self</span>.id
     }
 }
 
@@ -452,7 +448,7 @@
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
     ) {
-        <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {panel_id:?} is handling servo message: {message:?}"</span>,);
+        <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {panel_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
             EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {}
             EmbedderMsg::LoadComplete =&gt; {
