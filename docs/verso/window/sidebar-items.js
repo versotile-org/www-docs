@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["GLWindow","Window"]};
+window.SIDEBAR_ITEMS = {"struct":["Window"]};

@@ -383,60 +383,16 @@
 <a href="#381" id="381">381</a>
 <a href="#382" id="382">382</a>
 <a href="#383" id="383">383</a>
-<a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
-<a href="#390" id="390">390</a>
-<a href="#391" id="391">391</a>
-<a href="#392" id="392">392</a>
-<a href="#393" id="393">393</a>
-<a href="#394" id="394">394</a>
-<a href="#395" id="395">395</a>
-<a href="#396" id="396">396</a>
-<a href="#397" id="397">397</a>
-<a href="#398" id="398">398</a>
-<a href="#399" id="399">399</a>
-<a href="#400" id="400">400</a>
-<a href="#401" id="401">401</a>
-<a href="#402" id="402">402</a>
-<a href="#403" id="403">403</a>
-<a href="#404" id="404">404</a>
-<a href="#405" id="405">405</a>
-<a href="#406" id="406">406</a>
-<a href="#407" id="407">407</a>
-<a href="#408" id="408">408</a>
-<a href="#409" id="409">409</a>
-<a href="#410" id="410">410</a>
-<a href="#411" id="411">411</a>
-<a href="#412" id="412">412</a>
-<a href="#413" id="413">413</a>
-<a href="#414" id="414">414</a>
-<a href="#415" id="415">415</a>
-<a href="#416" id="416">416</a>
-<a href="#417" id="417">417</a>
-<a href="#418" id="418">418</a>
-<a href="#419" id="419">419</a>
-<a href="#420" id="420">420</a>
-<a href="#421" id="421">421</a>
-<a href="#422" id="422">422</a>
-<a href="#423" id="423">423</a>
-<a href="#424" id="424">424</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, ops::Deref, rc::Rc};
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+<span class="kw">use </span>servo::webrender_api::units::DeviceIntSize;
 <span class="kw">use </span>servo::{
-    compositing::{
-        windowing::{AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowMethods},
-        IOCompositor,
-    },
+    base::id::{PipelineId, WebViewId},
     embedder_traits::{Cursor, EmbedderMsg},
-    euclid::{Point2D, Scale, Size2D},
-    gl,
+    euclid::{Point2D, Size2D},
     script_traits::{TouchEventType, WheelDelta, WheelMode},
     style_traits::DevicePixel,
     webrender_api::{
@@ -444,9 +400,9 @@
         ScrollLocation,
     },
     webrender_traits::RenderingContext,
-    Servo, TopLevelBrowsingContextId,
+    TopLevelBrowsingContextId,
 };
-<span class="kw">use </span>surfman::{Connection, GLApi, SurfaceType};
+<span class="kw">use </span>surfman::{Connection, SurfaceType};
 <span class="kw">use </span>winit::{
     dpi::PhysicalPosition,
     event::{ElementState, TouchPhase, WindowEvent},
@@ -455,23 +411,22 @@
 };
 
 <span class="kw">use crate</span>::{
+    compositor::{IOCompositor, MouseWindowEvent},
     keyboard::keyboard_event_from_winit,
     verso::send_to_constellation,
-    webview::{Panel, WebView},
+    webview::WebView,
 };
 
 <span class="kw">use </span>arboard::Clipboard;
 
 <span class="doccomment">/// A Verso window is a Winit window containing several web views.
 </span><span class="kw">pub struct </span>Window {
-    <span class="doccomment">/// Access to Winit window with webrender context.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) gl_window: Rc&lt;GLWindow&gt;,
+    <span class="doccomment">/// Access to Winit window
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) window: WinitWindow,
     <span class="doccomment">/// The main control panel of this window.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) panel: Panel,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) panel: WebView,
     <span class="doccomment">/// The WebView of this window.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) webview: <span class="prelude-ty">Option</span>&lt;WebView&gt;,
-    <span class="doccomment">/// Access to webrender GL
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
     <span class="doccomment">/// The mouse physical position in the web view.
     </span>mouse_position: Cell&lt;PhysicalPosition&lt;f64&gt;&gt;,
     <span class="doccomment">/// Modifiers state of the keyboard.
@@ -479,8 +434,8 @@
 }
 
 <span class="kw">impl </span>Window {
-    <span class="doccomment">/// Create a Verso window from Winit window.
-    </span><span class="kw">pub fn </span>new(window: WinitWindow) -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Create a Verso window from Winit window and return the rendering context.
+    </span><span class="kw">pub fn </span>new(window: WinitWindow) -&gt; (<span class="self">Self</span>, RenderingContext) {
         <span class="kw">let </span>window_size = window.inner_size();
         <span class="kw">let </span>window_size = Size2D::new(window_size.width <span class="kw">as </span>i32, window_size.height <span class="kw">as </span>i32);
         <span class="kw">let </span>display_handle = window.raw_display_handle();
@@ -496,34 +451,26 @@
         <span class="kw">let </span>rendering_context = RenderingContext::create(<span class="kw-2">&amp;</span>connection, <span class="kw-2">&amp;</span>adapter, surface_type)
             .expect(<span class="string">"Failed to create rendering context"</span>);
         <span class="macro">log::trace!</span>(<span class="string">"Created rendering context for window {:?}"</span>, window);
-        <span class="kw">let </span>webrender_gl = <span class="kw">match </span>rendering_context.connection().gl_api() {
-            GLApi::GL =&gt; <span class="kw">unsafe </span>{ gl::GlFns::load_with(|s| rendering_context.get_proc_address(s)) },
-            GLApi::GLES =&gt; <span class="kw">unsafe </span>{
-                gl::GlesFns::load_with(|s| rendering_context.get_proc_address(s))
+
+        <span class="kw">let </span>size = window.inner_size();
+        <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
+        (
+            <span class="self">Self </span>{
+                window,
+                panel: WebView::new_panel(DeviceIntRect::from_size(size)),
+                webview: <span class="prelude-val">None</span>,
+                mouse_position: Cell::new(PhysicalPosition::default()),
+                modifiers_state: Cell::new(ModifiersState::default()),
             },
-        };
-        <span class="macro">debug_assert_eq!</span>(webrender_gl.get_error(), gl::NO_ERROR);
-
-        <span class="self">Self </span>{
-            gl_window: Rc::new(GLWindow::new(window, rendering_context)),
-            panel: Panel::new(),
-            webview: <span class="prelude-val">None</span>,
-            webrender_gl,
-            mouse_position: Cell::new(PhysicalPosition::default()),
-            modifiers_state: Cell::new(ModifiersState::default()),
-        }
-    }
-
-    <span class="doccomment">/// Return the reference counted `GLWindow`.
-    </span><span class="kw">pub fn </span>gl_window(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rc&lt;GLWindow&gt; {
-        <span class="kw">return </span><span class="self">self</span>.gl_window.clone();
+            rendering_context,
+        )
     }
 
     <span class="doccomment">/// Handle Winit window event.
     </span><span class="kw">pub fn </span>handle_winit_window_event(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
-        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
         event: <span class="kw-2">&amp;</span>winit::event::WindowEvent,
     ) {
         <span class="kw">match </span>event {
@@ -638,17 +585,16 @@
         webview_id: <span class="prelude-ty">Option</span>&lt;TopLevelBrowsingContextId&gt;,
         message: EmbedderMsg,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
-        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
     ) {
         <span class="kw">match </span>webview_id {
             <span class="comment">// // Handle message in Verso Panel
-            </span><span class="prelude-val">Some</span>(p) <span class="kw">if </span>p == <span class="self">self</span>.panel.id() =&gt; {
-                <span class="self">self</span>.handle_servo_messages_with_panel(p, message, sender, compositor, clipboard);
+            </span><span class="prelude-val">Some</span>(p) <span class="kw">if </span>p == <span class="self">self</span>.panel.webview_id =&gt; {
+                <span class="self">self</span>.handle_servo_messages_with_panel(p, message, sender, clipboard);
             }
             <span class="comment">// Handle message in Verso WebView
             </span><span class="prelude-val">Some</span>(w) =&gt; {
-                <span class="self">self</span>.handle_servo_messages_with_webview(w, message, sender, compositor, clipboard);
+                <span class="self">self</span>.handle_servo_messages_with_webview(w, message, sender, clipboard);
             }
             <span class="comment">// Handle message in Verso Window
             </span><span class="prelude-val">None </span>=&gt; {
@@ -669,80 +615,113 @@
         }
     }
 
-    <span class="doccomment">/// Paint offscreen framebuffer to Winit window.
-    </span><span class="kw">pub fn </span>paint(<span class="kw-2">&amp;</span><span class="self">self</span>, servo: <span class="kw-2">&amp;mut </span>Servo&lt;GLWindow&gt;) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(fbo) = servo.offscreen_framebuffer_id() {
-            <span class="kw">let </span>viewport = <span class="self">self</span>.gl_window.get_coordinates().get_flipped_viewport();
-            <span class="kw">let </span>webrender_gl = <span class="kw-2">&amp;</span><span class="self">self</span>.webrender_gl;
-
-            <span class="kw">let </span>target_fbo = <span class="self">self
-                </span>.gl_window
-                .rendering_context
-                .context_surface_info()
-                .unwrap_or(<span class="prelude-val">None</span>)
-                .map(|info| info.framebuffer_object)
-                .unwrap_or(<span class="number">0</span>);
-
-            webrender_gl.bind_framebuffer(gl::READ_FRAMEBUFFER, fbo);
-            webrender_gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, target_fbo);
-
-            <span class="kw">let </span>x = viewport.min.x;
-            <span class="kw">let </span>y = viewport.min.y;
-            <span class="kw">let </span>width = viewport.size().width;
-            <span class="kw">let </span>height = viewport.size().height;
-            webrender_gl.blit_framebuffer(
-                x,
-                y,
-                x + width,
-                y + height,
-                x,
-                y,
-                x + width,
-                y + height,
-                gl::COLOR_BUFFER_BIT,
-                gl::NEAREST,
-            );
-
-            <span class="macro">debug_assert_eq!</span>(
-                (
-                    <span class="self">self</span>.webrender_gl.get_error(),
-                    <span class="self">self</span>.webrender_gl.check_frame_buffer_status(gl::FRAMEBUFFER)
-                ),
-                (gl::NO_ERROR, gl::FRAMEBUFFER_COMPLETE)
-            );
-
-            servo.present();
-        }
-    }
-
     <span class="doccomment">/// Queues a Winit `WindowEvent::RedrawRequested` event to be emitted that aligns with the windowing system drawing loop.
     </span><span class="kw">pub fn </span>request_redraw(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="self">self</span>.window.request_redraw()
     }
 
-    <span class="doccomment">/// Check if WebView (`GLWindow`) is animating.
-    </span><span class="kw">pub fn </span>is_animating(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="self">self</span>.gl_window.is_animating()
-    }
-
     <span class="doccomment">/// Resize the rendering context and all web views.
-    </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;</span><span class="self">self</span>, size: Size2D&lt;i32, DevicePixel&gt;, compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;) {
-        <span class="kw">let _ </span>= <span class="self">self</span>.gl_window.rendering_context.resize(size.to_untyped());
-        <span class="kw">let </span>need_resize = compositor.on_resize_window_event();
+    </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, size: Size2D&lt;i32, DevicePixel&gt;, compositor: <span class="kw-2">&amp;mut </span>IOCompositor) {
+        <span class="kw">let </span>need_resize = compositor.on_resize_window_event(size);
 
-        <span class="kw">let </span>rect = DeviceIntRect::from_size(size).to_f32();
-        compositor.move_resize_webview(<span class="self">self</span>.panel.id(), rect);
+        <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+        compositor.on_resize_webview_event(<span class="self">self</span>.panel.webview_id, rect);
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(w) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
-            <span class="kw">let </span><span class="kw-2">mut </span>rect = DeviceIntRect::from_size(size).to_f32();
-            rect.min.y = rect.max.y.min(<span class="number">76.</span>);
-            compositor.move_resize_webview(w.id(), rect);
+            <span class="kw">let </span><span class="kw-2">mut </span>rect = DeviceIntRect::from_size(size);
+            rect.min.y = rect.max.y.min(<span class="number">76</span>);
+            compositor.on_resize_webview_event(w.webview_id, rect);
         }
 
         <span class="kw">if </span>need_resize {
-            compositor.repaint_synchronously();
+            compositor.repaint_synchronously(<span class="self">self</span>);
             compositor.present();
         }
+    }
+
+    <span class="doccomment">/// Size of the window that's used by webrender.
+    </span><span class="kw">pub fn </span>size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceIntSize {
+        <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
+        Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32)
+    }
+
+    <span class="doccomment">/// Scale factor of the window. This is also known as HIDPI.
+    </span><span class="kw">pub fn </span>scale_factor(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
+        <span class="self">self</span>.window.scale_factor()
+    }
+
+    <span class="doccomment">/// Get the mutable reference of the webview in this window from provided webview ID.
+    </span><span class="kw">pub fn </span>get_webview(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: WebViewId) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>WebView&gt; {
+        <span class="kw">if </span><span class="self">self</span>.panel.webview_id == id {
+            <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.panel)
+        } <span class="kw">else </span>{
+            <span class="self">self</span>.webview.as_mut().filter(|w| w.webview_id == id)
+        }
+    }
+
+    <span class="doccomment">/// Set the webview to this window. It won't be updated if the exisitng webview and pipeline ID
+    /// are the same. This will also set the painting order of the compositor and tell
+    /// constellation to focus the webview.
+    </span><span class="kw">pub fn </span>set_webview(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        webview_id: WebViewId,
+        pipline_id: PipelineId,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
+    ) {
+        <span class="kw">if </span><span class="self">self</span>.panel.webview_id == webview_id {
+            <span class="kw">if </span><span class="self">self</span>.panel.pipeline_id != <span class="prelude-val">Some</span>(pipline_id) {
+                <span class="self">self</span>.panel.pipeline_id = <span class="prelude-val">Some</span>(pipline_id);
+            }
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.webview {
+            <span class="kw">if </span>webview.webview_id == webview_id &amp;&amp; webview.pipeline_id != <span class="prelude-val">Some</span>(pipline_id) {
+                webview.pipeline_id = <span class="prelude-val">Some</span>(pipline_id);
+            }
+        } <span class="kw">else </span>{
+            <span class="kw">let </span>size = <span class="self">self</span>.size();
+            <span class="kw">let </span><span class="kw-2">mut </span>rect = DeviceIntRect::from_size(size);
+            rect.min.y = rect.max.y.min(<span class="number">76</span>);
+            <span class="self">self</span>.webview = <span class="prelude-val">Some</span>(WebView::new(webview_id, rect));
+        }
+
+        compositor.set_painting_order(<span class="self">self</span>.paiting_order());
+        <span class="self">self</span>.resize(<span class="self">self</span>.size(), compositor);
+
+        send_to_constellation(
+            <span class="kw-2">&amp;</span>compositor.constellation_chan,
+            ConstellationMsg::FocusWebView(webview_id),
+        );
+    }
+
+    <span class="doccomment">/// Remove the webview in this window by provided webview ID. If this is the panel, it will
+    /// shut down the compositor and then close whole application.
+    </span><span class="kw">pub fn </span>remove_webview(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        id: WebViewId,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;WebView&gt; {
+        <span class="kw">if </span>id == <span class="self">self</span>.panel.webview_id {
+            compositor.maybe_start_shutting_down();
+            <span class="prelude-val">None
+        </span>} <span class="kw">else if </span><span class="self">self
+            </span>.webview
+            .as_ref()
+            .filter(|w| w.webview_id == id)
+            .is_some()
+        {
+            <span class="self">self</span>.webview.take()
+        } <span class="kw">else </span>{
+            <span class="prelude-val">None
+        </span>}
+    }
+
+    <span class="doccomment">/// Get the painting order of this window.
+    </span><span class="kw">pub fn </span>paiting_order(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;WebView&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>order = <span class="macro">vec!</span>[];
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
+            order.push(webview.clone());
+        }
+        order.push(<span class="self">self</span>.panel.clone());
+        order
     }
 
     <span class="doccomment">/// Set cursor icon of the window.
@@ -785,67 +764,6 @@
             <span class="kw">_ </span>=&gt; CursorIcon::Default,
         };
         <span class="self">self</span>.window.set_cursor_icon(winit_cursor);
-    }
-}
-
-<span class="doccomment">/// A Winit window with webrender rendering context.
-</span><span class="kw">pub struct </span>GLWindow {
-    <span class="doccomment">/// Access to webrender rendering context
-    </span>rendering_context: RenderingContext,
-    <span class="doccomment">/// Animation state set by Servo to indicate if the webview is still rendering.
-    </span>animation_state: Cell&lt;AnimationState&gt;,
-    <span class="doccomment">/// Access to Winit window
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) window: WinitWindow,
-}
-
-<span class="kw">impl </span>GLWindow {
-    <span class="doccomment">/// Create a web view from Winit window.
-    </span><span class="kw">pub fn </span>new(window: WinitWindow, rendering_context: RenderingContext) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{
-            rendering_context,
-            animation_state: Cell::new(AnimationState::Idle),
-            window,
-        }
-    }
-
-    <span class="doccomment">/// Check if WebView (`GLWindow`) is animating.
-    </span><span class="kw">pub fn </span>is_animating(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="self">self</span>.animation_state.get() == AnimationState::Animating
-    }
-}
-
-<span class="kw">impl </span>WindowMethods <span class="kw">for </span>GLWindow {
-    <span class="kw">fn </span>get_coordinates(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; EmbedderCoordinates {
-        <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
-        <span class="kw">let </span>pos = Point2D::new(<span class="number">0</span>, <span class="number">0</span>);
-        <span class="kw">let </span>viewport = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
-
-        <span class="kw">let </span>size = <span class="self">self</span>.window.available_monitors().nth(<span class="number">0</span>).unwrap().size();
-        <span class="kw">let </span>screen = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
-        EmbedderCoordinates {
-            hidpi_factor: Scale::new(<span class="self">self</span>.window.scale_factor() <span class="kw">as </span>f32),
-            screen,
-            screen_avail: screen,
-            window: (viewport, pos),
-            framebuffer: viewport,
-            viewport: DeviceIntRect::from_origin_and_size(pos, viewport),
-        }
-    }
-
-    <span class="kw">fn </span>set_animation_state(<span class="kw-2">&amp;</span><span class="self">self</span>, state: AnimationState) {
-        <span class="self">self</span>.animation_state.set(state);
-    }
-
-    <span class="kw">fn </span>rendering_context(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RenderingContext {
-        <span class="self">self</span>.rendering_context.clone()
-    }
-}
-
-<span class="kw">impl </span>Deref <span class="kw">for </span>Window {
-    <span class="kw">type </span>Target = GLWindow;
-
-    <span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Target {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.gl_window
     }
 }
 </code></pre></div></section></main></body></html>

@@ -216,11 +216,14 @@
         "color": {
             "pref": null
         },
+        "color-scheme": {
+            "pref": "layout.unimplemented"
+        },
         "column-count": {
             "pref": "layout.columns.enabled"
         },
         "column-gap": {
-            "pref": "layout.columns.enabled"
+            "pref": "layout.flexbox.enabled"
         },
         "column-span": {
             "pref": "layout.columns.enabled"
@@ -296,6 +299,42 @@
         },
         "font-weight": {
             "pref": null
+        },
+        "grid-auto-columns": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-auto-flow": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-auto-rows": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-column-end": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-column-gap": {
+            "pref": "layout.flexbox.enabled"
+        },
+        "grid-column-start": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-row-end": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-row-gap": {
+            "pref": "layout.flexbox.enabled"
+        },
+        "grid-row-start": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-template-areas": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-template-columns": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-template-rows": {
+            "pref": "layout.grid.enabled"
         },
         "height": {
             "pref": null
@@ -474,11 +513,14 @@
         "rotate": {
             "pref": null
         },
+        "row-gap": {
+            "pref": "layout.flexbox.enabled"
+        },
         "scale": {
             "pref": null
         },
         "table-layout": {
-            "pref": "layout.legacy_layout"
+            "pref": null
         },
         "text-align": {
             "pref": null
@@ -670,6 +712,27 @@
         },
         "font-variant": {
             "pref": null
+        },
+        "gap": {
+            "pref": "layout.flexbox.enabled"
+        },
+        "grid": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-area": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-column": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-gap": {
+            "pref": "layout.flexbox.enabled"
+        },
+        "grid-row": {
+            "pref": "layout.grid.enabled"
+        },
+        "grid-template": {
+            "pref": "layout.grid.enabled"
         },
         "inset": {
             "pref": null

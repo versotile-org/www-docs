@@ -672,8 +672,10 @@
 <a href="#670" id="670">670</a>
 <a href="#671" id="671">671</a>
 <a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
+    path::PathBuf,
     sync::{atomic::Ordering, Arc},
 };
 
@@ -689,10 +691,6 @@
     canvas::{
         canvas_paint_thread::{<span class="self">self</span>, CanvasPaintThread},
         WebGLComm,
-    },
-    compositing::{
-        windowing::WindowMethods, CompositeTarget, IOCompositor, InitialCompositorState,
-        ShutdownState,
     },
     config::{opts, pref},
     constellation::{Constellation, FromCompositorLogger, InitialConstellationState},
@@ -711,20 +709,27 @@
     style,
     url::ServoUrl,
     webgpu,
+    webrender_api::<span class="kw-2">*</span>,
     webrender_traits::<span class="kw-2">*</span>,
 };
-<span class="kw">use </span>webrender::{api::<span class="kw-2">*</span>, ShaderPrecacheFlags};
-<span class="kw">use </span>winit::{event::Event, event_loop::EventLoopProxy, window::Window <span class="kw">as </span>WinitWindow};
+<span class="kw">use </span>surfman::GLApi;
+<span class="kw">use </span>webrender::{create_webrender_instance, ShaderPrecacheFlags, WebRenderOptions};
+<span class="kw">use </span>winit::{
+    event::{Event, StartCause},
+    event_loop::EventLoopProxy,
+    window::Window <span class="kw">as </span>WinitWindow,
+};
 
 <span class="kw">use crate</span>::{
+    compositor::{IOCompositor, InitialCompositorState, ShutdownState},
     config::Config,
-    window::{GLWindow, Window},
+    window::Window,
 };
 
 <span class="doccomment">/// Main entry point of Verso browser.
 </span><span class="kw">pub struct </span>Verso {
     window: Window,
-    compositor: <span class="prelude-ty">Option</span>&lt;IOCompositor&lt;GLWindow&gt;&gt;,
+    compositor: <span class="prelude-ty">Option</span>&lt;IOCompositor&gt;,
     constellation_sender: Sender&lt;ConstellationMsg&gt;,
     embedder_receiver: EmbedderReceiver,
     <span class="doccomment">/// For single-process Servo instances, this field controls the initialization
@@ -732,6 +737,7 @@
     /// own instance that exists in the content process instead.
     </span>_js_engine_setup: <span class="prelude-ty">Option</span>&lt;JSEngineSetup&gt;,
     clipboard: Clipboard,
+    resource_dir: PathBuf,
 }
 
 <span class="kw">impl </span>Verso {
@@ -752,10 +758,9 @@
     /// - Constellation
     </span><span class="kw">pub fn </span>new(window: WinitWindow, proxy: EventLoopProxy&lt;()&gt;, config: Config) -&gt; <span class="self">Self </span>{
         <span class="comment">// Initialize configurations and Verso window
-        </span><span class="kw">let </span>path = config.resource_dir.join(<span class="string">"panel.html"</span>);
-        <span class="kw">let </span>url = ServoUrl::from_file_path(path.to_str().unwrap()).unwrap();
+        </span><span class="kw">let </span>resource_dir = config.resource_dir.clone();
         config.init();
-        <span class="kw">let </span>window = Window::new(window);
+        <span class="kw">let </span>(window, rendering_context) = Window::new(window);
         <span class="kw">let </span>event_loop_waker = Box::new(Waker(proxy));
         <span class="kw">let </span>opts = opts::get();
 
@@ -771,8 +776,12 @@
         </span>servo_media::ServoMedia::init::&lt;servo_media_dummy::DummyBackend&gt;();
 
         <span class="comment">// Initialize surfman &amp; get GL bindings
-        </span><span class="kw">let </span>rendering_context = window.rendering_context();
-        <span class="kw">let </span>webrender_gl = window.webrender_gl.clone();
+        </span><span class="kw">let </span>webrender_gl = <span class="kw">match </span>rendering_context.connection().gl_api() {
+            GLApi::GL =&gt; <span class="kw">unsafe </span>{ gl::GlFns::load_with(|s| rendering_context.get_proc_address(s)) },
+            GLApi::GLES =&gt; <span class="kw">unsafe </span>{
+                gl::GlesFns::load_with(|s| rendering_context.get_proc_address(s))
+            },
+        };
         <span class="comment">// Make sure the gl context is made current.
         </span>rendering_context.make_gl_context_current().unwrap();
         <span class="macro">debug_assert_eq!</span>(webrender_gl.get_error(), gl::NO_ERROR,);
@@ -824,22 +833,16 @@
         </span>};
 
         <span class="comment">// Create Webrender threads
-        </span><span class="kw">let </span>coordinates = window.get_coordinates();
-        <span class="kw">let </span>device_pixel_ratio = coordinates.hidpi_factor.get();
-        <span class="kw">let </span>viewport_size = coordinates.viewport.size().to_f32() / device_pixel_ratio;
-        <span class="kw">let </span>(<span class="kw-2">mut </span>webrender, webrender_api_sender) = {
-            <span class="kw">let </span><span class="kw-2">mut </span>debug_flags = webrender::DebugFlags::empty();
-            debug_flags.set(
-                webrender::DebugFlags::PROFILER_DBG,
-                opts.debug.webrender_stats,
-            );
+        </span><span class="kw">let </span>(<span class="kw-2">mut </span>webrender, webrender_api_sender) = {
+            <span class="kw">let </span><span class="kw-2">mut </span>debug_flags = DebugFlags::empty();
+            debug_flags.set(DebugFlags::PROFILER_DBG, opts.debug.webrender_stats);
 
             <span class="kw">let </span>render_notifier = Box::new(RenderNotifier::new(compositor_sender.clone()));
             <span class="kw">let </span>clear_color = ColorF::new(<span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">0.</span>);
-            webrender::create_webrender_instance(
+            create_webrender_instance(
                 webrender_gl.clone(),
                 render_notifier,
-                webrender::WebRenderOptions {
+                WebRenderOptions {
                     <span class="comment">// We force the use of optimized shaders here because rendering is broken
                     // on Android emulators with unoptimized shaders. This is due to a known
                     // issue in the emulator's OpenGL emulation layer.
@@ -864,7 +867,7 @@
             .expect(<span class="string">"Unable to initialize webrender!"</span>)
         };
         <span class="kw">let </span>webrender_api = webrender_api_sender.create_api();
-        <span class="kw">let </span>webrender_document = webrender_api.add_document(coordinates.get_viewport().size());
+        <span class="kw">let </span>webrender_document = webrender_api.add_document(window.size());
 
         <span class="comment">// Initialize js engine if it's single process mode
         </span><span class="kw">let </span>js_engine_setup = <span class="kw">if </span>!opts.multiprocess {
@@ -981,8 +984,8 @@
         <span class="comment">// The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
         </span><span class="kw">let </span>window_size = WindowSizeData {
-            initial_viewport: viewport_size / Scale::new(<span class="number">1.0</span>),
-            device_pixel_ratio: Scale::new(device_pixel_ratio),
+            initial_viewport: window.size().to_f32() / Scale::new(<span class="number">1.0</span>),
+            device_pixel_ratio: Scale::new(window.scale_factor() <span class="kw">as </span>f32),
         };
 
         <span class="comment">// Create constellation thread
@@ -1006,17 +1009,11 @@
             webdriver_server::start_server(port, constellation_sender.clone());
         }
 
-        <span class="kw">let </span>composite_target = <span class="kw">if let </span><span class="prelude-val">Some</span>(path) = opts.output_file.clone() {
-            CompositeTarget::PngFile(path.into())
-        } <span class="kw">else </span>{
-            CompositeTarget::Window
-        };
-
         <span class="comment">// The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
-        </span><span class="kw">let </span>panel_id = window.panel.id();
-        <span class="kw">let </span>compositor = IOCompositor::create(
-            window.gl_window(),
+        </span><span class="kw">let </span>compositor = IOCompositor::new(
+            window.size(),
+            Scale::new(window.scale_factor() <span class="kw">as </span>f32),
             InitialCompositorState {
                 sender: compositor_sender,
                 receiver: compositor_receiver,
@@ -1030,10 +1027,8 @@
                 webrender_gl,
                 webxr_main_thread: webxr_registry,
             },
-            composite_target,
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
-            panel_id,
         );
 
         <span class="comment">// Create Verso instance
@@ -1045,15 +1040,10 @@
             _js_engine_setup: js_engine_setup,
             clipboard: Clipboard::new()
                 .expect(<span class="string">"Clipboard isn't supported in this platform or desktop environment."</span>),
+            resource_dir,
         };
 
-        <span class="comment">// Send the constellation message to start Panel UI
-        </span>send_to_constellation(
-            <span class="kw-2">&amp;</span>verso.constellation_sender,
-            ConstellationMsg::NewWebView(url, panel_id),
-        );
         verso.setup_logging();
-
         verso
     }
 
@@ -1070,6 +1060,16 @@
     </span><span class="kw">fn </span>handle_winit_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: Event&lt;()&gt;) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso is handling Winit event: {event:?}"</span>);
         <span class="kw">match </span>event {
+            Event::NewEvents(StartCause::Init) =&gt; {
+                <span class="comment">// Send the constellation message to start Panel UI
+                </span><span class="kw">let </span>panel_id = <span class="self">self</span>.window.panel.webview_id;
+                <span class="kw">let </span>path = <span class="self">self</span>.resource_dir.join(<span class="string">"panel.html"</span>);
+                <span class="kw">let </span>url = ServoUrl::from_file_path(path.to_str().unwrap()).unwrap();
+                send_to_constellation(
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                    ConstellationMsg::NewWebView(url, panel_id),
+                );
+            }
             Event::Suspended | Event::Resumed | Event::UserEvent(()) =&gt; {}
             Event::WindowEvent {
                 window_id: <span class="kw">_</span>,
@@ -1093,7 +1093,7 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
             <span class="comment">// Handle Compositor's messages first
             </span><span class="macro">log::trace!</span>(<span class="string">"Verso is handling Compositor messages"</span>);
-            <span class="kw">if </span>compositor.receive_messages() {
+            <span class="kw">if </span>compositor.receive_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>.window) {
                 <span class="comment">// And then handle Embedder messages
                 </span><span class="macro">log::trace!</span>(
                     <span class="string">"Verso is handling Embedder messages when shutdown state is set to {:?}"</span>,
@@ -1110,7 +1110,6 @@
                                 top_level_browsing_context,
                                 msg,
                                 <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
-                                compositor,
                                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.clipboard,
                             );
                         }
@@ -1138,7 +1137,10 @@
 
     <span class="doccomment">/// Return true if one of the Verso windows is animating.
     </span><span class="kw">pub fn </span>is_animating(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="self">self</span>.window.is_animating()
+        <span class="self">self</span>.compositor
+            .as_ref()
+            .map(|c| c.is_animating)
+            .unwrap_or(<span class="bool-val">false</span>)
     }
 
     <span class="doccomment">/// Return true if Verso has shut down and hence there's no compositor.

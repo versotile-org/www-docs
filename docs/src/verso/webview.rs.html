@@ -224,106 +224,61 @@
 <a href="#222" id="222">222</a>
 <a href="#223" id="223">223</a>
 <a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
-<a href="#237" id="237">237</a>
-<a href="#238" id="238">238</a>
-<a href="#239" id="239">239</a>
-<a href="#240" id="240">240</a>
-<a href="#241" id="241">241</a>
-<a href="#242" id="242">242</a>
-<a href="#243" id="243">243</a>
-<a href="#244" id="244">244</a>
-<a href="#245" id="245">245</a>
-<a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
-<a href="#248" id="248">248</a>
-<a href="#249" id="249">249</a>
-<a href="#250" id="250">250</a>
-<a href="#251" id="251">251</a>
-<a href="#252" id="252">252</a>
-<a href="#253" id="253">253</a>
-<a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
-<a href="#257" id="257">257</a>
-<a href="#258" id="258">258</a>
-<a href="#259" id="259">259</a>
-<a href="#260" id="260">260</a>
-<a href="#261" id="261">261</a>
-<a href="#262" id="262">262</a>
-<a href="#263" id="263">263</a>
-<a href="#264" id="264">264</a>
-<a href="#265" id="265">265</a>
-<a href="#266" id="266">266</a>
-<a href="#267" id="267">267</a>
-<a href="#268" id="268">268</a>
-<a href="#269" id="269">269</a>
-<a href="#270" id="270">270</a>
-<a href="#271" id="271">271</a>
-<a href="#272" id="272">272</a>
-<a href="#273" id="273">273</a>
-<a href="#274" id="274">274</a>
-<a href="#275" id="275">275</a>
-<a href="#276" id="276">276</a>
-<a href="#277" id="277">277</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
-
-<span class="kw">use </span>arboard::Clipboard;
+</pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>servo::{
-    base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId},
-    compositing::{webview::UnknownWebView, IOCompositor},
+    base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId, WebViewId},
     embedder_traits::{CompositorEventVariant, EmbedderMsg, PromptDefinition},
-    euclid::Size2D,
     script_traits::TraversalDirection,
     url::ServoUrl,
     webrender_api::units::DeviceIntRect,
     TopLevelBrowsingContextId,
 };
 
-<span class="kw">use crate</span>::{
-    verso::send_to_constellation,
-    window::{GLWindow, Window},
-};
+<span class="kw">use crate</span>::{verso::send_to_constellation, window::Window};
 
 <span class="doccomment">/// A web view is an area to display web browsing context. It's what user will treat as a "web page".
+</span><span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>WebView {
-    id: WebViewId,
-    history: Cell&lt;Vec&lt;ServoUrl&gt;&gt;,
-    current: Cell&lt;usize&gt;,
+    <span class="doccomment">/// Webview ID
+    </span><span class="kw">pub </span>webview_id: WebViewId,
+    <span class="doccomment">/// Pipeline ID for webrender usage.
+    </span><span class="kw">pub </span>pipeline_id: <span class="prelude-ty">Option</span>&lt;PipelineId&gt;,
+    <span class="doccomment">/// The position and size of the webview.
+    </span><span class="kw">pub </span>rect: DeviceIntRect,
 }
 
 <span class="kw">impl </span>WebView {
     <span class="doccomment">/// Create a web view from Winit window.
-    </span><span class="kw">pub fn </span>new(id: WebViewId) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(webview_id: WebViewId, rect: DeviceIntRect) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            id,
-            history: Cell::new(<span class="macro">vec!</span>[]),
-            current: Cell::new(<span class="number">0</span>),
+            webview_id,
+            pipeline_id: <span class="prelude-val">None</span>,
+            rect,
         }
     }
 
-    <span class="doccomment">/// Get web view ID of this window.
-    </span><span class="kw">pub fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WebViewId {
-        <span class="self">self</span>.id
-    }
-
-    <span class="doccomment">/// Set the history URLs and current index of the WebView
-    </span><span class="kw">pub fn </span>set_history(<span class="kw-2">&amp;</span><span class="self">self</span>, history: Vec&lt;ServoUrl&gt;, current: usize) {
-        <span class="self">self</span>.history.replace(history);
-        <span class="self">self</span>.current.replace(current);
+    <span class="doccomment">/// Create a panel view from Winit window. A panel is a special web view that focus on controlling states around window.
+    /// It could be treated as the control panel or navigation bar of the window depending on usages.
+    ///
+    /// At the moment, following Web API is supported:
+    /// - Close window: `window.close()`
+    /// - Navigate to previous page: `window.prompt('PREV')`
+    /// - Navigate to next page: `window.prompt('FORWARD')`
+    /// - Refresh the page: `window.prompt('REFRESH')`
+    /// - Minimize the window: `window.prompt('MINIMIZE')`
+    /// - Maximize the window: `window.prompt('MAXIMIZE')`
+    /// - Navigate to a specific URL: `window.prompt('NAVIGATE_TO:${url}')`
+    </span><span class="kw">pub fn </span>new_panel(rect: DeviceIntRect) -&gt; <span class="self">Self </span>{
+        <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
+        </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
+        <span class="kw">let </span>id = TopLevelBrowsingContextId::new();
+        <span class="self">Self </span>{
+            webview_id: id,
+            pipeline_id: <span class="prelude-val">None</span>,
+            rect,
+        }
     }
 }
 
@@ -334,37 +289,24 @@
         webview_id: WebViewId,
         message: EmbedderMsg,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
-        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
     ) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {}
+            EmbedderMsg::LoadStart
+            | EmbedderMsg::HeadParsed
+            | EmbedderMsg::WebViewOpened(<span class="kw">_</span>)
+            | EmbedderMsg::WebViewClosed(<span class="kw">_</span>)
+            | EmbedderMsg::WebViewFocused(<span class="kw">_</span>) =&gt; {
+                <span class="comment">// Most WebView messages are ignored because it's done by compositor.
+                </span><span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} ignores this message: {message:?}"</span>)
+            }
             EmbedderMsg::LoadComplete =&gt; {
                 <span class="self">self</span>.window.request_redraw();
-            }
-            EmbedderMsg::WebViewOpened(w) =&gt; {
-                <span class="kw">let </span>webview = WebView::new(w);
-                <span class="self">self</span>.webview = <span class="prelude-val">Some</span>(webview);
-
-                <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
-                <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
-                <span class="kw">let </span><span class="kw-2">mut </span>rect = DeviceIntRect::from_size(size).to_f32();
-                rect.min.y = rect.max.y.min(<span class="number">76.</span>);
-                send_to_constellation(sender, ConstellationMsg::FocusWebView(w));
-                compositor.move_resize_webview(w, rect);
             }
             EmbedderMsg::AllowNavigationRequest(id, _url) =&gt; {
                 <span class="comment">// TODO should provide a API for users to check url
                 </span>send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">true</span>));
-            }
-            EmbedderMsg::WebViewClosed(_w) =&gt; {
-                <span class="self">self</span>.webview = <span class="prelude-val">None</span>;
-            }
-            EmbedderMsg::WebViewFocused(w) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(UnknownWebView(webview_id)) = compositor.show_webview(w, <span class="bool-val">false</span>) {
-                    <span class="macro">log::warn!</span>(<span class="string">"{webview_id}: ShowWebView on unknown webview id"</span>);
-                }
             }
             EmbedderMsg::GetClipboardContents(sender) =&gt; {
                 <span class="kw">let </span>contents = clipboard.get_text().unwrap_or_else(|e| {
@@ -391,11 +333,6 @@
             }
             EmbedderMsg::EventDelivered(event) =&gt; {
                 <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
-                    <span class="kw">if let </span><span class="prelude-val">Err</span>(UnknownWebView(webview_id)) =
-                        compositor.raise_webview_to_top(webview_id, <span class="bool-val">false</span>)
-                    {
-                        <span class="macro">log::warn!</span>(<span class="string">"{webview_id}: RaiseWebViewToTop on unknown webview id"</span>);
-                    }
                     send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
                 }
             }
@@ -404,53 +341,25 @@
             }
         }
     }
-}
 
-<span class="doccomment">/// A panel is a special web view that focus on controlling states around window.
-/// It could be treated as the control panel or navigation bar of the window depending on usages.
-///
-/// At the moment, following Web API is supported:
-/// - Close window: `window.close()`
-/// - Navigate to previous page: `window.prompt('PREV')`
-/// - Navigate to next page: `window.prompt('FORWARD')`
-/// - Refresh the page: `window.prompt('REFRESH')`
-/// - Minimize the window: `window.prompt('MINIMIZE')`
-/// - Maximize the window: `window.prompt('MAXIMIZE')`
-/// - Navigate to a specific URL: `window.prompt('NAVIGATE_TO:${url}')`
-</span><span class="kw">pub struct </span>Panel {
-    id: WebViewId,
-}
-
-<span class="kw">impl </span>Panel {
-    <span class="doccomment">/// Create a panel from Winit window.
-    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
-        </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
-        <span class="kw">let </span>id = TopLevelBrowsingContextId::new();
-        <span class="self">Self </span>{ id }
-    }
-
-    <span class="doccomment">/// Get web view ID of this panel.
-    ///
-    /// We assume this is always called after `set_id`. Calling before it will cause panic.
-    </span><span class="kw">pub fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WebViewId {
-        <span class="self">self</span>.id
-    }
-}
-
-<span class="kw">impl </span>Window {
     <span class="doccomment">/// Handle servo messages with main panel.
     </span><span class="kw">pub fn </span>handle_servo_messages_with_panel(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         panel_id: WebViewId,
         message: EmbedderMsg,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
-        compositor: <span class="kw-2">&amp;mut </span>IOCompositor&lt;GLWindow&gt;,
         clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
     ) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {panel_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::LoadStart | EmbedderMsg::HeadParsed =&gt; {}
+            EmbedderMsg::LoadStart
+            | EmbedderMsg::HeadParsed
+            | EmbedderMsg::WebViewOpened(<span class="kw">_</span>)
+            | EmbedderMsg::WebViewClosed(<span class="kw">_</span>)
+            | EmbedderMsg::WebViewFocused(<span class="kw">_</span>) =&gt; {
+                <span class="comment">// Most WebView messages are ignored because it's done by compositor.
+                </span><span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
+            }
             EmbedderMsg::LoadComplete =&gt; {
                 <span class="self">self</span>.window.request_redraw();
                 <span class="comment">// let demo_url = ServoUrl::parse("https://demo.versotile.org").unwrap();
@@ -462,21 +371,6 @@
                 <span class="comment">// The panel shouldn't navigate to other pages.
                 </span>send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">false</span>));
             }
-            EmbedderMsg::WebViewOpened(w) =&gt; {
-                <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
-                <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
-                <span class="kw">let </span>rect = DeviceIntRect::from_size(size).to_f32();
-                send_to_constellation(sender, ConstellationMsg::FocusWebView(w));
-                compositor.move_resize_webview(w, rect);
-            }
-            EmbedderMsg::WebViewClosed(_w) =&gt; {
-                compositor.maybe_start_shutting_down();
-            }
-            EmbedderMsg::WebViewFocused(w) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(UnknownWebView(webview_id)) = compositor.show_webview(w, <span class="bool-val">false</span>) {
-                    <span class="macro">log::warn!</span>(<span class="string">"{webview_id}: ShowWebView on unknown webview id"</span>);
-                }
-            }
             EmbedderMsg::HistoryChanged(..) | EmbedderMsg::ChangePageTitle(..) =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
             }
@@ -484,7 +378,7 @@
                 <span class="kw">match </span>definition {
                     PromptDefinition::Input(msg, <span class="kw">_</span>, prompt_sender) =&gt; {
                         <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
-                            <span class="kw">let </span>id = webview.id();
+                            <span class="kw">let </span>id = webview.webview_id;
 
                             <span class="kw">if </span>msg.starts_with(<span class="string">"NAVIGATE_TO:"</span>) {
                                 <span class="kw">let </span>url =

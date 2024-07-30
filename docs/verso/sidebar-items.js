@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["config","errors","keyboard","verso","webview","window"]};
+window.SIDEBAR_ITEMS = {"mod":["compositor","config","errors","keyboard","touch","verso","webview","window"]};

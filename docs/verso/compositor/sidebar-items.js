@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MouseWindowEvent","ShutdownState","WebRenderDebugOption"],"struct":["IOCompositor","InitialCompositorState"]};
