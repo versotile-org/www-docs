@@ -2225,52 +2225,49 @@
 <a href="#2223" id="2223">2223</a>
 <a href="#2224" id="2224">2224</a>
 <a href="#2225" id="2225">2225</a>
-<a href="#2226" id="2226">2226</a>
-<a href="#2227" id="2227">2227</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+<span class="kw">use </span>base::id::{PipelineId, TopLevelBrowsingContextId};
+<span class="kw">use </span>base::{Epoch, WebRenderEpochToU16};
 <span class="kw">use </span>compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg,
     ForwardedToCompositorMsg, SendableFrameTree,
 };
 <span class="kw">use </span>crossbeam_channel::Sender;
+<span class="kw">use </span>embedder_traits::Cursor;
+<span class="kw">use </span>euclid::{Point2D, Scale, Transform3D, Vector2D};
+<span class="kw">use </span>gleam::gl;
 <span class="kw">use </span>ipc_channel::ipc;
 <span class="kw">use </span>log::{debug, error, trace, warn};
-<span class="kw">use </span>servo::base::id::{PipelineId, TopLevelBrowsingContextId};
-<span class="kw">use </span>servo::base::{Epoch, WebRenderEpochToU16};
-<span class="kw">use </span>servo::embedder_traits::Cursor;
-<span class="kw">use </span>servo::euclid::{Point2D, Scale, Transform3D, Vector2D};
-<span class="kw">use </span>servo::profile_traits::time::{<span class="self">self </span><span class="kw">as </span>profile_time, profile, ProfilerCategory};
-<span class="kw">use </span>servo::profile_traits::{mem, time};
-<span class="kw">use </span>servo::script_traits::CompositorEvent::{
-    MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent,
-};
-<span class="kw">use </span>servo::script_traits::{
+<span class="kw">use </span>profile_traits::time::{<span class="self">self </span><span class="kw">as </span>profile_time, profile, ProfilerCategory};
+<span class="kw">use </span>profile_traits::{mem, time};
+<span class="kw">use </span>script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
+<span class="kw">use </span>script_traits::{
     AnimationState, AnimationTickType, ConstellationControlMsg, MouseButton, MouseEventType,
     ScrollState, TouchEventType, TouchId, WheelDelta, WindowSizeData, WindowSizeType,
 };
-<span class="kw">use </span>servo::servo_geometry::DeviceIndependentPixel;
-<span class="kw">use </span>servo::style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
-<span class="kw">use </span>servo::webrender_api::units::{
+<span class="kw">use </span>servo_geometry::DeviceIndependentPixel;
+<span class="kw">use </span>style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
+<span class="kw">use </span>webrender::{RenderApi, Transaction};
+<span class="kw">use </span>webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
     LayoutVector2D, WorldPoint,
 };
-<span class="kw">use </span>servo::webrender_api::{
+<span class="kw">use </span>webrender_api::{
     BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch <span class="kw">as </span>WebRenderEpoch,
     ExternalScrollId, FontInstanceOptions, HitTestFlags, PipelineId <span class="kw">as </span>WebRenderPipelineId,
     PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
     SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
 };
-<span class="kw">use </span>servo::webrender_traits::display_list::{HitTestInfo, ScrollTree};
-<span class="kw">use </span>servo::webrender_traits::{
+<span class="kw">use </span>webrender_traits::display_list::{HitTestInfo, ScrollTree};
+<span class="kw">use </span>webrender_traits::{
     CanvasToCompositorMsg, CompositorHitTestResult, FontToCompositorMsg, ImageUpdate,
     NetToCompositorMsg, RenderingContext, ScriptToCompositorMsg, SerializedImageUpdate,
     UntrustedNodeAddress,
 };
-<span class="kw">use </span>webrender::{RenderApi, Transaction};
 
 <span class="kw">use </span><span class="kw">crate</span>::touch::{TouchAction, TouchHandler};
 <span class="kw">use </span><span class="kw">crate</span>::webview::WebView;
@@ -2297,7 +2294,7 @@
     <span class="doccomment">/// Servo's rendering context
     </span><span class="kw">pub </span>rendering_context: RenderingContext,
     <span class="doccomment">/// Webrender GL handle
-    </span><span class="kw">pub </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>servo::gl::Gl&gt;,
+    </span><span class="kw">pub </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
     <span class="doccomment">/// WebXR registry
     </span><span class="kw">pub </span>webxr_main_thread: webxr::MainThreadRegistry,
 }
@@ -2397,7 +2394,7 @@
     </span>rendering_context: RenderingContext,
 
     <span class="doccomment">/// The GL bindings for webrender
-    </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>servo::gl::Gl&gt;,
+    </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
 
     <span class="doccomment">/// Some XR devices want to run on the main thread.
     </span><span class="kw">pub </span>webxr_main_thread: webxr::MainThreadRegistry,
@@ -4153,7 +4150,7 @@
             .map(|info| info.framebuffer_object)
             .unwrap_or(<span class="number">0</span>);
         <span class="self">self</span>.webrender_gl
-            .bind_framebuffer(servo::gl::FRAMEBUFFER, framebuffer_object);
+            .bind_framebuffer(gl::FRAMEBUFFER, framebuffer_object);
         <span class="self">self</span>.assert_gl_framebuffer_complete();
 
         profile(
@@ -4255,7 +4252,7 @@
         <span class="self">self</span>.assert_gl_framebuffer_complete();
 
         <span class="comment">// Set the viewport background based on prefs.
-        </span><span class="kw">let </span>color = <span class="macro">servo::config::pref!</span>(shell.background_color.rgba);
+        </span><span class="kw">let </span>color = <span class="macro">servo_config::pref!</span>(shell.background_color.rgba);
         gl.clear_color(
             color[<span class="number">0</span>] <span class="kw">as </span>f32,
             color[<span class="number">1</span>] <span class="kw">as </span>f32,
@@ -4280,9 +4277,9 @@
                 rect.size().width,
                 rect.size().height,
             );
-            gl.enable(servo::gl::SCISSOR_TEST);
-            gl.clear(servo::gl::COLOR_BUFFER_BIT);
-            gl.disable(servo::gl::SCISSOR_TEST);
+            gl.enable(gl::SCISSOR_TEST);
+            gl.clear(gl::COLOR_BUFFER_BIT);
+            gl.disable(gl::SCISSOR_TEST);
         }
 
         <span class="self">self</span>.assert_gl_framebuffer_complete();
@@ -4290,7 +4287,7 @@
 
     <span class="attr">#[track_caller]
     </span><span class="kw">fn </span>assert_no_gl_error(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="macro">debug_assert_eq!</span>(<span class="self">self</span>.webrender_gl.get_error(), servo::gl::NO_ERROR);
+        <span class="macro">debug_assert_eq!</span>(<span class="self">self</span>.webrender_gl.get_error(), gl::NO_ERROR);
     }
 
     <span class="attr">#[track_caller]
@@ -4298,10 +4295,9 @@
         <span class="macro">debug_assert_eq!</span>(
             (
                 <span class="self">self</span>.webrender_gl.get_error(),
-                <span class="self">self</span>.webrender_gl
-                    .check_frame_buffer_status(servo::gl::FRAMEBUFFER)
+                <span class="self">self</span>.webrender_gl.check_frame_buffer_status(gl::FRAMEBUFFER)
             ),
-            (servo::gl::NO_ERROR, servo::gl::FRAMEBUFFER_COMPLETE)
+            (gl::NO_ERROR, gl::FRAMEBUFFER_COMPLETE)
         );
     }
 

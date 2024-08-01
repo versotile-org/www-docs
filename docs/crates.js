@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["servo","verso"];
+window.ALL_CRATES = ["verso"];

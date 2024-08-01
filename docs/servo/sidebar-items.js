@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["run_content_process","set_logger"],"mod":["gl"],"struct":["InitializedServo","Servo","TopLevelBrowsingContextId"]};

@@ -380,29 +380,23 @@
 <a href="#378" id="378">378</a>
 <a href="#379" id="379">379</a>
 <a href="#380" id="380">380</a>
-<a href="#381" id="381">381</a>
-<a href="#382" id="382">382</a>
-<a href="#383" id="383">383</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
+<span class="kw">use </span>base::id::{PipelineId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
+<span class="kw">use </span>embedder_traits::{Cursor, EmbedderMsg};
+<span class="kw">use </span>euclid::{Point2D, Size2D};
 <span class="kw">use </span>raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-<span class="kw">use </span>servo::webrender_api::units::DeviceIntSize;
-<span class="kw">use </span>servo::{
-    base::id::{PipelineId, WebViewId},
-    embedder_traits::{Cursor, EmbedderMsg},
-    euclid::{Point2D, Size2D},
-    script_traits::{TouchEventType, WheelDelta, WheelMode},
-    style_traits::DevicePixel,
-    webrender_api::{
-        units::{DeviceIntPoint, DeviceIntRect, DevicePoint, LayoutVector2D},
-        ScrollLocation,
-    },
-    webrender_traits::RenderingContext,
-    TopLevelBrowsingContextId,
-};
+<span class="kw">use </span>script_traits::{TouchEventType, WheelDelta, WheelMode};
 <span class="kw">use </span>surfman::{Connection, SurfaceType};
+<span class="kw">use </span>webrender_api::{
+    units::{
+        DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, LayoutVector2D,
+    },
+    ScrollLocation,
+};
+<span class="kw">use </span>webrender_traits::RenderingContext;
 <span class="kw">use </span>winit::{
     dpi::PhysicalPosition,
     event::{ElementState, TouchPhase, WindowEvent},
@@ -487,10 +481,10 @@
                 compositor.on_mouse_window_move_event_class(cursor);
             }
             WindowEvent::MouseInput { state, button, .. } =&gt; {
-                <span class="kw">let </span>button: servo::script_traits::MouseButton = <span class="kw">match </span>button {
-                    winit::event::MouseButton::Left =&gt; servo::script_traits::MouseButton::Left,
-                    winit::event::MouseButton::Right =&gt; servo::script_traits::MouseButton::Right,
-                    winit::event::MouseButton::Middle =&gt; servo::script_traits::MouseButton::Middle,
+                <span class="kw">let </span>button: script_traits::MouseButton = <span class="kw">match </span>button {
+                    winit::event::MouseButton::Left =&gt; script_traits::MouseButton::Left,
+                    winit::event::MouseButton::Right =&gt; script_traits::MouseButton::Right,
+                    winit::event::MouseButton::Middle =&gt; script_traits::MouseButton::Middle,
                     <span class="kw">_ </span>=&gt; {
                         <span class="macro">log::warn!</span>(
                             <span class="string">"Verso Window isn't supporting this mouse button yet: {button:?}"
@@ -582,10 +576,10 @@
     <span class="doccomment">/// Handle servo messages.
     </span><span class="kw">pub fn </span>handle_servo_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        webview_id: <span class="prelude-ty">Option</span>&lt;TopLevelBrowsingContextId&gt;,
+        webview_id: <span class="prelude-ty">Option</span>&lt;WebViewId&gt;,
         message: EmbedderMsg,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
-        clipboard: <span class="kw-2">&amp;mut </span>Clipboard,
+        clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
     ) {
         <span class="kw">match </span>webview_id {
             <span class="comment">// // Handle message in Verso Panel
