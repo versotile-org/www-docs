@@ -2225,6 +2225,42 @@
 <a href="#2223" id="2223">2223</a>
 <a href="#2224" id="2224">2224</a>
 <a href="#2225" id="2225">2225</a>
+<a href="#2226" id="2226">2226</a>
+<a href="#2227" id="2227">2227</a>
+<a href="#2228" id="2228">2228</a>
+<a href="#2229" id="2229">2229</a>
+<a href="#2230" id="2230">2230</a>
+<a href="#2231" id="2231">2231</a>
+<a href="#2232" id="2232">2232</a>
+<a href="#2233" id="2233">2233</a>
+<a href="#2234" id="2234">2234</a>
+<a href="#2235" id="2235">2235</a>
+<a href="#2236" id="2236">2236</a>
+<a href="#2237" id="2237">2237</a>
+<a href="#2238" id="2238">2238</a>
+<a href="#2239" id="2239">2239</a>
+<a href="#2240" id="2240">2240</a>
+<a href="#2241" id="2241">2241</a>
+<a href="#2242" id="2242">2242</a>
+<a href="#2243" id="2243">2243</a>
+<a href="#2244" id="2244">2244</a>
+<a href="#2245" id="2245">2245</a>
+<a href="#2246" id="2246">2246</a>
+<a href="#2247" id="2247">2247</a>
+<a href="#2248" id="2248">2248</a>
+<a href="#2249" id="2249">2249</a>
+<a href="#2250" id="2250">2250</a>
+<a href="#2251" id="2251">2251</a>
+<a href="#2252" id="2252">2252</a>
+<a href="#2253" id="2253">2253</a>
+<a href="#2254" id="2254">2254</a>
+<a href="#2255" id="2255">2255</a>
+<a href="#2256" id="2256">2256</a>
+<a href="#2257" id="2257">2257</a>
+<a href="#2258" id="2258">2258</a>
+<a href="#2259" id="2259">2259</a>
+<a href="#2260" id="2260">2260</a>
+<a href="#2261" id="2261">2261</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2251,6 +2287,7 @@
 };
 <span class="kw">use </span>servo_geometry::DeviceIndependentPixel;
 <span class="kw">use </span>style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
+<span class="kw">use </span>surfman::Surface;
 <span class="kw">use </span>webrender::{RenderApi, Transaction};
 <span class="kw">use </span>webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
@@ -2268,6 +2305,7 @@
     NetToCompositorMsg, RenderingContext, ScriptToCompositorMsg, SerializedImageUpdate,
     UntrustedNodeAddress,
 };
+<span class="kw">use </span>winit::window::WindowId;
 
 <span class="kw">use </span><span class="kw">crate</span>::touch::{TouchAction, TouchHandler};
 <span class="kw">use </span><span class="kw">crate</span>::webview::WebView;
@@ -2325,19 +2363,37 @@
 </span><span class="kw">const </span>MAX_ZOOM: f32 = <span class="number">8.0</span>;
 <span class="kw">const </span>MIN_ZOOM: f32 = <span class="number">0.1</span>;
 
-<span class="doccomment">/// NB: Never block on the constellation, because sometimes the constellation blocks on us.
+<span class="comment">// NB: Never block on the Constellation, because sometimes the Constellation blocks on us.
+</span><span class="doccomment">/// The Verso compositor contains a GL rendering context with a WebRender instance.
+/// The compositor will communicate with Servo using messages from the Constellation,
+/// then composite the WebRender frames and present the surface to the window.
 </span><span class="kw">pub struct </span>IOCompositor {
+    <span class="doccomment">/// All surfaces that Compositor currently owns.
+    </span><span class="kw">pub </span>surfaces: HashMap&lt;WindowId, <span class="prelude-ty">Option</span>&lt;Surface&gt;&gt;,
+
+    <span class="doccomment">/// The current window that Compositor is handling.
+    </span><span class="kw">pub </span>current_window: WindowId,
+
     <span class="doccomment">/// Size of current viewport that Compositor is handling.
     </span>viewport: DeviceIntSize,
+
+    <span class="doccomment">/// The pixel density of the display.
+    </span>scale_factor: Scale&lt;f32, DeviceIndependentPixel, DevicePixel&gt;,
+
+    <span class="doccomment">/// The order to paint webviews in, top most webview should be the last element.
+    </span>painting_order: Vec&lt;WebView&gt;,
+
+    <span class="doccomment">/// The active webrender document.
+    </span>webrender_document: DocumentId,
 
     <span class="doccomment">/// The port on which we receive messages.
     </span>port: CompositorReceiver,
 
+    <span class="doccomment">/// Tracks each webview and its current pipeline
+    </span>webviews: HashMap&lt;TopLevelBrowsingContextId, (PipelineId, bool)&gt;,
+
     <span class="doccomment">/// Tracks details about each active pipeline that the compositor knows about.
     </span>pipeline_details: HashMap&lt;PipelineId, PipelineDetails&gt;,
-
-    <span class="doccomment">/// The pixel density of the display.
-    </span>scale_factor: Scale&lt;f32, DeviceIndependentPixel, DevicePixel&gt;,
 
     <span class="doccomment">/// "Mobile-style" zoom that does not reflow the page.
     </span>viewport_zoom: PinchZoomFactor,
@@ -2384,14 +2440,11 @@
     <span class="doccomment">/// The webrender renderer.
     </span>webrender: webrender::Renderer,
 
-    <span class="doccomment">/// The active webrender document.
-    </span>webrender_document: DocumentId,
-
     <span class="doccomment">/// The webrender interface, if enabled.
-    </span>webrender_api: RenderApi,
+    </span><span class="kw">pub </span>webrender_api: RenderApi,
 
     <span class="doccomment">/// The surfman instance that webrender targets
-    </span>rendering_context: RenderingContext,
+    </span><span class="kw">pub </span>rendering_context: RenderingContext,
 
     <span class="doccomment">/// The GL bindings for webrender
     </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
@@ -2421,9 +2474,6 @@
     <span class="doccomment">/// The number of frames pending to receive from WebRender.
     </span>pending_frames: usize,
 
-    <span class="doccomment">/// Waiting for external code to call present.
-    </span>waiting_on_present: bool,
-
     <span class="doccomment">/// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
     /// ScriptThread with a deluge of animation ticks.
     </span>last_animation_tick: Instant,
@@ -2433,9 +2483,6 @@
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     </span><span class="kw">pub </span>is_animating: bool,
-
-    <span class="doccomment">/// The order to paint webviews in, top most webview should be the last element.
-    </span>painting_order: Vec&lt;WebView&gt;,
 }
 
 <span class="attr">#[derive(Clone, Copy)]
@@ -2561,15 +2608,21 @@
 <span class="kw">impl </span>IOCompositor {
     <span class="doccomment">/// Create a new compositor.
     </span><span class="kw">pub fn </span>new(
+        current_window: WindowId,
         viewport: DeviceIntSize,
         scale_factor: Scale&lt;f32, DeviceIndependentPixel, DevicePixel&gt;,
         state: InitialCompositorState,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
     ) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>surfaces = HashMap::new();
+        surfaces.insert(current_window, <span class="prelude-val">None</span>);
         <span class="kw">let </span>compositor = IOCompositor {
+            surfaces,
+            current_window,
             viewport,
             port: state.receiver,
+            webviews: HashMap::new(),
             pipeline_details: HashMap::new(),
             scale_factor,
             composition_request: CompositionRequest::NoCompositingNecessary,
@@ -2598,7 +2651,6 @@
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: <span class="number">0</span>,
-            waiting_on_present: <span class="bool-val">false</span>,
             last_animation_tick: Instant::now(),
             is_animating: <span class="bool-val">false</span>,
             painting_order: <span class="macro">vec!</span>[],
@@ -2610,10 +2662,14 @@
     }
 
     <span class="doccomment">/// Consume compositor itself and deinit webrender.
-    </span><span class="kw">pub fn </span>deinit(<span class="self">self</span>) {
-        <span class="comment">// TODO: can we do this in drop?
-        </span><span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.make_gl_context_current() {
+    </span><span class="kw">pub fn </span>deinit(<span class="kw-2">mut </span><span class="self">self</span>) {
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.make_gl_context_current() {
             <span class="macro">warn!</span>(<span class="string">"Failed to make GL context current: {:?}"</span>, err);
+        }
+        <span class="kw">for </span>surface <span class="kw">in </span><span class="self">self</span>.surfaces.values_mut() {
+            surface
+                .take()
+                .map(|s| <span class="self">self</span>.rendering_context.destroy_surface(s));
         }
         <span class="self">self</span>.webrender.deinit();
     }
@@ -2693,7 +2749,11 @@
         }
     }
 
-    <span class="kw">fn </span>handle_browser_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, msg: CompositorMsg, window: <span class="kw-2">&amp;mut </span>Window) -&gt; bool {
+    <span class="kw">fn </span>handle_browser_message(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        msg: CompositorMsg,
+        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;,
+    ) -&gt; bool {
         <span class="kw">match </span><span class="self">self</span>.shutdown_state {
             ShutdownState::NotShuttingDown =&gt; {}
             ShutdownState::ShuttingDown =&gt; {
@@ -2717,12 +2777,12 @@
             }
 
             CompositorMsg::CreateOrUpdateWebView(frame_tree) =&gt; {
-                <span class="self">self</span>.create_or_update_webview(<span class="kw-2">&amp;</span>frame_tree, window);
+                <span class="self">self</span>.create_or_update_webview(<span class="kw-2">&amp;</span>frame_tree);
                 <span class="self">self</span>.send_scroll_positions_to_layout_for_pipeline(<span class="kw-2">&amp;</span>frame_tree.pipeline.id);
             }
 
             CompositorMsg::RemoveWebView(top_level_browsing_context_id) =&gt; {
-                <span class="self">self</span>.remove_webview(top_level_browsing_context_id, window);
+                <span class="self">self</span>.remove_webview(top_level_browsing_context_id, windows);
             }
 
             CompositorMsg::MoveResizeWebView(_webview_id, _rect) =&gt; {
@@ -3251,7 +3311,7 @@
         <span class="comment">// Every display list needs a pipeline, but we'd like to choose one that is unlikely
         // to conflict with our content pipelines, which start at (1, 1). (0, 0) is WebRender's
         // dummy pipeline, so we choose (0, 1).
-        </span><span class="kw">let </span>root_pipeline = WebRenderPipelineId(<span class="number">0</span>, <span class="number">1</span>);
+        </span><span class="kw">let </span>root_pipeline = WebRenderPipelineId(u64::from(<span class="self">self</span>.current_window) <span class="kw">as </span>u32, <span class="number">1</span>);
         transaction.set_root_pipeline(root_pipeline);
 
         <span class="kw">let </span><span class="kw-2">mut </span>builder = webrender::api::DisplayListBuilder::new(root_pipeline);
@@ -3279,7 +3339,7 @@
         <span class="kw">let </span>root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
         <span class="kw">let </span>clip_chain_id = builder.define_clip_chain(<span class="prelude-val">None</span>, [root_clip_id]);
         <span class="kw">for </span>webview <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.painting_order {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(pipeline_id) = webview.pipeline_id {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>((pipeline_id, <span class="bool-val">true</span>)) = <span class="self">self</span>.webviews.get(<span class="kw-2">&amp;</span>webview.webview_id) {
                 <span class="kw">let </span>scaled_webview_rect = webview.rect.to_f32() / zoom_factor;
                 builder.push_iframe(
                     LayoutRect::from_untyped(<span class="kw-2">&amp;</span>scaled_webview_rect.to_untyped()),
@@ -3330,14 +3390,26 @@
         }
     }
 
-    <span class="kw">fn </span>create_or_update_webview(<span class="kw-2">&amp;mut </span><span class="self">self</span>, frame_tree: <span class="kw-2">&amp;</span>SendableFrameTree, window: <span class="kw-2">&amp;mut </span>Window) {
-        <span class="macro">debug!</span>(<span class="string">"{}: Setting frame tree for webview"</span>, frame_tree.pipeline.id);
+    <span class="doccomment">/// Set the webview of the compositor to completely loaded, and hence it could add to display
+    /// list.
+    </span><span class="kw">pub fn </span>set_webview_loaded(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: <span class="kw-2">&amp;</span>TopLevelBrowsingContextId) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>((<span class="kw">_</span>, loaded)) = <span class="self">self</span>.webviews.get_mut(webview_id) {
+            <span class="kw-2">*</span>loaded = <span class="bool-val">true</span>;
+        } <span class="kw">else </span>{
+            <span class="macro">warn!</span>(<span class="string">"The compositor doesn't have {webview_id} to set its loaded state"</span>);
+        }
+    }
 
-        window.set_webview(
-            frame_tree.pipeline.top_level_browsing_context_id,
-            frame_tree.pipeline.id,
-            <span class="self">self</span>,
+    <span class="kw">fn </span>create_or_update_webview(<span class="kw-2">&amp;mut </span><span class="self">self</span>, frame_tree: <span class="kw-2">&amp;</span>SendableFrameTree) {
+        <span class="kw">let </span>pipeline_id = frame_tree.pipeline.id;
+        <span class="kw">let </span>webview_id = frame_tree.pipeline.top_level_browsing_context_id;
+        <span class="macro">debug!</span>(
+            <span class="string">"Verso Compositor is setting frame tree with pipeline {} for webview {}"</span>,
+            pipeline_id, webview_id
         );
+        <span class="kw">if let </span><span class="prelude-val">Some</span>((old_pipeline, <span class="kw">_</span>)) = <span class="self">self</span>.webviews.insert(webview_id, (pipeline_id, <span class="bool-val">false</span>)) {
+            <span class="macro">debug!</span>(<span class="string">"{webview_id}'s pipeline has changed from {old_pipeline} to {pipeline_id}"</span>);
+        }
 
         <span class="self">self</span>.send_root_pipeline_display_list();
         <span class="self">self</span>.create_or_update_pipeline_details_with_frame_tree(frame_tree, <span class="prelude-val">None</span>);
@@ -3349,20 +3421,34 @@
     <span class="kw">fn </span>remove_webview(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        window: <span class="kw-2">&amp;mut </span>Window,
+        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;,
     ) {
-        <span class="macro">debug!</span>(<span class="string">"{}: Removing"</span>, top_level_browsing_context_id);
-        <span class="kw">let </span><span class="prelude-val">Some</span>(webview) = window.remove_webview(top_level_browsing_context_id, <span class="self">self</span>) <span class="kw">else </span>{
-            <span class="macro">warn!</span>(<span class="string">"{top_level_browsing_context_id}: Removing unknown webview"</span>);
-            <span class="kw">return</span>;
-        };
+        <span class="macro">debug!</span>(
+            <span class="string">"Verso Compositor is removing webview {}"</span>,
+            top_level_browsing_context_id
+        );
+        <span class="kw">let </span><span class="kw-2">mut </span>window_id = <span class="prelude-val">None</span>;
+        <span class="kw">for </span>window <span class="kw">in </span>windows.values_mut() {
+            <span class="kw">let </span>(webview, close_window) =
+                window.remove_webview(top_level_browsing_context_id, <span class="self">self</span>);
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = webview {
+                <span class="self">self</span>.set_painting_order(window);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>((pipeline_id, <span class="kw">_</span>)) = <span class="self">self</span>.webviews.remove(<span class="kw-2">&amp;</span>webview.webview_id) {
+                    <span class="self">self</span>.remove_pipeline_details_recursively(pipeline_id);
+                }
 
-        <span class="self">self</span>.send_root_pipeline_display_list();
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(pipeline_id) = webview.pipeline_id {
-            <span class="self">self</span>.remove_pipeline_details_recursively(pipeline_id);
+                <span class="kw">if </span>close_window {
+                    window_id = <span class="prelude-val">Some</span>(window.id());
+                }
+
+                <span class="self">self</span>.frame_tree_id.next();
+                <span class="kw">break</span>;
+            }
         }
 
-        <span class="self">self</span>.frame_tree_id.next();
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(id) = window_id {
+            windows.remove(<span class="kw-2">&amp;</span>id);
+        }
     }
 
     <span class="doccomment">/// Notify compositor the provided webview is resized. The compositor will tell constellation and update the display list.
@@ -3372,7 +3458,6 @@
         rect: DeviceIntRect,
     ) {
         <span class="self">self</span>.send_window_size_message_for_top_level_browser_context(rect, webview_id);
-        <span class="self">self</span>.send_root_pipeline_display_list();
     }
 
     <span class="kw">fn </span>send_window_size_message_for_top_level_browser_context(
@@ -3457,6 +3542,28 @@
         <span class="self">self</span>.pipeline_details.remove(<span class="kw-2">&amp;</span>pipeline_id);
     }
 
+    <span class="doccomment">/// Change the current window of the compositor should display.
+    </span><span class="kw">pub fn </span>swap_current_window(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;mut </span>Window) {
+        <span class="kw">if </span>window.id() != <span class="self">self</span>.current_window {
+            <span class="macro">debug!</span>(
+                <span class="string">"Verso Compositor swap current window from {:?} to {:?}"</span>,
+                <span class="self">self</span>.current_window,
+                window.id()
+            );
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="prelude-val">Some</span>(new_surface)) = <span class="self">self</span>.surfaces.insert(window.id(), <span class="prelude-val">None</span>) {
+                <span class="comment">// Swap the surface
+                </span><span class="self">self</span>.rendering_context.with_front_buffer(|<span class="kw">_</span>, old_surface| {
+                    <span class="self">self</span>.surfaces.insert(<span class="self">self</span>.current_window, <span class="prelude-val">Some</span>(old_surface));
+                    new_surface
+                });
+                <span class="self">self</span>.current_window = window.id();
+                <span class="self">self</span>.scale_factor = Scale::new(window.scale_factor() <span class="kw">as </span>f32);
+                <span class="self">self</span>.painting_order.clear();
+                window.resize(window.size(), <span class="self">self</span>);
+            }
+        }
+    }
+
     <span class="doccomment">/// Handle the window resize event and return a boolean to tell embedder if it should further
     /// handle the resize event.
     </span><span class="kw">pub fn </span>on_resize_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_viewport: DeviceIntSize) -&gt; bool {
@@ -3470,6 +3577,18 @@
         transaction.set_document_view(DeviceIntRect::from_size(<span class="self">self</span>.viewport));
         <span class="self">self</span>.webrender_api
             .send_transaction(<span class="self">self</span>.webrender_document, transaction);
+        <span class="self">self</span>.composite_if_necessary(CompositingReason::Resize);
+        <span class="bool-val">true
+    </span>}
+
+    <span class="doccomment">/// Handle the window scale factor event and return a boolean to tell embedder if it should further
+    /// handle the scale factor event.
+    </span><span class="kw">pub fn </span>on_scale_factor_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, scale_factor: f32) -&gt; bool {
+        <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
+            <span class="kw">return </span><span class="bool-val">false</span>;
+        }
+
+        <span class="self">self</span>.scale_factor = Scale::new(scale_factor);
         <span class="self">self</span>.update_after_zoom_or_hidpi_change();
         <span class="self">self</span>.composite_if_necessary(CompositingReason::Resize);
         <span class="bool-val">true
@@ -3713,7 +3832,7 @@
         <span class="self">self</span>.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
     }
 
-    <span class="doccomment">/// Hit test and foward the wheel event to constellation.
+    <span class="doccomment">/// Hit test and forward the wheel event to constellation.
     </span><span class="kw">pub fn </span>on_wheel_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, delta: WheelDelta, p: DevicePoint) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
@@ -3939,10 +4058,6 @@
         }
     }
 
-    <span class="kw">fn </span>scale_factor(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Scale&lt;f32, DeviceIndependentPixel, DevicePixel&gt; {
-        <span class="self">self</span>.scale_factor
-    }
-
     <span class="kw">fn </span>device_pixels_per_page_pixel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Scale&lt;f32, CSSPixel, DevicePixel&gt; {
         <span class="self">self</span>.device_pixels_per_page_pixel_not_including_page_zoom() * <span class="self">self</span>.pinch_zoom_level()
     }
@@ -3950,7 +4065,7 @@
     <span class="kw">fn </span>device_pixels_per_page_pixel_not_including_page_zoom(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
     ) -&gt; Scale&lt;f32, CSSPixel, DevicePixel&gt; {
-        <span class="self">self</span>.page_zoom * <span class="self">self</span>.scale_factor()
+        <span class="self">self</span>.page_zoom * <span class="self">self</span>.scale_factor
     }
 
     <span class="doccomment">/// Handle zoom reset event
@@ -4111,13 +4226,6 @@
 
     <span class="doccomment">/// Composite to the given target if any, or the current target otherwise.
     </span><span class="kw">fn </span>composite_specific_target(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), UnableToComposite&gt; {
-        <span class="kw">if </span><span class="self">self</span>.waiting_on_present {
-            <span class="macro">debug!</span>(<span class="string">"tried to composite while waiting on present"</span>);
-            <span class="kw">return </span><span class="prelude-val">Err</span>(UnableToComposite::NotReadyToPaintImage(
-                NotReadyToPaint::WaitingOnConstellation,
-            ));
-        }
-
         <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.make_gl_context_current() {
             <span class="macro">warn!</span>(<span class="string">"Failed to make GL context current: {:?}"</span>, err);
         }
@@ -4161,10 +4269,9 @@
                 <span class="macro">trace!</span>(<span class="string">"Compositing"</span>);
                 <span class="comment">// Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
-                </span><span class="self">self</span>.clear_background();
-                <span class="self">self</span>.webrender
+                </span><span class="self">self</span>.webrender
                     <span class="comment">// TODO to untyped?
-                    </span>.render(<span class="self">self</span>.viewport, <span class="number">0 </span><span class="comment">/* buffer_age */</span>)
+                    </span>.render(<span class="self">self</span>.viewport, <span class="number">0</span>)
                     .ok();
             },
         );
@@ -4215,28 +4322,14 @@
             }
         }
 
-        <span class="comment">// Notify embedder that servo is ready to present.
-        // Embedder should call `present` to tell compositor to continue rendering.
-        </span><span class="self">self</span>.waiting_on_present = <span class="bool-val">true</span>;
-        <span class="kw">let </span>webview_ids = <span class="self">self</span>.painting_order.iter().map(|w| w.webview_id);
-        <span class="kw">let </span>msg = ConstellationMsg::ReadyToPresent(webview_ids.collect());
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
-            <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({:?})."</span>, e);
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.present() {
+            <span class="macro">warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
         }
-
         <span class="self">self</span>.composition_request = CompositionRequest::NoCompositingNecessary;
 
         <span class="self">self</span>.process_animations(<span class="bool-val">true</span>);
 
         <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="doccomment">/// Displays the contents of the surface on screen.
-    </span><span class="kw">pub fn </span>present(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.present() {
-            <span class="macro">warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
-        }
-        <span class="self">self</span>.waiting_on_present = <span class="bool-val">false</span>;
     }
 
     <span class="kw">fn </span>composite_if_necessary(<span class="kw-2">&amp;mut </span><span class="self">self</span>, reason: CompositingReason) {
@@ -4245,44 +4338,6 @@
             <span class="self">self</span>.composition_request
         );
         <span class="self">self</span>.composition_request = CompositionRequest::CompositeNow(reason)
-    }
-
-    <span class="kw">fn </span>clear_background(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="kw">let </span>gl = <span class="kw-2">&amp;</span><span class="self">self</span>.webrender_gl;
-        <span class="self">self</span>.assert_gl_framebuffer_complete();
-
-        <span class="comment">// Set the viewport background based on prefs.
-        </span><span class="kw">let </span>color = <span class="macro">servo_config::pref!</span>(shell.background_color.rgba);
-        gl.clear_color(
-            color[<span class="number">0</span>] <span class="kw">as </span>f32,
-            color[<span class="number">1</span>] <span class="kw">as </span>f32,
-            color[<span class="number">2</span>] <span class="kw">as </span>f32,
-            color[<span class="number">3</span>] <span class="kw">as </span>f32,
-        );
-
-        <span class="kw">let </span>framebuffer_height = <span class="self">self</span>.viewport.height;
-        <span class="comment">// Clear the viewport rect of each top-level browsing context.
-        </span><span class="kw">for </span>webview <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.painting_order {
-            <span class="comment">// Flip the rectangle in the framebuffer
-            </span><span class="kw">let </span>origin = webview.rect.to_i32();
-            <span class="kw">let </span><span class="kw-2">mut </span>rect = origin.clone();
-            <span class="kw">let </span>min_y = framebuffer_height - rect.max.y;
-            <span class="kw">let </span>max_y = framebuffer_height - rect.min.y;
-            rect.min.y = min_y;
-            rect.max.y = max_y;
-
-            gl.scissor(
-                rect.min.x,
-                rect.min.y,
-                rect.size().width,
-                rect.size().height,
-            );
-            gl.enable(gl::SCISSOR_TEST);
-            gl.clear(gl::COLOR_BUFFER_BIT);
-            gl.disable(gl::SCISSOR_TEST);
-        }
-
-        <span class="self">self</span>.assert_gl_framebuffer_complete();
     }
 
     <span class="attr">#[track_caller]
@@ -4302,7 +4357,7 @@
     }
 
     <span class="doccomment">/// Receive and handle compositor messages.
-    </span><span class="kw">pub fn </span>receive_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;mut </span>Window) -&gt; bool {
+    </span><span class="kw">pub fn </span>receive_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>, windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;) -&gt; bool {
         <span class="comment">// Check for new messages coming from the other threads in the system.
         </span><span class="kw">let </span><span class="kw-2">mut </span>compositor_messages = <span class="macro">vec!</span>[];
         <span class="kw">let </span><span class="kw-2">mut </span>found_recomposite_msg = <span class="bool-val">false</span>;
@@ -4321,7 +4376,7 @@
             }
         }
         <span class="kw">for </span>msg <span class="kw">in </span>compositor_messages {
-            <span class="kw">if </span>!<span class="self">self</span>.handle_browser_message(msg, window) {
+            <span class="kw">if </span>!<span class="self">self</span>.handle_browser_message(msg, windows) {
                 <span class="kw">return </span><span class="bool-val">false</span>;
             }
         }
@@ -4363,11 +4418,11 @@
     /// paint is not scheduled the compositor will hang forever.
     ///
     /// This is used when resizing the window.
-    </span><span class="kw">pub fn </span>repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;mut </span>Window) {
+    </span><span class="kw">pub fn </span>repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>, windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;) {
         <span class="kw">while </span><span class="self">self</span>.shutdown_state != ShutdownState::ShuttingDown {
             <span class="kw">let </span>msg = <span class="self">self</span>.port.recv_compositor_msg();
             <span class="kw">let </span>need_recomposite = <span class="macro">matches!</span>(msg, CompositorMsg::NewWebRenderFrameReady(<span class="kw">_</span>));
-            <span class="kw">let </span>keep_going = <span class="self">self</span>.handle_browser_message(msg, window);
+            <span class="kw">let </span>keep_going = <span class="self">self</span>.handle_browser_message(msg, windows);
             <span class="kw">if </span>need_recomposite {
                 <span class="self">self</span>.composite();
                 <span class="kw">break</span>;
@@ -4416,8 +4471,25 @@
     }
 
     <span class="doccomment">/// Update the painting order of the compositor.
-    </span><span class="kw">pub fn </span>set_painting_order(<span class="kw-2">&amp;mut </span><span class="self">self</span>, painting_order: Vec&lt;WebView&gt;) {
-        <span class="self">self</span>.painting_order = painting_order;
+    </span><span class="kw">pub fn </span>set_painting_order(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;</span>Window) {
+        <span class="kw">if </span><span class="self">self</span>.current_window == window.id() {
+            <span class="kw">let </span>painting_order = window.painting_order();
+            <span class="self">self</span>.painting_order = painting_order;
+            <span class="self">self</span>.send_root_pipeline_display_list();
+            <span class="macro">debug!</span>(
+                <span class="string">"Verso Compositor sets painting order to {:?}'s painting order {:?}"</span>,
+                window.id(),
+                <span class="self">self</span>.painting_order
+                    .iter()
+                    .map(|w| w.webview_id)
+                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+            );
+        } <span class="kw">else </span>{
+            <span class="macro">warn!</span>(
+                <span class="string">"Failed to set painting order due to {:?} is not the current window"</span>,
+                window.id()
+            );
+        }
     }
 }
 
