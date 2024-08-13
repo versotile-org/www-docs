@@ -1259,7 +1259,7 @@
 
             <span class="kw">if </span>compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
                 <span class="comment">// Update compositor
-                </span>compositor.perform_updates();
+                </span>compositor.perform_updates(<span class="kw-2">&amp;mut </span><span class="self">self</span>.windows);
             } <span class="kw">else </span>{
                 shutdown = <span class="bool-val">true</span>;
             }
