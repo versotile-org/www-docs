@@ -6,7 +6,7 @@
     pub constellation_chan: Sender&lt;ConstellationMsg&gt;,
     pub webrender_api: RenderApi,
     pub rendering_context: RenderingContext,
-    pub webxr_main_thread: MainThreadRegistry,
+    pub webxr_main_thread: MainThreadRegistry&lt;<a class="primitive" href="https://doc.rust-lang.org/1.78.0/std/primitive.unit.html">()</a>&gt;,
     pub is_animating: <a class="primitive" href="https://doc.rust-lang.org/1.78.0/std/primitive.bool.html">bool</a>,
     <span class="comment">/* private fields */</span>
 }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The Verso compositor contains a GL rendering context with a WebRender instance.
@@ -19,7 +19,7 @@ the compositor.</p>
 </div><span id="structfield.constellation_chan" class="structfield section-header"><a href="#structfield.constellation_chan" class="anchor field">§</a><code>constellation_chan: Sender&lt;ConstellationMsg&gt;</code></span><div class="docblock"><p>The channel on which messages can be sent to the constellation.</p>
 </div><span id="structfield.webrender_api" class="structfield section-header"><a href="#structfield.webrender_api" class="anchor field">§</a><code>webrender_api: RenderApi</code></span><div class="docblock"><p>The webrender interface, if enabled.</p>
 </div><span id="structfield.rendering_context" class="structfield section-header"><a href="#structfield.rendering_context" class="anchor field">§</a><code>rendering_context: RenderingContext</code></span><div class="docblock"><p>The surfman instance that webrender targets</p>
-</div><span id="structfield.webxr_main_thread" class="structfield section-header"><a href="#structfield.webxr_main_thread" class="anchor field">§</a><code>webxr_main_thread: MainThreadRegistry</code></span><div class="docblock"><p>Some XR devices want to run on the main thread.</p>
+</div><span id="structfield.webxr_main_thread" class="structfield section-header"><a href="#structfield.webxr_main_thread" class="anchor field">§</a><code>webxr_main_thread: MainThreadRegistry&lt;<a class="primitive" href="https://doc.rust-lang.org/1.78.0/std/primitive.unit.html">()</a>&gt;</code></span><div class="docblock"><p>Some XR devices want to run on the main thread.</p>
 </div><span id="structfield.is_animating" class="structfield section-header"><a href="#structfield.is_animating" class="anchor field">§</a><code>is_animating: <a class="primitive" href="https://doc.rust-lang.org/1.78.0/std/primitive.bool.html">bool</a></code></span><div class="docblock"><p>Whether the application is currently animating.
 Typically, when animations are active, the window
 will want to avoid blocking on UI events, and just

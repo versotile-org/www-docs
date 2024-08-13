@@ -2334,7 +2334,7 @@
     <span class="doccomment">/// Webrender GL handle
     </span><span class="kw">pub </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
     <span class="doccomment">/// WebXR registry
-    </span><span class="kw">pub </span>webxr_main_thread: webxr::MainThreadRegistry,
+    </span><span class="kw">pub </span>webxr_main_thread: webxr_api::MainThreadRegistry&lt;()&gt;,
 }
 
 <span class="doccomment">/// Various debug and profiling flags that WebRender supports.
@@ -2450,7 +2450,7 @@
     </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
 
     <span class="doccomment">/// Some XR devices want to run on the main thread.
-    </span><span class="kw">pub </span>webxr_main_thread: webxr::MainThreadRegistry,
+    </span><span class="kw">pub </span>webxr_main_thread: webxr_api::MainThreadRegistry&lt;()&gt;,
 
     <span class="doccomment">/// Map of the pending paint metrics per Layout.
     /// The Layout for each specific pipeline expects the compositor to

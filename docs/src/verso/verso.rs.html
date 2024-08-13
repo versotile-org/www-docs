@@ -733,6 +733,22 @@
 <a href="#731" id="731">731</a>
 <a href="#732" id="732">732</a>
 <a href="#733" id="733">733</a>
+<a href="#734" id="734">734</a>
+<a href="#735" id="735">735</a>
+<a href="#736" id="736">736</a>
+<a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -744,10 +760,7 @@
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>bluetooth::BluetoothThreadFactory;
 <span class="kw">use </span>bluetooth_traits::BluetoothRequest;
-<span class="kw">use </span>canvas::{
-    canvas_paint_thread::{<span class="self">self</span>, CanvasPaintThread},
-    WebGLComm,
-};
+<span class="kw">use </span>canvas::canvas_paint_thread::{<span class="self">self</span>, CanvasPaintThread};
 <span class="kw">use </span>compositing_traits::{
     CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg, ForwardedToCompositorMsg,
 };
@@ -775,6 +788,7 @@
 <span class="kw">use </span>webrender::{create_webrender_instance, ShaderPrecacheFlags, WebRenderOptions};
 <span class="kw">use </span>webrender_api::<span class="kw-2">*</span>;
 <span class="kw">use </span>webrender_traits::<span class="kw-2">*</span>;
+<span class="kw">use </span>webxr_api::{LayerGrandManager, LayerGrandManagerAPI, LayerManager, LayerManagerFactory};
 <span class="kw">use </span>winit::{
     event::{Event, WindowEvent},
     event_loop::{EventLoopProxy, EventLoopWindowTarget},
@@ -941,30 +955,32 @@
             <span class="prelude-val">None
         </span>};
 
-        <span class="comment">// Create the webgl thread
-        </span><span class="kw">let </span>gl_type = <span class="kw">match </span>webrender_gl.get_type() {
-            gl::GlType::Gl =&gt; sparkle::gl::GlType::Gl,
-            gl::GlType::Gles =&gt; sparkle::gl::GlType::Gles,
-        };
         <span class="kw">let </span>(external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
         <span class="kw">let </span><span class="kw-2">mut </span>external_image_handlers = Box::new(external_image_handlers);
-        <span class="kw">let </span>WebGLComm {
-            webgl_threads,
-            webxr_layer_grand_manager,
-            image_handler,
-        } = WebGLComm::new(
-            rendering_context.clone(),
-            webrender_api.create_sender(),
-            webrender_document,
-            external_images.clone(),
-            gl_type,
-        );
-        <span class="comment">// Set webrender external image handler for WebGL textures
-        </span>external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
+        <span class="comment">// Create the webgl thread
+        // TODO: create webGL thread based on pref
+        // let gl_type = match webrender_gl.get_type() {
+        //     gl::GlType::Gl =&gt; sparkle::gl::GlType::Gl,
+        //     gl::GlType::Gles =&gt; sparkle::gl::GlType::Gles,
+        // };
+        // let WebGLComm {
+        //     webgl_threads,
+        //     webxr_layer_grand_manager,
+        //     image_handler,
+        // } = WebGLComm::new(
+        //     rendering_context.clone(),
+        //     webrender_api.create_sender(),
+        //     webrender_document,
+        //     external_images.clone(),
+        //     gl_type,
+        // );
+        // Set webrender external image handler for WebGL textures
+        // external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
 
-        <span class="comment">// Create WebXR dummy
-        </span><span class="kw">let </span>webxr_registry =
-            webxr::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
+        // Create WebXR dummy
+        </span><span class="kw">let </span>webxr_layer_grand_manager = LayerGrandManager::new(DummyLayer);
+        <span class="kw">let </span>webxr_registry =
+            webxr_api::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
                 .expect(<span class="string">"Failed to create WebXR device registry"</span>);
         <span class="comment">// if pref!(dom.webxr.enabled) {
         // TODO if pref!(dom.webxr.test) {
@@ -1038,7 +1054,7 @@
             webrender_document,
             webrender_api_sender,
             webxr_registry: webxr_registry.registry(),
-            webgl_threads: <span class="prelude-val">Some</span>(webgl_threads),
+            webgl_threads: <span class="prelude-val">None</span>,
             glplayer_threads: <span class="prelude-val">None</span>,
             player_context: glplayer_context,
             user_agent,
@@ -1464,6 +1480,22 @@
     <span class="kw">let </span>variant_name = msg.variant_name();
     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(msg) {
         <span class="macro">log::warn!</span>(<span class="string">"Sending {variant_name} to constellation failed: {e:?}"</span>);
+    }
+}
+
+<span class="attr">#[derive(Clone, Copy, Debug)]
+</span><span class="kw">struct </span>DummyLayer;
+
+<span class="kw">impl </span>LayerGrandManagerAPI&lt;()&gt; <span class="kw">for </span>DummyLayer {
+    <span class="kw">fn </span>create_layer_manager(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        <span class="kw">_</span>: LayerManagerFactory&lt;()&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;LayerManager, webxr_api::Error&gt; {
+        <span class="prelude-val">Err</span>(webxr_api::Error::CommunicationError)
+    }
+
+    <span class="kw">fn </span>clone_layer_grand_manager(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; LayerGrandManager&lt;()&gt; {
+        LayerGrandManager::new(DummyLayer)
     }
 }
 </code></pre></div></section></main></body></html>
