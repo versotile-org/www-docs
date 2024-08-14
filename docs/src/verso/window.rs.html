@@ -405,6 +405,17 @@
 <a href="#403" id="403">403</a>
 <a href="#404" id="404">404</a>
 <a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -412,7 +423,7 @@
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{Cursor, EmbedderMsg};
 <span class="kw">use </span>euclid::{Point2D, Size2D};
-<span class="kw">use </span>raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+<span class="kw">use </span>raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 <span class="kw">use </span>script_traits::{TouchEventType, WheelDelta, WheelMode};
 <span class="kw">use </span>surfman::Connection;
 <span class="kw">use </span>surfman::SurfaceType;
@@ -424,9 +435,9 @@
 <span class="kw">use </span>winit::{
     dpi::PhysicalPosition,
     event::{ElementState, TouchPhase, WindowEvent},
-    event_loop::EventLoopWindowTarget,
+    event_loop::ActiveEventLoop,
     keyboard::ModifiersState,
-    window::{CursorIcon, Window <span class="kw">as </span>WinitWindow, WindowBuilder, WindowId},
+    window::{CursorIcon, Window <span class="kw">as </span>WinitWindow, WindowId},
 };
 
 <span class="kw">use crate</span>::{
@@ -454,29 +465,35 @@
 
 <span class="kw">impl </span>Window {
     <span class="doccomment">/// Create a Verso window from Winit window and return the rendering context.
-    </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>EventLoopWindowTarget&lt;()&gt;) -&gt; (<span class="self">Self</span>, RenderingContext) {
-        <span class="kw">let </span>window = WindowBuilder::new()
+    </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop) -&gt; (<span class="self">Self</span>, RenderingContext) {
+        <span class="kw">let </span>window = evl
+            .create_window(WinitWindow::default_attributes())
             <span class="comment">// .with_transparent(true)
             // .with_decorations(false)
-            </span>.build(evl)
-            .expect(<span class="string">"Failed to create window."</span>);
+            </span>.expect(<span class="string">"Failed to create window."</span>);
+
+        <span class="kw">let </span>rwh = window.window_handle().expect(<span class="string">"Failed to get window handle"</span>);
         <span class="attr">#[cfg(macos)]
         </span><span class="kw">unsafe </span>{
-            <span class="kw">let </span>rwh = window.raw_window_handle();
-            <span class="kw">if let </span>RawWindowHandle::AppKit(AppKitWindowHandle { ns_window, .. }) = rwh {
-                decorate_window(ns_window <span class="kw">as </span><span class="kw-2">*mut </span>Object, LogicalPosition::new(<span class="number">8.0</span>, <span class="number">40.0</span>));
+            <span class="kw">if let </span>RawWindowHandle::AppKit(AppKitWindowHandle { ns_view, .. }) = rwh.as_ref() {
+                decorate_window(
+                    ns_view.as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>AnyObject,
+                    LogicalPosition::new(<span class="number">8.0</span>, <span class="number">40.0</span>),
+                );
             }
         }
         <span class="kw">let </span>window_size = window.inner_size();
         <span class="kw">let </span>window_size = Size2D::new(window_size.width <span class="kw">as </span>i32, window_size.height <span class="kw">as </span>i32);
-        <span class="kw">let </span>display_handle = window.raw_display_handle();
-        <span class="kw">let </span>connection = Connection::from_raw_display_handle(display_handle)
-            .expect(<span class="string">"Failed to create connection"</span>);
+        <span class="kw">let </span>display_handle = window
+            .display_handle()
+            .expect(<span class="string">"Failed to get display handle"</span>);
+        <span class="kw">let </span>connection =
+            Connection::from_display_handle(display_handle).expect(<span class="string">"Failed to create connection"</span>);
         <span class="kw">let </span>adapter = connection
             .create_adapter()
             .expect(<span class="string">"Failed to create adapter"</span>);
         <span class="kw">let </span>native_widget = connection
-            .create_native_widget_from_raw_window_handle(window.raw_window_handle(), window_size)
+            .create_native_widget_from_window_handle(rwh, window_size)
             .expect(<span class="string">"Failed to create native widget"</span>);
         <span class="kw">let </span>surface_type = SurfaceType::Widget { native_widget };
         <span class="kw">let </span>rendering_context = RenderingContext::create(<span class="kw-2">&amp;</span>connection, <span class="kw-2">&amp;</span>adapter, surface_type)
@@ -498,20 +515,21 @@
     }
 
     <span class="doccomment">/// Create a Verso window with the rendering context.
-    </span><span class="kw">pub fn </span>new_with_compositor(
-        evl: <span class="kw-2">&amp;</span>EventLoopWindowTarget&lt;()&gt;,
-        compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
-    ) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>window = WindowBuilder::new()
+    </span><span class="kw">pub fn </span>new_with_compositor(evl: <span class="kw-2">&amp;</span>ActiveEventLoop, compositor: <span class="kw-2">&amp;mut </span>IOCompositor) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>window = evl
+            .create_window(WinitWindow::default_attributes())
             <span class="comment">// .with_transparent(true)
             // .with_decorations(false)
-            </span>.build(evl)
-            .expect(<span class="string">"Failed to create window."</span>);
+            </span>.expect(<span class="string">"Failed to create window."</span>);
+
+        <span class="kw">let </span>rwh = window.window_handle().expect(<span class="string">"Failed to get window handle"</span>);
         <span class="attr">#[cfg(macos)]
         </span><span class="kw">unsafe </span>{
-            <span class="kw">let </span>rwh = window.raw_window_handle();
-            <span class="kw">if let </span>RawWindowHandle::AppKit(AppKitWindowHandle { ns_window, .. }) = rwh {
-                decorate_window(ns_window <span class="kw">as </span><span class="kw-2">*mut </span>Object, LogicalPosition::new(<span class="number">8.0</span>, <span class="number">40.0</span>));
+            <span class="kw">if let </span>RawWindowHandle::AppKit(AppKitWindowHandle { ns_view, .. }) = rwh.as_ref() {
+                decorate_window(
+                    ns_view.as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>AnyObject,
+                    LogicalPosition::new(<span class="number">8.0</span>, <span class="number">40.0</span>),
+                );
             }
         }
         <span class="kw">let </span>window_size = window.inner_size();
@@ -519,7 +537,7 @@
         <span class="kw">let </span>native_widget = compositor
             .rendering_context
             .connection()
-            .create_native_widget_from_raw_window_handle(window.raw_window_handle(), window_size)
+            .create_native_widget_from_window_handle(rwh, window_size)
             .expect(<span class="string">"Failed to create native widget"</span>);
         <span class="kw">let </span>surface_type = SurfaceType::Widget { native_widget };
         <span class="kw">let </span>surface = compositor
@@ -593,7 +611,7 @@
                     compositor.on_mouse_window_event_class(event);
                 }
             }
-            WindowEvent::TouchpadMagnify { delta, .. } =&gt; {
+            WindowEvent::PinchGesture { delta, .. } =&gt; {
                 compositor.on_zoom_window_event(<span class="number">1.0 </span>+ <span class="kw-2">*</span>delta <span class="kw">as </span>f32, <span class="self">self</span>);
             }
             WindowEvent::MouseWheel { delta, phase, .. } =&gt; {
@@ -782,15 +800,13 @@
             Cursor::ZoomOut =&gt; CursorIcon::ZoomOut,
             <span class="kw">_ </span>=&gt; CursorIcon::Default,
         };
-        <span class="self">self</span>.window.set_cursor_icon(winit_cursor);
+        <span class="self">self</span>.window.set_cursor(winit_cursor);
     }
 }
 
 <span class="comment">/* window decoration */
 </span><span class="attr">#[cfg(macos)]
-</span><span class="kw">use </span>cocoa::appkit::{NSWindow, NSWindowStyleMask, NSWindowTitleVisibility};
-<span class="attr">#[cfg(macos)]
-</span><span class="kw">use </span>objc::runtime::Object;
+</span><span class="kw">use </span>objc2::runtime::AnyObject;
 <span class="attr">#[cfg(macos)]
 </span><span class="kw">use </span>raw_window_handle::{AppKitWindowHandle, RawWindowHandle};
 <span class="attr">#[cfg(macos)]
@@ -798,16 +814,22 @@
 
 <span class="doccomment">/// Window decoration for macOS.
 </span><span class="attr">#[cfg(macos)]
-</span><span class="kw">pub unsafe fn </span>decorate_window(window: <span class="kw-2">*mut </span>Object, _position: LogicalPosition&lt;f64&gt;) {
-    NSWindow::setTitlebarAppearsTransparent_(window, cocoa::base::YES);
-    NSWindow::setTitleVisibility_(window, NSWindowTitleVisibility::NSWindowTitleHidden);
-    NSWindow::setStyleMask_(
-        window,
-        NSWindowStyleMask::NSTitledWindowMask
-            | NSWindowStyleMask::NSFullSizeContentViewWindowMask
-            | NSWindowStyleMask::NSClosableWindowMask
-            | NSWindowStyleMask::NSResizableWindowMask
-            | NSWindowStyleMask::NSMiniaturizableWindowMask,
+</span><span class="kw">pub unsafe fn </span>decorate_window(view: <span class="kw-2">*mut </span>AnyObject, _position: LogicalPosition&lt;f64&gt;) {
+    <span class="kw">use </span>objc2::rc::Id;
+    <span class="kw">use </span>objc2_app_kit::{NSView, NSWindowStyleMask, NSWindowTitleVisibility};
+
+    <span class="kw">let </span>ns_view: Id&lt;NSView&gt; = <span class="kw">unsafe </span>{ Id::retain(view.cast()) }.unwrap();
+    <span class="kw">let </span>window = ns_view
+        .window()
+        .expect(<span class="string">"view was not installed in a window"</span>);
+    window.setTitlebarAppearsTransparent(<span class="bool-val">true</span>);
+    window.setTitleVisibility(NSWindowTitleVisibility::NSWindowTitleHidden);
+    window.setStyleMask(
+        NSWindowStyleMask::Titled
+            | NSWindowStyleMask::FullSizeContentView
+            | NSWindowStyleMask::Closable
+            | NSWindowStyleMask::Resizable
+            | NSWindowStyleMask::Miniaturizable,
     );
 }
 </code></pre></div></section></main></body></html>

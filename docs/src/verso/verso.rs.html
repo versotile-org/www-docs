@@ -737,18 +737,6 @@
 <a href="#735" id="735">735</a>
 <a href="#736" id="736">736</a>
 <a href="#737" id="737">737</a>
-<a href="#738" id="738">738</a>
-<a href="#739" id="739">739</a>
-<a href="#740" id="740">740</a>
-<a href="#741" id="741">741</a>
-<a href="#742" id="742">742</a>
-<a href="#743" id="743">743</a>
-<a href="#744" id="744">744</a>
-<a href="#745" id="745">745</a>
-<a href="#746" id="746">746</a>
-<a href="#747" id="747">747</a>
-<a href="#748" id="748">748</a>
-<a href="#749" id="749">749</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -790,8 +778,8 @@
 <span class="kw">use </span>webrender_traits::<span class="kw-2">*</span>;
 <span class="kw">use </span>webxr_api::{LayerGrandManager, LayerGrandManagerAPI, LayerManager, LayerManagerFactory};
 <span class="kw">use </span>winit::{
-    event::{Event, WindowEvent},
-    event_loop::{EventLoopProxy, EventLoopWindowTarget},
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy},
     window::WindowId,
 };
 
@@ -833,7 +821,7 @@
     /// - Font cache
     /// - Canvas
     /// - Constellation
-    </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>EventLoopWindowTarget&lt;()&gt;, proxy: EventLoopProxy&lt;()&gt;, config: Config) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop, proxy: EventLoopProxy&lt;()&gt;, config: Config) -&gt; <span class="self">Self </span>{
         <span class="comment">// Initialize configurations and Verso window
         </span><span class="kw">let </span>resource_dir = config.resource_dir.clone();
         config.init();
@@ -1141,54 +1129,34 @@
         verso
     }
 
-    <span class="doccomment">/// Run an iteration of Verso handling cycle. An iteration will perform following actions:
-    ///
-    /// - Handle Winit's event, updating Compositor and sending messages to Constellation.
-    /// - Handle Servo's messages and updating Compositor again.
-    </span><span class="kw">pub fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: Event&lt;()&gt;, evl: <span class="kw-2">&amp;</span>EventLoopWindowTarget&lt;()&gt;) {
-        <span class="self">self</span>.handle_winit_event(event);
-        <span class="self">self</span>.handle_servo_messages(evl);
-        <span class="kw">if </span><span class="self">self</span>.windows.is_empty() {
-            <span class="self">self</span>.compositor
-                .as_mut()
-                .map(IOCompositor::maybe_start_shutting_down);
-        }
-    }
-
-    <span class="doccomment">/// Handle Winit events
-    </span><span class="kw">fn </span>handle_winit_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: Event&lt;()&gt;) {
+    <span class="doccomment">/// Handle Winit window events
+    </span><span class="kw">pub fn </span>handle_winit_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window_id: WindowId, event: WindowEvent) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso is handling Winit event: {event:?}"</span>);
-        <span class="kw">match </span>event {
-            Event::NewEvents(<span class="kw">_</span>) | Event::Suspended | Event::Resumed | Event::UserEvent(()) =&gt; {}
-            Event::WindowEvent { window_id, event } =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
-                    <span class="kw">if let </span>WindowEvent::CloseRequested = event {
-                        <span class="comment">// self.windows.remove(&amp;window_id);
-                        </span>compositor.maybe_start_shutting_down();
-                    } <span class="kw">else </span>{
-                        <span class="kw">let </span><span class="kw-2">mut </span>need_repaint = <span class="bool-val">false</span>;
-                        <span class="kw">for </span>(id, window) <span class="kw">in </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.windows {
-                            <span class="kw">if </span>window_id == <span class="kw-2">*</span>id {
-                                need_repaint = window.handle_winit_window_event(
-                                    <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
-                                    compositor,
-                                    <span class="kw-2">&amp;</span>event,
-                                );
-                            }
-                        }
-
-                        <span class="kw">if </span>need_repaint {
-                            compositor.repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>.windows);
-                        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
+            <span class="kw">if let </span>WindowEvent::CloseRequested = event {
+                <span class="comment">// self.windows.remove(&amp;window_id);
+                </span>compositor.maybe_start_shutting_down();
+            } <span class="kw">else </span>{
+                <span class="kw">let </span><span class="kw-2">mut </span>need_repaint = <span class="bool-val">false</span>;
+                <span class="kw">for </span>(id, window) <span class="kw">in </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.windows {
+                    <span class="kw">if </span>window_id == <span class="kw-2">*</span>id {
+                        need_repaint = window.handle_winit_window_event(
+                            <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                            compositor,
+                            <span class="kw-2">&amp;</span>event,
+                        );
                     }
                 }
+
+                <span class="kw">if </span>need_repaint {
+                    compositor.repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>.windows);
+                }
             }
-            e =&gt; <span class="macro">log::trace!</span>(<span class="string">"Verso isn't supporting this event yet: {e:?}"</span>),
         }
     }
 
     <span class="doccomment">/// Handle message came from Servo.
-    </span><span class="kw">fn </span>handle_servo_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>, evl: <span class="kw-2">&amp;</span>EventLoopWindowTarget&lt;()&gt;) {
+    </span><span class="kw">pub fn </span>handle_servo_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>, evl: <span class="kw-2">&amp;</span>ActiveEventLoop) {
         <span class="kw">let </span><span class="kw-2">mut </span>shutdown = <span class="bool-val">false</span>;
         <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
             <span class="comment">// Handle Compositor's messages first
@@ -1265,9 +1233,22 @@
             }
         }
 
-        <span class="kw">if </span>shutdown {
+        <span class="comment">// Check if Verso need to start shutting down.
+        </span><span class="kw">if </span><span class="self">self</span>.windows.is_empty() {
+            <span class="self">self</span>.compositor
+                .as_mut()
+                .map(IOCompositor::maybe_start_shutting_down);
+        }
+
+        <span class="comment">// Check compositor status and set control flow.
+        </span><span class="kw">if </span>shutdown {
             <span class="comment">// If Compositor has shut down, deinit and remove it.
             </span><span class="self">self</span>.compositor.take().map(IOCompositor::deinit);
+            evl.exit();
+        } <span class="kw">else if </span><span class="self">self</span>.is_animating() {
+            evl.set_control_flow(ControlFlow::Poll);
+        } <span class="kw">else </span>{
+            evl.set_control_flow(ControlFlow::Wait);
         }
     }
 
@@ -1277,11 +1258,6 @@
             .as_ref()
             .map(|c| c.is_animating)
             .unwrap_or(<span class="bool-val">false</span>)
-    }
-
-    <span class="doccomment">/// Return true if Verso has shut down and hence there's no compositor.
-    </span><span class="kw">pub fn </span>finished_shutting_down(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="self">self</span>.compositor.is_none()
     }
 
     <span class="kw">fn </span>setup_logging(<span class="kw-2">&amp;</span><span class="self">self</span>) {
