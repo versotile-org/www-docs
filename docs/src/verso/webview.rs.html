@@ -260,6 +260,9 @@
 <a href="#258" id="258">258</a>
 <a href="#259" id="259">259</a>
 <a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -363,14 +366,14 @@
                 }
             }
             EmbedderMsg::SetClipboardContents(text) =&gt; {
-                clipboard.map(|c| {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(c) = clipboard {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = c.set_text(text) {
                         <span class="macro">log::warn!</span>(
                             <span class="string">"Verso WebView {webview_id:?} failed to set clipboard contents: {}"</span>,
                             e
                         );
                     }
-                });
+                }
             }
             EmbedderMsg::EventDelivered(event) =&gt; {
                 <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
@@ -440,16 +443,19 @@
                                 <span class="kw">let </span>url = <span class="kw">match </span>Url::parse(unparsed_url) {
                                     <span class="prelude-val">Ok</span>(url_parsed) =&gt; url_parsed,
                                     <span class="prelude-val">Err</span>(e) =&gt; {
-                                        <span class="kw">if </span>e == url::ParseError::RelativeUrlWithoutBase
-                                        {
-                                            Url::parse(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"https://{}"</span>, unparsed_url)).unwrap()
+                                        <span class="kw">if </span>e == url::ParseError::RelativeUrlWithoutBase {
+                                            Url::parse(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"https://{}"</span>, unparsed_url))
+                                                .unwrap()
                                         } <span class="kw">else </span>{
                                             <span class="macro">panic!</span>(<span class="string">"Verso Panel failed to parse URL: {}"</span>, e);
                                         }
                                     }
                                 };
 
-                                send_to_constellation(sender, ConstellationMsg::LoadUrl(id, ServoUrl::from_url(url)));
+                                send_to_constellation(
+                                    sender,
+                                    ConstellationMsg::LoadUrl(id, ServoUrl::from_url(url)),
+                                );
                             } <span class="kw">else </span>{
                                 <span class="kw">match </span>msg.as_str() {
                                     <span class="string">"PREV" </span>=&gt; {
@@ -507,11 +513,11 @@
                 }
             }
             EmbedderMsg::SetClipboardContents(text) =&gt; {
-                clipboard.map(|c| {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(c) = clipboard {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = c.set_text(text) {
                         <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to set clipboard contents: {}"</span>, e);
                     }
-                });
+                }
             }
             e =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Panel isn't supporting this message yet: {e:?}"</span>)

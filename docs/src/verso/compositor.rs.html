@@ -2253,10 +2253,6 @@
 <a href="#2251" id="2251">2251</a>
 <a href="#2252" id="2252">2252</a>
 <a href="#2253" id="2253">2253</a>
-<a href="#2254" id="2254">2254</a>
-<a href="#2255" id="2255">2255</a>
-<a href="#2256" id="2256">2256</a>
-<a href="#2257" id="2257">2257</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -4005,9 +4001,9 @@
             <span class="kw">if </span>previous_pipeline_id.replace(pipeline_id) != <span class="prelude-val">Some</span>(pipeline_id) {
                 <span class="kw">let </span>scroll_result = <span class="self">self
                     </span>.pipeline_details
-                    .get_mut(<span class="kw-2">&amp;</span>pipeline_id)<span class="question-mark">?
+                    .get_mut(pipeline_id)<span class="question-mark">?
                     </span>.scroll_tree
-                    .scroll_node_or_ancestor(<span class="kw-2">&amp;</span>scroll_tree_node, scroll_location);
+                    .scroll_node_or_ancestor(scroll_tree_node, scroll_location);
                 <span class="kw">if let </span><span class="prelude-val">Some</span>((external_id, offset)) = scroll_result {
                     <span class="kw">return </span><span class="prelude-val">Some</span>((<span class="kw-2">*</span>pipeline_id, external_id, offset));
                 }
@@ -4037,11 +4033,7 @@
                 pipeline_ids.push(<span class="kw-2">*</span>pipeline_id);
             }
         }
-        <span class="kw">if </span>pipeline_ids.is_empty() &amp;&amp; !<span class="self">self</span>.webxr_main_thread.running() {
-            <span class="self">self</span>.is_animating = <span class="bool-val">false</span>;
-        } <span class="kw">else </span>{
-            <span class="self">self</span>.is_animating = <span class="bool-val">true</span>;
-        };
+        <span class="self">self</span>.is_animating = !pipeline_ids.is_empty() || <span class="self">self</span>.webxr_main_thread.running();
         <span class="kw">for </span>pipeline_id <span class="kw">in </span><span class="kw-2">&amp;</span>pipeline_ids {
             <span class="self">self</span>.tick_animations_for_pipeline(<span class="kw-2">*</span>pipeline_id)
         }

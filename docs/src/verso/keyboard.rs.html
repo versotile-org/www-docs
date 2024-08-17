@@ -292,7 +292,7 @@
     <span class="comment">// TODO: figure out how to map NavigateForward, NavigateBackward
     // TODO: map the remaining keys if possible
     </span><span class="kw">match </span>key {
-        LogicalKey::Character(c) =&gt; <span class="kw">return </span>Key::Character(c.to_string()),
+        LogicalKey::Character(c) =&gt; Key::Character(c.to_string()),
         <span class="comment">// printable: Key1 to Key0
         // printable: A to Z
         </span>LogicalKey::Named(NamedKey::Escape) =&gt; Key::Escape,

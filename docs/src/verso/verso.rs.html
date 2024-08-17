@@ -737,6 +737,8 @@
 <a href="#735" id="735">735</a>
 <a href="#736" id="736">736</a>
 <a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -1243,7 +1245,9 @@
         <span class="comment">// Check compositor status and set control flow.
         </span><span class="kw">if </span>shutdown {
             <span class="comment">// If Compositor has shut down, deinit and remove it.
-            </span><span class="self">self</span>.compositor.take().map(IOCompositor::deinit);
+            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="self">self</span>.compositor.take() {
+                IOCompositor::deinit(compositor)
+            }
             evl.exit();
         } <span class="kw">else if </span><span class="self">self</span>.is_animating() {
             evl.set_control_flow(ControlFlow::Poll);
