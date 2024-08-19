@@ -2201,58 +2201,6 @@
 <a href="#2199" id="2199">2199</a>
 <a href="#2200" id="2200">2200</a>
 <a href="#2201" id="2201">2201</a>
-<a href="#2202" id="2202">2202</a>
-<a href="#2203" id="2203">2203</a>
-<a href="#2204" id="2204">2204</a>
-<a href="#2205" id="2205">2205</a>
-<a href="#2206" id="2206">2206</a>
-<a href="#2207" id="2207">2207</a>
-<a href="#2208" id="2208">2208</a>
-<a href="#2209" id="2209">2209</a>
-<a href="#2210" id="2210">2210</a>
-<a href="#2211" id="2211">2211</a>
-<a href="#2212" id="2212">2212</a>
-<a href="#2213" id="2213">2213</a>
-<a href="#2214" id="2214">2214</a>
-<a href="#2215" id="2215">2215</a>
-<a href="#2216" id="2216">2216</a>
-<a href="#2217" id="2217">2217</a>
-<a href="#2218" id="2218">2218</a>
-<a href="#2219" id="2219">2219</a>
-<a href="#2220" id="2220">2220</a>
-<a href="#2221" id="2221">2221</a>
-<a href="#2222" id="2222">2222</a>
-<a href="#2223" id="2223">2223</a>
-<a href="#2224" id="2224">2224</a>
-<a href="#2225" id="2225">2225</a>
-<a href="#2226" id="2226">2226</a>
-<a href="#2227" id="2227">2227</a>
-<a href="#2228" id="2228">2228</a>
-<a href="#2229" id="2229">2229</a>
-<a href="#2230" id="2230">2230</a>
-<a href="#2231" id="2231">2231</a>
-<a href="#2232" id="2232">2232</a>
-<a href="#2233" id="2233">2233</a>
-<a href="#2234" id="2234">2234</a>
-<a href="#2235" id="2235">2235</a>
-<a href="#2236" id="2236">2236</a>
-<a href="#2237" id="2237">2237</a>
-<a href="#2238" id="2238">2238</a>
-<a href="#2239" id="2239">2239</a>
-<a href="#2240" id="2240">2240</a>
-<a href="#2241" id="2241">2241</a>
-<a href="#2242" id="2242">2242</a>
-<a href="#2243" id="2243">2243</a>
-<a href="#2244" id="2244">2244</a>
-<a href="#2245" id="2245">2245</a>
-<a href="#2246" id="2246">2246</a>
-<a href="#2247" id="2247">2247</a>
-<a href="#2248" id="2248">2248</a>
-<a href="#2249" id="2249">2249</a>
-<a href="#2250" id="2250">2250</a>
-<a href="#2251" id="2251">2251</a>
-<a href="#2252" id="2252">2252</a>
-<a href="#2253" id="2253">2253</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2279,7 +2227,6 @@
 };
 <span class="kw">use </span>servo_geometry::DeviceIndependentPixel;
 <span class="kw">use </span>style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
-<span class="kw">use </span>surfman::Surface;
 <span class="kw">use </span>webrender::{RenderApi, Transaction};
 <span class="kw">use </span>webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
@@ -2294,11 +2241,11 @@
 <span class="kw">use </span>webrender_traits::display_list::{HitTestInfo, ScrollTree};
 <span class="kw">use </span>webrender_traits::{
     CanvasToCompositorMsg, CompositorHitTestResult, FontToCompositorMsg, ImageUpdate,
-    NetToCompositorMsg, RenderingContext, ScriptToCompositorMsg, SerializedImageUpdate,
-    UntrustedNodeAddress,
+    NetToCompositorMsg, ScriptToCompositorMsg, SerializedImageUpdate, UntrustedNodeAddress,
 };
 <span class="kw">use </span>winit::window::WindowId;
 
+<span class="kw">use </span><span class="kw">crate</span>::rendering::RenderingContext;
 <span class="kw">use </span><span class="kw">crate</span>::touch::{TouchAction, TouchHandler};
 <span class="kw">use </span><span class="kw">crate</span>::window::Window;
 
@@ -2359,9 +2306,6 @@
 /// The compositor will communicate with Servo using messages from the Constellation,
 /// then composite the WebRender frames and present the surface to the window.
 </span><span class="kw">pub struct </span>IOCompositor {
-    <span class="doccomment">/// All surfaces that Compositor currently owns.
-    </span><span class="kw">pub </span>surfaces: HashMap&lt;WindowId, <span class="prelude-ty">Option</span>&lt;Surface&gt;&gt;,
-
     <span class="doccomment">/// The current window that Compositor is handling.
     </span><span class="kw">pub </span>current_window: WindowId,
 
@@ -2431,7 +2375,7 @@
     <span class="doccomment">/// The webrender interface, if enabled.
     </span><span class="kw">pub </span>webrender_api: RenderApi,
 
-    <span class="doccomment">/// The surfman instance that webrender targets
+    <span class="doccomment">/// The glutin instance that webrender targets
     </span><span class="kw">pub </span>rendering_context: RenderingContext,
 
     <span class="doccomment">/// The GL bindings for webrender
@@ -2603,10 +2547,7 @@
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
     ) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span><span class="kw-2">mut </span>surfaces = HashMap::new();
-        surfaces.insert(current_window, <span class="prelude-val">None</span>);
         <span class="kw">let </span>compositor = IOCompositor {
-            surfaces,
             current_window,
             viewport,
             port: state.receiver,
@@ -2649,15 +2590,7 @@
     }
 
     <span class="doccomment">/// Consume compositor itself and deinit webrender.
-    </span><span class="kw">pub fn </span>deinit(<span class="kw-2">mut </span><span class="self">self</span>) {
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.make_gl_context_current() {
-            <span class="macro">warn!</span>(<span class="string">"Failed to make GL context current: {:?}"</span>, err);
-        }
-        <span class="kw">for </span>surface <span class="kw">in </span><span class="self">self</span>.surfaces.values_mut() {
-            surface
-                .take()
-                .map(|s| <span class="self">self</span>.rendering_context.destroy_surface(s));
-        }
+    </span><span class="kw">pub fn </span>deinit(<span class="self">self</span>) {
         <span class="self">self</span>.webrender.deinit();
     }
 
@@ -2706,34 +2639,6 @@
         }
 
         <span class="self">self</span>.shutdown_state = ShutdownState::FinishedShuttingDown;
-    }
-
-    <span class="doccomment">/// The underlying native surface can be lost during servo's lifetime.
-    /// On Android, for example, this happens when the app is sent to background.
-    /// We need to unbind the surface so that we don't try to use it again.
-    </span><span class="kw">pub fn </span>invalidate_native_surface(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="macro">debug!</span>(<span class="string">"Invalidating native surface in compositor"</span>);
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.rendering_context.unbind_native_surface_from_context() {
-            <span class="macro">warn!</span>(<span class="string">"Unbinding native surface from context failed ({:?})"</span>, e);
-        }
-    }
-
-    <span class="doccomment">/// On Android, this function will be called when the app moves to foreground
-    /// and the system creates a new native surface that needs to bound to the current
-    /// context.
-    </span><span class="attr">#[allow(unsafe_code)]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)] </span><span class="comment">// It has an unsafe block inside
-    </span><span class="kw">pub fn </span>replace_native_surface(<span class="kw-2">&amp;mut </span><span class="self">self</span>, native_widget: <span class="kw-2">*mut </span>c_void, coords: DeviceIntSize) {
-        <span class="macro">debug!</span>(<span class="string">"Replacing native surface in compositor: {native_widget:?}"</span>);
-        <span class="kw">let </span>connection = <span class="self">self</span>.rendering_context.connection();
-        <span class="kw">let </span>native_widget =
-            <span class="kw">unsafe </span>{ connection.create_native_widget_from_ptr(native_widget, coords.to_untyped()) };
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self
-            </span>.rendering_context
-            .bind_native_surface_to_context(native_widget)
-        {
-            <span class="macro">warn!</span>(<span class="string">"Binding native surface to context failed ({:?})"</span>, e);
-        }
     }
 
     <span class="kw">fn </span>handle_browser_message(
@@ -3537,23 +3442,16 @@
                 <span class="self">self</span>.current_window,
                 window.id()
             );
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="prelude-val">Some</span>(new_surface)) = <span class="self">self</span>.surfaces.insert(window.id(), <span class="prelude-val">None</span>) {
-                <span class="comment">// Swap the surface
-                </span><span class="self">self</span>.rendering_context.with_front_buffer(|<span class="kw">_</span>, old_surface| {
-                    <span class="self">self</span>.surfaces.insert(<span class="self">self</span>.current_window, <span class="prelude-val">Some</span>(old_surface));
-                    new_surface
-                });
-                <span class="self">self</span>.current_window = window.id();
-                <span class="self">self</span>.scale_factor = Scale::new(window.scale_factor() <span class="kw">as </span>f32);
-                <span class="self">self</span>.resize(window.size(), window);
-            }
+            <span class="self">self</span>.current_window = window.id();
+            <span class="self">self</span>.scale_factor = Scale::new(window.scale_factor() <span class="kw">as </span>f32);
+            <span class="self">self</span>.resize(window.size(), window);
         }
     }
 
     <span class="doccomment">/// Resize the rendering context and all web views. Return true if the compositor should repaint and present
     /// after this.
     </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, size: Size2D&lt;i32, DevicePixel&gt;, window: <span class="kw-2">&amp;mut </span>Window) -&gt; bool {
-        <span class="kw">let </span>need_resize = <span class="self">self</span>.on_resize_window_event(size);
+        <span class="kw">let </span>need_resize = <span class="self">self</span>.on_resize_window_event(size, window);
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;mut </span>window.panel {
             <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
@@ -3574,12 +3472,14 @@
 
     <span class="doccomment">/// Handle the window resize event and return a boolean to tell embedder if it should further
     /// handle the resize event.
-    </span><span class="kw">pub fn </span>on_resize_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_viewport: DeviceIntSize) -&gt; bool {
+    </span><span class="kw">pub fn </span>on_resize_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_viewport: DeviceIntSize, window: <span class="kw-2">&amp;</span>Window) -&gt; bool {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return </span><span class="bool-val">false</span>;
         }
 
-        <span class="kw">let _ </span>= <span class="self">self</span>.rendering_context.resize(new_viewport.to_untyped());
+        <span class="kw">let _ </span>= <span class="self">self
+            </span>.rendering_context
+            .resize(<span class="kw-2">&amp;</span>window.surface, new_viewport.to_untyped());
         <span class="self">self</span>.viewport = new_viewport;
         <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
         transaction.set_document_view(DeviceIntRect::from_size(<span class="self">self</span>.viewport));
@@ -4214,8 +4114,8 @@
     }
 
     <span class="doccomment">/// Composite to the given target if any, or the current target otherwise.
-    </span><span class="kw">pub fn </span>composite(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="kw">match </span><span class="self">self</span>.composite_specific_target() {
+    </span><span class="kw">pub fn </span>composite(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;</span>Window) {
+        <span class="kw">match </span><span class="self">self</span>.composite_specific_target(window) {
             <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
                 <span class="kw">if </span><span class="self">self</span>.exit_after_load {
                     <span class="macro">println!</span>(<span class="string">"Shutting down the Constellation after generating an output file or exit flag specified"</span>);
@@ -4229,8 +4129,11 @@
     }
 
     <span class="doccomment">/// Composite to the given target if any, or the current target otherwise.
-    </span><span class="kw">fn </span>composite_specific_target(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), UnableToComposite&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.make_gl_context_current() {
+    </span><span class="kw">fn </span>composite_specific_target(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;</span>Window) -&gt; <span class="prelude-ty">Result</span>&lt;(), UnableToComposite&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self
+            </span>.rendering_context
+            .make_gl_context_current(<span class="kw-2">&amp;</span>window.surface)
+        {
             <span class="macro">warn!</span>(<span class="string">"Failed to make GL context current: {:?}"</span>, err);
         }
         <span class="self">self</span>.assert_no_gl_error();
@@ -4253,17 +4156,6 @@
                 <span class="kw">return </span><span class="prelude-val">Err</span>(UnableToComposite::NotReadyToPaintImage(result));
             }
         }
-
-        <span class="comment">// Bind the webrender framebuffer
-        </span><span class="kw">let </span>framebuffer_object = <span class="self">self
-            </span>.rendering_context
-            .context_surface_info()
-            .unwrap_or(<span class="prelude-val">None</span>)
-            .map(|info| info.framebuffer_object)
-            .unwrap_or(<span class="number">0</span>);
-        <span class="self">self</span>.webrender_gl
-            .bind_framebuffer(gl::FRAMEBUFFER, framebuffer_object);
-        <span class="self">self</span>.assert_gl_framebuffer_complete();
 
         profile(
             ProfilerCategory::Compositing,
@@ -4326,7 +4218,7 @@
             }
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.present() {
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.present(<span class="kw-2">&amp;</span>window.surface) {
             <span class="macro">warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
         }
         <span class="self">self</span>.composition_request = CompositionRequest::NoCompositingNecessary;
@@ -4402,19 +4294,21 @@
             <span class="self">self</span>.zoom_action = <span class="bool-val">false</span>;
         }
 
-        <span class="kw">match </span><span class="self">self</span>.composition_request {
-            CompositionRequest::NoCompositingNecessary =&gt; {}
-            CompositionRequest::CompositeNow(<span class="kw">_</span>) =&gt; <span class="self">self</span>.composite(),
-        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
+            <span class="kw">match </span><span class="self">self</span>.composition_request {
+                CompositionRequest::NoCompositingNecessary =&gt; {}
+                CompositionRequest::CompositeNow(<span class="kw">_</span>) =&gt; <span class="self">self</span>.composite(window),
+            }
 
-        <span class="comment">// Run the WebXR main thread
-        </span><span class="self">self</span>.webxr_main_thread.run_one_frame();
+            <span class="comment">// Run the WebXR main thread
+            </span><span class="self">self</span>.webxr_main_thread.run_one_frame();
 
-        <span class="comment">// The WebXR thread may make a different context current
-        </span><span class="kw">let _ </span>= <span class="self">self</span>.rendering_context.make_gl_context_current();
+            <span class="comment">// The WebXR thread may make a different context current
+            </span><span class="kw">let _ </span>= <span class="self">self
+                </span>.rendering_context
+                .make_gl_context_current(<span class="kw-2">&amp;</span>window.surface);
 
-        <span class="kw">if </span>!<span class="self">self</span>.pending_scroll_zoom_events.is_empty() {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
+            <span class="kw">if </span>!<span class="self">self</span>.pending_scroll_zoom_events.is_empty() {
                 <span class="self">self</span>.process_pending_scroll_events(window)
             }
         }
@@ -4430,7 +4324,9 @@
             <span class="kw">let </span>need_recomposite = <span class="macro">matches!</span>(msg, CompositorMsg::NewWebRenderFrameReady(<span class="kw">_</span>));
             <span class="kw">let </span>keep_going = <span class="self">self</span>.handle_browser_message(msg, windows);
             <span class="kw">if </span>need_recomposite {
-                <span class="self">self</span>.composite();
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
+                    <span class="self">self</span>.composite(window);
+                }
                 <span class="kw">break</span>;
             }
             <span class="kw">if </span>!keep_going {

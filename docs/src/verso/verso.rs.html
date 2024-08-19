@@ -721,24 +721,6 @@
 <a href="#719" id="719">719</a>
 <a href="#720" id="720">720</a>
 <a href="#721" id="721">721</a>
-<a href="#722" id="722">722</a>
-<a href="#723" id="723">723</a>
-<a href="#724" id="724">724</a>
-<a href="#725" id="725">725</a>
-<a href="#726" id="726">726</a>
-<a href="#727" id="727">727</a>
-<a href="#728" id="728">728</a>
-<a href="#729" id="729">729</a>
-<a href="#730" id="730">730</a>
-<a href="#731" id="731">731</a>
-<a href="#732" id="732">732</a>
-<a href="#733" id="733">733</a>
-<a href="#734" id="734">734</a>
-<a href="#735" id="735">735</a>
-<a href="#736" id="736">736</a>
-<a href="#737" id="737">737</a>
-<a href="#738" id="738">738</a>
-<a href="#739" id="739">739</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -760,7 +742,6 @@
 <span class="kw">use </span>embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 <span class="kw">use </span>euclid::Scale;
 <span class="kw">use </span>fonts::FontCacheThread;
-<span class="kw">use </span>gleam::gl;
 <span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSender};
 <span class="kw">use </span>layout_thread_2020;
 <span class="kw">use </span>log::{Log, Metadata, Record};
@@ -772,7 +753,6 @@
 <span class="kw">use </span>servo_config::{opts, pref};
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>style;
-<span class="kw">use </span>surfman::GLApi;
 <span class="kw">use </span>units::DeviceIntRect;
 <span class="kw">use </span>webgpu;
 <span class="kw">use </span>webrender::{create_webrender_instance, ShaderPrecacheFlags, WebRenderOptions};
@@ -842,24 +822,8 @@
         <span class="comment">// Initialize servo media with dummy backend
         </span>servo_media::ServoMedia::init::&lt;servo_media_dummy::DummyBackend&gt;();
 
-        <span class="comment">// Initialize surfman &amp; get GL bindings
-        </span><span class="kw">let </span>webrender_gl = <span class="kw">match </span>rendering_context.connection().gl_api() {
-            GLApi::GL =&gt; <span class="kw">unsafe </span>{ gl::GlFns::load_with(|s| rendering_context.get_proc_address(s)) },
-            GLApi::GLES =&gt; <span class="kw">unsafe </span>{
-                gl::GlesFns::load_with(|s| rendering_context.get_proc_address(s))
-            },
-        };
-
-        <span class="comment">// Make sure the gl context is made current.
-        </span>rendering_context.make_gl_context_current().unwrap();
-        <span class="macro">debug_assert_eq!</span>(webrender_gl.get_error(), gl::NO_ERROR,);
-        <span class="comment">// Bind the webrender framebuffer
-        </span><span class="kw">let </span>framebuffer_object = rendering_context
-            .context_surface_info()
-            .unwrap_or(<span class="prelude-val">None</span>)
-            .map(|info| info.framebuffer_object)
-            .unwrap_or(<span class="number">0</span>);
-        webrender_gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_object);
+        <span class="comment">// Get GL bindings
+        </span><span class="kw">let </span>webrender_gl = rendering_context.gl.clone();
 
         <span class="comment">// Create profiler threads
         </span><span class="kw">let </span>time_profiler_sender = profile::time::Profiler::create(

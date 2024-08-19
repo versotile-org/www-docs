@@ -14,6 +14,9 @@
 <a href="#12" id="12">12</a>
 <a href="#13" id="13">13</a>
 <a href="#14" id="14">14</a>
+<a href="#15" id="15">15</a>
+<a href="#16" id="16">16</a>
+<a href="#17" id="17">17</a>
 </pre></div><pre class="rust"><code><span class="doccomment">/// Convenient type alias of Result type for Verso.
 </span><span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
@@ -27,5 +30,8 @@
     <span class="doccomment">/// A general error that may occur while running the Winit event loop.
     </span><span class="attr">#[error(transparent)]
     </span>EventLoopError(<span class="attr">#[from] </span>winit::error::EventLoopError),
+    <span class="doccomment">/// Glutin errors.
+    </span><span class="attr">#[error(transparent)]
+    </span>GlutinError(<span class="attr">#[from] </span>glutin::error::Error),
 }
 </code></pre></div></section></main></body></html>
