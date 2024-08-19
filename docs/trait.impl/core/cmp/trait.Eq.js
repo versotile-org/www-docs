@@ -1,3 +1,3 @@
 (function() {var implementors = {
-"verso":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.78.0/core/cmp/trait.Eq.html\" title=\"trait core::cmp::Eq\">Eq</a> for <a class=\"enum\" href=\"verso/touch/enum.TouchState.html\" title=\"enum verso::touch::TouchState\">TouchState</a>"]]
+"verso":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.80.1/core/cmp/trait.Eq.html\" title=\"trait core::cmp::Eq\">Eq</a> for <a class=\"enum\" href=\"verso/touch/enum.TouchState.html\" title=\"enum verso::touch::TouchState\">TouchState</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
