@@ -396,6 +396,8 @@
 <a href="#396" id="396">396</a>
 <a href="#397" id="397">397</a>
 <a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -448,10 +450,12 @@
     <span class="doccomment">/// Create a Verso window from Winit window and return the rendering context.
     </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop) -&gt; (<span class="self">Self</span>, RenderingContext) {
         <span class="kw">let </span>window = evl
-            .create_window(WinitWindow::default_attributes())
-            <span class="comment">// .with_transparent(true)
-            // .with_decorations(false)
-            </span>.expect(<span class="string">"Failed to create window."</span>);
+            .create_window(
+                WinitWindow::default_attributes()
+                    .with_transparent(<span class="bool-val">true</span>)
+                    .with_decorations(<span class="bool-val">false</span>),
+            )
+            .expect(<span class="string">"Failed to create window."</span>);
 
         <span class="attr">#[cfg(macos)]
         </span><span class="kw">unsafe </span>{
@@ -714,11 +718,11 @@
     <span class="doccomment">/// Get the painting order of this window.
     </span><span class="kw">pub fn </span>painting_order(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;<span class="kw-2">&amp;</span>WebView&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>order = <span class="macro">vec!</span>[];
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
-            order.push(webview);
-        }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
             order.push(panel);
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
+            order.push(webview);
         }
         order
     }

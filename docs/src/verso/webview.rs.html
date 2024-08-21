@@ -261,6 +261,16 @@
 <a href="#261" id="261">261</a>
 <a href="#262" id="262">262</a>
 <a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -307,6 +317,15 @@
             webview_id: id,
             rect,
         }
+    }
+
+    <span class="doccomment">/// Set the webview size corresponding to the window size.
+    </span><span class="kw">pub fn </span>set_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>rect: DeviceIntRect) {
+        rect.min.y = rect.max.y.min(<span class="number">100</span>);
+        rect.min.x += <span class="number">10</span>;
+        rect.max.y -= <span class="number">10</span>;
+        rect.max.x -= <span class="number">10</span>;
+        <span class="self">self</span>.rect = rect;
     }
 }
 
@@ -416,9 +435,10 @@
                 <span class="kw">let </span>demo_url = ServoUrl::parse(<span class="string">"https://example.com"</span>).unwrap();
                 <span class="kw">let </span>demo_id = WebViewId::new();
                 <span class="kw">let </span>size = <span class="self">self</span>.size();
-                <span class="kw">let </span><span class="kw-2">mut </span>rect = DeviceIntRect::from_size(size);
-                rect.min.y = rect.max.y.min(<span class="number">76</span>);
-                <span class="self">self</span>.webview = <span class="prelude-val">Some</span>(WebView::new(demo_id, rect));
+                <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+                <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(demo_id, rect);
+                webview.set_size(rect);
+                <span class="self">self</span>.webview = <span class="prelude-val">Some</span>(webview);
                 send_to_constellation(sender, ConstellationMsg::NewWebView(demo_url, demo_id));
                 <span class="macro">log::debug!</span>(<span class="string">"Verso Window {:?} adds webview {}"</span>, <span class="self">self</span>.id(), demo_id);
             }
