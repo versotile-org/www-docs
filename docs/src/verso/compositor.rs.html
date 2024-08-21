@@ -2234,6 +2234,9 @@
 <a href="#2234" id="2234">2234</a>
 <a href="#2235" id="2235">2235</a>
 <a href="#2236" id="2236">2236</a>
+<a href="#2237" id="2237">2237</a>
+<a href="#2238" id="2238">2238</a>
+<a href="#2239" id="2239">2239</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -4286,9 +4289,6 @@
             }
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.present(<span class="kw-2">&amp;</span>window.surface) {
-            <span class="macro">warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
-        }
         <span class="self">self</span>.composition_request = CompositionRequest::NoCompositingNecessary;
 
         <span class="self">self</span>.process_animations(<span class="bool-val">true</span>);
@@ -4365,7 +4365,10 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
             <span class="kw">match </span><span class="self">self</span>.composition_request {
                 CompositionRequest::NoCompositingNecessary =&gt; {}
-                CompositionRequest::CompositeNow(<span class="kw">_</span>) =&gt; <span class="self">self</span>.composite(window),
+                CompositionRequest::CompositeNow(<span class="kw">_</span>) =&gt; {
+                    <span class="self">self</span>.composite(window);
+                    window.request_redraw();
+                }
             }
 
             <span class="comment">// Run the WebXR main thread
@@ -4394,6 +4397,9 @@
             <span class="kw">if </span>need_recomposite {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
                     <span class="self">self</span>.composite(window);
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.present(<span class="kw-2">&amp;</span>window.surface) {
+                        <span class="macro">log::warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
+                    }
                 }
                 <span class="kw">break</span>;
             }
