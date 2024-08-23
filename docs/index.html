@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charSet="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>Docs - Versotile</title>
+        <meta name="next-size-adjust"/>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body>
+        <script>!function(){try{var d=document.documentElement,c=d.classList;c.remove('light','dark');var e=localStorage.getItem('theme');if('system'===e||(!e&&false)){var t='(prefers-color-scheme: dark)',m=window.matchMedia(t);if(m.media!==t||m.matches){d.style.colorScheme = 'dark';c.add('dark')}else{d.style.colorScheme = 'light';c.add('light')}}else if(e){c.add(e|| '')}else{c.add('dark')}if(e==='light'||e==='dark'||!e)d.style.colorScheme=e||'dark'}catch(e){}}()</script>
+        <main class="flex min-h-screen flex-col items-center justify-start">
+            <div class="min-h-screen py-42 flex justify-center flex-col">
+                <div class="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-10">
+                    <a class="bg-background relative max-w-64 overflow-hidden rounded-lg border p-5 hover:border-blue-500 transition-all duration-300 hover:-translate-y-1 hover:-translate-x-1" href="/verso">
+                        <div class="text-md font-medium mb-5">Verso Browser</div>
+                        <div class="text-muted-foreground text-sm font-medium">
+                            rustdoc for `verso`
+                        </div>
+                        <div class="absolute top-0 right-0 bg-blue-800 text-white text-xs font-medium p-1 rounded-bl-lg">verso</div>
+                    </a>
+                    <a class="bg-background relative max-w-64 overflow-hidden rounded-lg border p-5 hover:border-blue-500 transition-all duration-300 hover:-translate-y-1 hover:-translate-x-1" href="https://doc.servo.org/stylo/css-properties.html">
+                        <div class="text-md font-medium mb-5">CSS properties</div>
+                        <div class="text-muted-foreground text-sm font-medium">
+                            Supported CSS properties in `stylo`
+                        </div>
+                        <div class="absolute top-0 right-0 bg-teal-500 text-white text-xs font-medium p-1 rounded-bl-lg">servo</div>
+                    </a>
+                    <a class="bg-background relative max-w-64 overflow-hidden rounded-lg border p-5 hover:border-blue-500 transition-all duration-300 hover:-translate-y-1 hover:-translate-x-1" href="https://doc.servo.org/servo/">
+                        <div class="text-md font-medium mb-5">Servo Engine</div>
+                        <div class="text-muted-foreground text-sm font-medium">
+                            rustdoc for `servo`
+                        </div>
+                        <div class="absolute top-0 right-0 bg-teal-500 text-white text-xs font-medium p-1 rounded-bl-lg">servo</div>
+                    </a>
+                    <a class="bg-background relative max-w-64 overflow-hidden rounded-lg border p-5 hover:border-blue-500 transition-all duration-300 hover:-translate-y-1 hover:-translate-x-1" href="https://book.servo.org">
+                        <div class="text-md font-medium mb-5">Servo Book</div>
+                        <div class="text-muted-foreground text-sm font-medium">
+                            Book for Servo
+                        </div>
+                        <div class="absolute top-0 right-0 bg-teal-500 text-white text-xs font-medium p-1 rounded-bl-lg">servo</div>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>
+
