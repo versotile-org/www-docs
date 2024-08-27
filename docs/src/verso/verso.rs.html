@@ -719,6 +719,9 @@
 <a href="#719" id="719">719</a>
 <a href="#720" id="720">720</a>
 <a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -744,7 +747,7 @@
 <span class="kw">use </span>layout_thread_2020;
 <span class="kw">use </span>log::{Log, Metadata, Record};
 <span class="kw">use </span>media::{GlApi, GlContext, NativeDisplay, WindowGLContext};
-<span class="kw">use </span>net::resource_thread;
+<span class="kw">use </span>net::{protocols::ProtocolRegistry, resource_thread};
 <span class="kw">use </span>profile;
 <span class="kw">use </span>script::{<span class="self">self</span>, JSEngineSetup};
 <span class="kw">use </span>script_traits::WindowSizeData;
@@ -965,6 +968,8 @@
         </span><span class="kw">let </span>bluetooth_thread: IpcSender&lt;BluetoothRequest&gt; =
             BluetoothThreadFactory::new(embedder_sender.clone());
 
+        <span class="kw">let </span>protocols = ProtocolRegistry::with_internal_protocols();
+
         <span class="comment">// Create resource thread pool
         </span><span class="kw">let </span>user_agent: Cow&lt;<span class="lifetime">'static</span>, str&gt; = default_user_agent_string().into();
         <span class="kw">let </span>(public_resource_threads, private_resource_threads) =
@@ -977,6 +982,7 @@
                 opts.config_dir.clone(),
                 opts.certificate_path.clone(),
                 opts.ignore_certificate_errors,
+                Arc::new(protocols),
             );
 
         <span class="comment">// Create font cache thread
