@@ -403,6 +403,18 @@
 <a href="#403" id="403">403</a>
 <a href="#404" id="404">404</a>
 <a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -410,8 +422,11 @@
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{Cursor, EmbedderMsg};
 <span class="kw">use </span>euclid::{Point2D, Size2D};
-<span class="kw">use </span>glutin::surface::Surface;
-<span class="kw">use </span>glutin::surface::WindowSurface;
+<span class="kw">use </span>glutin::{
+    config::{ConfigTemplateBuilder, GlConfig},
+    surface::{Surface, WindowSurface},
+};
+<span class="kw">use </span>glutin_winit::DisplayBuilder;
 <span class="kw">use </span>script_traits::{TouchEventType, WheelDelta, WheelMode};
 <span class="kw">use </span>webrender_api::{
     units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutVector2D},
@@ -428,7 +443,7 @@
 <span class="kw">use crate</span>::{
     compositor::{IOCompositor, MouseWindowEvent},
     keyboard::keyboard_event_from_winit,
-    rendering::RenderingContext,
+    rendering::{gl_config_picker, RenderingContext},
     verso::send_to_constellation,
     webview::WebView,
 };
@@ -454,13 +469,22 @@
 <span class="kw">impl </span>Window {
     <span class="doccomment">/// Create a Verso window from Winit window and return the rendering context.
     </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop) -&gt; (<span class="self">Self</span>, RenderingContext) {
-        <span class="kw">let </span>window = evl
-            .create_window(
-                WinitWindow::default_attributes()
-                    .with_transparent(<span class="bool-val">true</span>)
-                    .with_decorations(<span class="bool-val">false</span>),
-            )
-            .expect(<span class="string">"Failed to create window."</span>);
+        <span class="kw">let </span>window_attributes = WinitWindow::default_attributes()
+            .with_transparent(<span class="bool-val">true</span>)
+            .with_decorations(<span class="bool-val">false</span>);
+
+        <span class="kw">let </span>template = ConfigTemplateBuilder::new()
+            .with_alpha_size(<span class="number">8</span>)
+            .with_transparency(<span class="macro">cfg!</span>(macos));
+
+        <span class="kw">let </span>(window, gl_config) = DisplayBuilder::new()
+            .with_window_attributes(<span class="prelude-val">Some</span>(window_attributes))
+            .build(evl, template, gl_config_picker)
+            .expect(<span class="string">"Failed to create window and gl config"</span>);
+
+        <span class="kw">let </span>window = window.ok_or(<span class="string">"Failed to create window"</span>).unwrap();
+
+        <span class="macro">log::debug!</span>(<span class="string">"Picked a config with {} samples"</span>, gl_config.num_samples());
 
         <span class="attr">#[cfg(macos)]
         </span><span class="kw">unsafe </span>{
@@ -472,8 +496,8 @@
                 );
             }
         }
-        <span class="kw">let </span>(rendering_context, surface) =
-            RenderingContext::create(evl, <span class="kw-2">&amp;</span>window).expect(<span class="string">"Failed to create rendering context"</span>);
+        <span class="kw">let </span>(rendering_context, surface) = RenderingContext::create(<span class="kw-2">&amp;</span>window, <span class="kw-2">&amp;</span>gl_config)
+            .expect(<span class="string">"Failed to create rendering context"</span>);
         <span class="macro">log::trace!</span>(<span class="string">"Created rendering context for window {:?}"</span>, window);
 
         <span class="kw">let </span>size = window.inner_size();

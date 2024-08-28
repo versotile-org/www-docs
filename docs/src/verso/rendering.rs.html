@@ -169,38 +169,23 @@
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
 <a href="#171" id="171">171</a>
-<a href="#172" id="172">172</a>
-<a href="#173" id="173">173</a>
-<a href="#174" id="174">174</a>
-<a href="#175" id="175">175</a>
-<a href="#176" id="176">176</a>
-<a href="#177" id="177">177</a>
-<a href="#178" id="178">178</a>
-<a href="#179" id="179">179</a>
-<a href="#180" id="180">180</a>
-<a href="#181" id="181">181</a>
-<a href="#182" id="182">182</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ffi::CString;
 <span class="kw">use </span>std::num::NonZeroU32;
 <span class="kw">use </span>std::rc::Rc;
 
 <span class="kw">use </span>euclid::default::Size2D;
 <span class="kw">use </span>gleam::gl;
-<span class="kw">use </span>glutin::config::GetGlConfig;
-<span class="kw">use </span>glutin::context::PossiblyCurrentContext;
-<span class="kw">use </span>glutin::prelude::{GlContext, PossiblyCurrentGlContext};
-<span class="kw">use </span>glutin::surface::{
-    GlSurface, ResizeableSurface, Surface, SurfaceTypeTrait, SwapInterval, WindowSurface,
-};
 <span class="kw">use </span>glutin::{
-    config::{Config, ConfigTemplateBuilder, GlConfig},
-    context::{ContextApi, ContextAttributesBuilder, Version},
+    config::{Config, GetGlConfig, GlConfig},
+    context::{ContextApi, ContextAttributesBuilder, PossiblyCurrentContext, Version},
     display::GetGlDisplay,
-    prelude::{GlDisplay, NotCurrentGlContext},
+    prelude::{GlContext, GlDisplay, NotCurrentGlContext, PossiblyCurrentGlContext},
+    surface::{
+        GlSurface, ResizeableSurface, Surface, SurfaceTypeTrait, SwapInterval, WindowSurface,
+    },
 };
-<span class="kw">use </span>glutin_winit::{DisplayBuilder, GlWindow};
+<span class="kw">use </span>glutin_winit::GlWindow;
 <span class="kw">use </span>raw_window_handle::HasWindowHandle;
-<span class="kw">use </span>winit::event_loop::ActiveEventLoop;
 <span class="kw">use </span>winit::window::Window;
 
 <span class="doccomment">/// A Verso rendering context, which holds all of the information needed
@@ -213,16 +198,9 @@
 <span class="kw">impl </span>RenderingContext {
     <span class="doccomment">/// Create a rendering context instance.
     </span><span class="kw">pub fn </span>create(
-        evl: <span class="kw-2">&amp;</span>ActiveEventLoop,
         window: <span class="kw-2">&amp;</span>Window,
+        gl_config: <span class="kw-2">&amp;</span>Config,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, Surface&lt;WindowSurface&gt;), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
-        <span class="kw">let </span>template = ConfigTemplateBuilder::new()
-            .with_alpha_size(<span class="number">8</span>)
-            .with_transparency(<span class="macro">cfg!</span>(macos));
-        <span class="kw">let </span>(<span class="kw">_</span>, gl_config) = DisplayBuilder::new().build(evl, template, gl_config_picker)<span class="question-mark">?</span>;
-
-        <span class="macro">log::debug!</span>(<span class="string">"Picked a config with {} samples"</span>, gl_config.num_samples());
-
         <span class="comment">// XXX This will panic on Android, but we care about Desktop for now.
         </span><span class="kw">let </span>raw_window_handle = window.window_handle().ok().map(|handle| handle.as_raw());
         <span class="comment">// XXX The display could be obtained from any object created by it, so we can
@@ -242,13 +220,13 @@
             .build(raw_window_handle);
         <span class="kw">let </span>not_current_gl_context = <span class="kw">unsafe </span>{
             gl_display
-                .create_context(<span class="kw-2">&amp;</span>gl_config, <span class="kw-2">&amp;</span>context_attributes)
+                .create_context(gl_config, <span class="kw-2">&amp;</span>context_attributes)
                 .unwrap_or_else(|<span class="kw">_</span>| {
                     gl_display
-                        .create_context(<span class="kw-2">&amp;</span>gl_config, <span class="kw-2">&amp;</span>fallback_context_attributes)
+                        .create_context(gl_config, <span class="kw-2">&amp;</span>fallback_context_attributes)
                         .unwrap_or_else(|<span class="kw">_</span>| {
                             gl_display
-                                .create_context(<span class="kw-2">&amp;</span>gl_config, <span class="kw-2">&amp;</span>legacy_context_attributes)
+                                .create_context(gl_config, <span class="kw-2">&amp;</span>legacy_context_attributes)
                                 .expect(<span class="string">"failed to create context"</span>)
                         })
                 })
@@ -261,7 +239,7 @@
         <span class="kw">let </span>surface = <span class="kw">unsafe </span>{
             gl_config
                 .display()
-                .create_window_surface(<span class="kw-2">&amp;</span>gl_config, <span class="kw-2">&amp;</span>attrs)
+                .create_window_surface(gl_config, <span class="kw-2">&amp;</span>attrs)
                 .unwrap()
         };
 
