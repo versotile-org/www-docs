@@ -719,9 +719,6 @@
 <a href="#719" id="719">719</a>
 <a href="#720" id="720">720</a>
 <a href="#721" id="721">721</a>
-<a href="#722" id="722">722</a>
-<a href="#723" id="723">723</a>
-<a href="#724" id="724">724</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -1107,17 +1104,14 @@
                 <span class="comment">// self.windows.remove(&amp;window_id);
                 </span>compositor.maybe_start_shutting_down();
             } <span class="kw">else </span>{
-                <span class="kw">let </span><span class="kw-2">mut </span>need_repaint = <span class="bool-val">false</span>;
-                <span class="kw">for </span>(id, window) <span class="kw">in </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.windows {
-                    <span class="kw">if </span>window_id == <span class="kw-2">*</span>id {
-                        need_repaint = window.handle_winit_window_event(
-                            <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
-                            compositor,
-                            <span class="kw-2">&amp;</span>event,
-                        );
-                    }
-                }
-
+                <span class="kw">let </span>need_repaint = <span class="kw">match </span><span class="self">self</span>.windows.get_mut(<span class="kw-2">&amp;</span>window_id) {
+                    <span class="prelude-val">Some</span>(window) =&gt; window.handle_winit_window_event(
+                        <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                        compositor,
+                        <span class="kw-2">&amp;</span>event,
+                    ),
+                    <span class="prelude-val">None </span>=&gt; <span class="bool-val">false</span>,
+                };
                 <span class="kw">if </span>need_repaint {
                     compositor.repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>.windows);
                 }
