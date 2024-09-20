@@ -2234,14 +2234,12 @@
 <a href="#2234" id="2234">2234</a>
 <a href="#2235" id="2235">2235</a>
 <a href="#2236" id="2236">2236</a>
-<a href="#2237" id="2237">2237</a>
-<a href="#2238" id="2238">2238</a>
-<a href="#2239" id="2239">2239</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+<span class="kw">use </span>base::cross_process_instant::CrossProcessInstant;
 <span class="kw">use </span>base::id::{PipelineId, TopLevelBrowsingContextId};
 <span class="kw">use </span>base::{Epoch, WebRenderEpochToU16};
 <span class="kw">use </span>compositing_traits::{
@@ -4247,10 +4245,6 @@
         // ones that the paint metrics recorder is expecting. In that case, we get the current
         // time, inform layout about it and remove the pending metric from the list.
         </span><span class="kw">if </span>!<span class="self">self</span>.pending_paint_metrics.is_empty() {
-            <span class="kw">let </span>paint_time = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos() <span class="kw">as </span>u64;
             <span class="kw">let </span><span class="kw-2">mut </span>to_remove = Vec::new();
             <span class="comment">// For each pending paint metrics pipeline id
             </span><span class="kw">for </span>(id, pending_epoch) <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.pending_paint_metrics {
@@ -4276,7 +4270,7 @@
                             pipeline
                                 .script_chan
                                 .send(ConstellationControlMsg::SetEpochPaintTime(
-                                    <span class="kw-2">*</span>id, epoch, paint_time,
+                                    <span class="kw-2">*</span>id, epoch, CrossProcessInstant::now(),
                                 ))
                         {
                             <span class="macro">warn!</span>(<span class="string">"Sending RequestLayoutPaintMetric message to layout failed ({e:?})."</span>);

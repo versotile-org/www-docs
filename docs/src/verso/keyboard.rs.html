@@ -221,52 +221,6 @@
 <a href="#221" id="221">221</a>
 <a href="#222" id="222">222</a>
 <a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
-<a href="#237" id="237">237</a>
-<a href="#238" id="238">238</a>
-<a href="#239" id="239">239</a>
-<a href="#240" id="240">240</a>
-<a href="#241" id="241">241</a>
-<a href="#242" id="242">242</a>
-<a href="#243" id="243">243</a>
-<a href="#244" id="244">244</a>
-<a href="#245" id="245">245</a>
-<a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
-<a href="#248" id="248">248</a>
-<a href="#249" id="249">249</a>
-<a href="#250" id="250">250</a>
-<a href="#251" id="251">251</a>
-<a href="#252" id="252">252</a>
-<a href="#253" id="253">253</a>
-<a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
-<a href="#257" id="257">257</a>
-<a href="#258" id="258">258</a>
-<a href="#259" id="259">259</a>
-<a href="#260" id="260">260</a>
-<a href="#261" id="261">261</a>
-<a href="#262" id="262">262</a>
-<a href="#263" id="263">263</a>
-<a href="#264" id="264">264</a>
-<a href="#265" id="265">265</a>
-<a href="#266" id="266">266</a>
-<a href="#267" id="267">267</a>
-<a href="#268" id="268">268</a>
-<a href="#269" id="269">269</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, Modifiers};
 <span class="kw">use </span>log::info;
 <span class="kw">use </span>winit::event::{ElementState, KeyEvent};
@@ -286,104 +240,105 @@
 </span><span class="attr">#[cfg(not(macos))]
 </span><span class="kw">pub const </span>CMD_OR_ALT: Modifiers = Modifiers::ALT;
 
+<span class="doccomment">/// Maps [`LogicalKey`] to [`Key`].
+///
+/// Example:
+/// 1. `One-one mappings`:
+/// ```
+///     logical_to_winit_key!(a, Escape, F1, F2,...)
+/// ```
+/// matches [`NamedKey::Escape`] =&gt; [`Key::Escape`], [`NamedKey::F1`] =&gt; [`Key::F1`], [`NamedKey::F2`] =&gt; [`Key::F2`],...
+///
+/// 2. `Custom mappings`:
+/// ```
+///    logical_to_winit_key!(a, Escape, F1 =&gt; F2, F3)
+/// ```
+/// matches [`NamedKey::Escape`] =&gt; [`Key::Escape`], [`NamedKey::F1`] =&gt; [`Key::F2`], [`NamedKey::F3`] =&gt; [`Key::F3`],...
+</span><span class="macro">macro_rules!</span> logical_to_winit_key {
+    <span class="comment">// Matches an optional token
+    </span>(@opt <span class="macro-nonterminal">$</span><span class="kw">_</span>: <span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$optional</span>: ident) =&gt; {
+        Key::<span class="macro-nonterminal">$optional
+    </span>};
+
+    (@opt <span class="macro-nonterminal">$variant</span>: ident) =&gt; {
+        Key::<span class="macro-nonterminal">$variant
+    </span>};
+
+    (<span class="macro-nonterminal">$key</span>: ident $(,<span class="macro-nonterminal">$variant</span>: ident $(=&gt; <span class="macro-nonterminal">$matchto</span>: ident)<span class="question-mark">?</span>)+) =&gt; {
+        <span class="kw">match </span><span class="macro-nonterminal">$key </span>{
+            LogicalKey::Character(c) =&gt; Key::Character(c.to_string()),
+            $(LogicalKey::Named(NamedKey::<span class="macro-nonterminal">$variant</span>) =&gt; <span class="macro">logical_to_winit_key!</span>(@opt <span class="macro-nonterminal">$variant </span>$(, <span class="macro-nonterminal">$matchto</span>)<span class="question-mark">?</span>),)+
+            <span class="kw">_ </span>=&gt; Key::Unidentified,
+        }
+    };
+}
+
 <span class="kw">fn </span>get_servo_key_from_winit_key(key: <span class="kw-2">&amp;</span>LogicalKey) -&gt; Key {
     <span class="comment">// TODO: figure out how to map NavigateForward, NavigateBackward
     // TODO: map the remaining keys if possible
-    </span><span class="kw">match </span>key {
-        LogicalKey::Character(c) =&gt; Key::Character(c.to_string()),
+    </span><span class="macro">logical_to_winit_key!</span> {
+        key,
         <span class="comment">// printable: Key1 to Key0
         // printable: A to Z
-        </span>LogicalKey::Named(NamedKey::Escape) =&gt; Key::Escape,
-        LogicalKey::Named(NamedKey::F1) =&gt; Key::F1,
-        LogicalKey::Named(NamedKey::F2) =&gt; Key::F2,
-        LogicalKey::Named(NamedKey::F3) =&gt; Key::F3,
-        LogicalKey::Named(NamedKey::F4) =&gt; Key::F4,
-        LogicalKey::Named(NamedKey::F5) =&gt; Key::F5,
-        LogicalKey::Named(NamedKey::F6) =&gt; Key::F6,
-        LogicalKey::Named(NamedKey::F7) =&gt; Key::F7,
-        LogicalKey::Named(NamedKey::F8) =&gt; Key::F8,
-        LogicalKey::Named(NamedKey::F9) =&gt; Key::F9,
-        LogicalKey::Named(NamedKey::F10) =&gt; Key::F10,
-        LogicalKey::Named(NamedKey::F11) =&gt; Key::F11,
-        LogicalKey::Named(NamedKey::F12) =&gt; Key::F12,
+        </span>Escape, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
         <span class="comment">// F13 to F15 are not mapped
-        </span>LogicalKey::Named(NamedKey::PrintScreen) =&gt; Key::PrintScreen,
+        </span>PrintScreen,
         <span class="comment">// Scroll not mapped
-        </span>LogicalKey::Named(NamedKey::Pause) =&gt; Key::Pause,
-        LogicalKey::Named(NamedKey::Insert) =&gt; Key::Insert,
-        LogicalKey::Named(NamedKey::Home) =&gt; Key::Home,
-        LogicalKey::Named(NamedKey::Delete) =&gt; Key::Delete,
-        LogicalKey::Named(NamedKey::End) =&gt; Key::End,
-        LogicalKey::Named(NamedKey::PageDown) =&gt; Key::PageDown,
-        LogicalKey::Named(NamedKey::PageUp) =&gt; Key::PageUp,
-        LogicalKey::Named(NamedKey::ArrowLeft) =&gt; Key::ArrowLeft,
-        LogicalKey::Named(NamedKey::ArrowUp) =&gt; Key::ArrowUp,
-        LogicalKey::Named(NamedKey::ArrowRight) =&gt; Key::ArrowRight,
-        LogicalKey::Named(NamedKey::ArrowDown) =&gt; Key::ArrowDown,
-        LogicalKey::Named(NamedKey::Backspace) =&gt; Key::Backspace,
-        LogicalKey::Named(NamedKey::Enter) =&gt; Key::Enter,
+        </span>Pause, Insert, Home, Delete, End, PageDown, PageUp,
+        ArrowLeft, ArrowUp, ArrowRight, ArrowDown,
+        Backspace, Enter,
         <span class="comment">// printable: Space
-        </span>LogicalKey::Named(NamedKey::Compose) =&gt; Key::Compose,
+        </span>Compose,
         <span class="comment">// Caret not mapped
-        </span>LogicalKey::Named(NamedKey::NumLock) =&gt; Key::NumLock,
+        </span>NumLock,
         <span class="comment">// printable: Numpad0 to Numpad9
         // AbntC1 and AbntC2 not mapped
         // printable: Add, Apostrophe,
         // Apps, At, Ax not mapped
         // printable: Backslash,
-        </span>LogicalKey::Named(NamedKey::LaunchApplication2) =&gt; Key::LaunchApplication2,
-        LogicalKey::Named(NamedKey::CapsLock) =&gt; Key::CapsLock,
+        </span>LaunchApplication2, CapsLock,
         <span class="comment">// printable: Colon, Comma,
-        </span>LogicalKey::Named(NamedKey::Convert) =&gt; Key::Convert,
+        </span>Convert,
         <span class="comment">// not mapped: Decimal,
         // printable: Divide, Equals, Grave,
-        </span>LogicalKey::Named(NamedKey::KanaMode) =&gt; Key::KanaMode,
-        LogicalKey::Named(NamedKey::KanjiMode) =&gt; Key::KanjiMode,
-        LogicalKey::Named(NamedKey::Alt) =&gt; Key::Alt,
+        </span>KanaMode, KanjiMode, Alt,
         <span class="comment">// printable: LBracket,
-        </span>LogicalKey::Named(NamedKey::Control) =&gt; Key::Control,
-        LogicalKey::Named(NamedKey::Shift) =&gt; Key::Shift,
-        LogicalKey::Named(NamedKey::Meta) =&gt; Key::Meta,
-        LogicalKey::Named(NamedKey::LaunchMail) =&gt; Key::LaunchMail,
+        </span>Control, Shift, Meta, LaunchMail,
         <span class="comment">// not mapped: MediaSelect,
-        </span>LogicalKey::Named(NamedKey::MediaStop) =&gt; Key::MediaStop,
+        </span>MediaStop,
         <span class="comment">// printable: Minus, Multiply,
-        </span>LogicalKey::Named(NamedKey::AudioVolumeMute) =&gt; Key::AudioVolumeMute,
-        LogicalKey::Named(NamedKey::LaunchApplication1) =&gt; Key::LaunchApplication1,
+        </span>AudioVolumeMute, LaunchApplication1,
         <span class="comment">// not mapped: NavigateForward, NavigateBackward
-        </span>LogicalKey::Named(NamedKey::MediaTrackNext) =&gt; Key::MediaTrackNext,
-        LogicalKey::Named(NamedKey::NonConvert) =&gt; Key::NonConvert,
+        </span>MediaTrackNext, NonConvert,
         <span class="comment">// printable: NumpadComma, NumpadEnter, NumpadEquals,
         // not mapped: OEM102,
         // printable: Period,
-        </span>LogicalKey::Named(NamedKey::MediaPlayPause) =&gt; Key::MediaPlayPause,
-        LogicalKey::Named(NamedKey::Power) =&gt; Key::Power,
-        LogicalKey::Named(NamedKey::MediaTrackPrevious) =&gt; Key::MediaTrackPrevious,
+        </span>MediaPlayPause, Power, MediaTrackPrevious,
         <span class="comment">// printable RBracket
         // printable Semicolon, Slash
-        </span>LogicalKey::Named(NamedKey::Standby) =&gt; Key::Standby,
+        </span>Standby,
         <span class="comment">// not mapped: Stop,
         // printable Subtract,
         // not mapped: Sysrq,
-        </span>LogicalKey::Named(NamedKey::Tab) =&gt; Key::Tab,
+        </span>Tab,
         <span class="comment">// printable: Underline,
         // not mapped: Unlabeled,
-        </span>LogicalKey::Named(NamedKey::AudioVolumeDown) =&gt; Key::AudioVolumeDown,
-        LogicalKey::Named(NamedKey::AudioVolumeUp) =&gt; Key::AudioVolumeUp,
-        LogicalKey::Named(NamedKey::WakeUp) =&gt; Key::WakeUp,
-        LogicalKey::Named(NamedKey::BrowserBack) =&gt; Key::BrowserBack,
-        LogicalKey::Named(NamedKey::BrowserFavorites) =&gt; Key::BrowserFavorites,
-        LogicalKey::Named(NamedKey::BrowserForward) =&gt; Key::BrowserForward,
-        LogicalKey::Named(NamedKey::BrowserHome) =&gt; Key::BrowserHome,
-        LogicalKey::Named(NamedKey::BrowserRefresh) =&gt; Key::BrowserRefresh,
-        LogicalKey::Named(NamedKey::BrowserSearch) =&gt; Key::BrowserSearch,
-        LogicalKey::Named(NamedKey::BrowserStop) =&gt; Key::BrowserStop,
+        </span>AudioVolumeDown, AudioVolumeUp, WakeUp, BrowserBack, BrowserFavorites, BrowserForward, BrowserHome, BrowserRefresh, BrowserSearch, BrowserStop,
         <span class="comment">// printable Yen,
-        </span>LogicalKey::Named(NamedKey::Copy) =&gt; Key::Copy,
-        LogicalKey::Named(NamedKey::Paste) =&gt; Key::Paste,
-        LogicalKey::Named(NamedKey::Cut) =&gt; Key::Cut,
-        <span class="kw">_ </span>=&gt; Key::Unidentified,
+        </span>Copy,
+        Paste,
+        Cut
     }
+}
+
+<span class="doccomment">/// Maps [`KeyCode`] to [`Location`].
+</span><span class="macro">macro_rules!</span> map_key_location {
+    (<span class="macro-nonterminal">$key_code</span>: ident $(, <span class="macro-nonterminal">$location</span>: ident : <span class="macro-nonterminal">$k1</span>: ident $(| <span class="macro-nonterminal">$kn</span>: ident)<span class="kw-2">*</span>)+) =&gt; {
+        <span class="kw">match </span><span class="macro-nonterminal">$key_code </span>{
+            $(KeyCode::<span class="macro-nonterminal">$k1 </span>$(| KeyCode::<span class="macro-nonterminal">$kn</span>)* =&gt; Location::<span class="macro-nonterminal">$location</span>,)+
+            <span class="kw">_ </span>=&gt; Location::Standard,
+        }
+    };
 }
 
 <span class="kw">fn </span>get_servo_location_from_physical_key(physical_key: PhysicalKey) -&gt; Location {
@@ -393,27 +348,47 @@
         <span class="kw">return </span>Location::Standard;
     };
 
-    <span class="comment">// TODO: add more numpad keys
-    </span><span class="kw">match </span>key_code {
-        KeyCode::ShiftLeft | KeyCode::ControlLeft | KeyCode::AltLeft | KeyCode::SuperLeft =&gt; {
-            Location::Left
+    <span class="comment">// TODO: Map more locations
+    </span><span class="macro">map_key_location!</span>(
+        key_code,
+        Left: ShiftLeft | ControlLeft | AltLeft | SuperLeft,
+        Right: ShiftRight | ControlRight | AltRight | SuperRight,
+        Numpad: Numpad0 | Numpad1 | Numpad2 | Numpad3 | Numpad4 | Numpad5 | Numpad6 | Numpad7 | Numpad8 | Numpad9
+            | NumpadComma | NumpadEnter | NumpadEqual | NumpadAdd | NumpadSubtract | NumpadMultiply | NumpadDivide
+            | NumpadDecimal | NumpadBackspace | NumpadStar
+    )
+}
+
+<span class="doccomment">/// Maps [`PhysicalKey`] to [`Code`].
+///
+/// Example:
+/// 1. `One-one mappings`:
+/// ```
+///     physical_key_to_code!(a, Escape, F1, F2,...)
+/// ```
+/// matches [`KeyCode::Escape`] =&gt; [`Code::Escape`], [`KeyCode::F1`] =&gt; [`Code::F1`], [`KeyCode::F2`] =&gt; [`Code::F2`],...
+///
+/// 2. `Custom mappings`:
+/// ```
+///    physical_key_to_code!(a, Escape, F1 =&gt; F2, F3)
+/// ```
+/// matches [`KeyCode::Escape`] =&gt; [`Code::Escape`], [`KeyCode::F1`] =&gt; [`Code::F2`], [`KeyCode::F3`] =&gt; [`Code::F3`],...
+</span><span class="macro">macro_rules!</span> physical_key_to_code {
+    <span class="comment">// Matches an optional token
+    </span>(@opt <span class="macro-nonterminal">$</span><span class="kw">_</span>: <span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$optional</span>: ident) =&gt; {
+        Code::<span class="macro-nonterminal">$optional
+    </span>};
+
+    (@opt <span class="macro-nonterminal">$variant</span>: ident) =&gt; {
+        Code::<span class="macro-nonterminal">$variant
+    </span>};
+
+    (<span class="macro-nonterminal">$key_code</span>: ident $(, <span class="macro-nonterminal">$pk</span>: ident $(=&gt; <span class="macro-nonterminal">$matchto</span>: ident)<span class="question-mark">?</span>)+) =&gt; {
+        <span class="kw">match </span><span class="macro-nonterminal">$key_code </span>{
+            $(KeyCode::<span class="macro-nonterminal">$pk </span>=&gt; <span class="macro">physical_key_to_code!</span>(@opt <span class="macro-nonterminal">$pk </span>$(, <span class="macro-nonterminal">$matchto</span>)<span class="question-mark">?</span>),)+
+            <span class="kw">_ </span>=&gt; Code::Unidentified,
         }
-        KeyCode::ShiftRight | KeyCode::ControlRight | KeyCode::AltRight | KeyCode::SuperRight =&gt; {
-            Location::Right
-        }
-        KeyCode::Numpad0
-        | KeyCode::Numpad1
-        | KeyCode::Numpad2
-        | KeyCode::Numpad3
-        | KeyCode::Numpad4
-        | KeyCode::Numpad5
-        | KeyCode::Numpad6
-        | KeyCode::Numpad7
-        | KeyCode::Numpad8
-        | KeyCode::Numpad9 =&gt; Location::Numpad,
-        KeyCode::NumpadComma | KeyCode::NumpadEnter | KeyCode::NumpadEqual =&gt; Location::Numpad,
-        <span class="kw">_ </span>=&gt; Location::Standard,
-    }
+    };
 }
 
 <span class="kw">fn </span>get_servo_code_from_physical_key(physical_key: PhysicalKey) -&gt; Code {
@@ -424,90 +399,23 @@
     };
 
     <span class="comment">// TODO: Map more codes
-    </span><span class="kw">match </span>key_code {
-        KeyCode::Escape =&gt; Code::Escape,
-        KeyCode::Digit1 =&gt; Code::Digit1,
-        KeyCode::Digit2 =&gt; Code::Digit2,
-        KeyCode::Digit3 =&gt; Code::Digit3,
-        KeyCode::Digit4 =&gt; Code::Digit4,
-        KeyCode::Digit5 =&gt; Code::Digit5,
-        KeyCode::Digit6 =&gt; Code::Digit6,
-        KeyCode::Digit7 =&gt; Code::Digit7,
-        KeyCode::Digit8 =&gt; Code::Digit8,
-        KeyCode::Digit9 =&gt; Code::Digit9,
-        KeyCode::Digit0 =&gt; Code::Digit0,
-
-        KeyCode::Backspace =&gt; Code::Backspace,
-        KeyCode::Tab =&gt; Code::Tab,
-        KeyCode::KeyQ =&gt; Code::KeyQ,
-        KeyCode::KeyW =&gt; Code::KeyW,
-        KeyCode::KeyE =&gt; Code::KeyE,
-        KeyCode::KeyR =&gt; Code::KeyR,
-        KeyCode::KeyT =&gt; Code::KeyT,
-        KeyCode::KeyY =&gt; Code::KeyY,
-        KeyCode::KeyU =&gt; Code::KeyU,
-        KeyCode::KeyI =&gt; Code::KeyI,
-        KeyCode::KeyO =&gt; Code::KeyO,
-        KeyCode::KeyP =&gt; Code::KeyP,
-        KeyCode::BracketLeft =&gt; Code::BracketLeft,
-        KeyCode::BracketRight =&gt; Code::BracketRight,
-        KeyCode::Enter =&gt; Code::Enter,
-
-        KeyCode::KeyA =&gt; Code::KeyA,
-        KeyCode::KeyS =&gt; Code::KeyS,
-        KeyCode::KeyD =&gt; Code::KeyD,
-        KeyCode::KeyF =&gt; Code::KeyF,
-        KeyCode::KeyG =&gt; Code::KeyG,
-        KeyCode::KeyH =&gt; Code::KeyH,
-        KeyCode::KeyJ =&gt; Code::KeyJ,
-        KeyCode::KeyK =&gt; Code::KeyK,
-        KeyCode::KeyL =&gt; Code::KeyL,
-        KeyCode::Semicolon =&gt; Code::Semicolon,
-        KeyCode::Quote =&gt; Code::Quote,
-
-        KeyCode::ShiftLeft =&gt; Code::ShiftLeft,
-        KeyCode::Backslash =&gt; Code::Backslash,
-        KeyCode::KeyZ =&gt; Code::KeyZ,
-        KeyCode::KeyX =&gt; Code::KeyX,
-        KeyCode::KeyC =&gt; Code::KeyC,
-        KeyCode::KeyV =&gt; Code::KeyV,
-        KeyCode::KeyB =&gt; Code::KeyB,
-        KeyCode::KeyN =&gt; Code::KeyN,
-        KeyCode::KeyM =&gt; Code::KeyM,
-        KeyCode::Comma =&gt; Code::Comma,
-        KeyCode::Period =&gt; Code::Period,
-        KeyCode::Slash =&gt; Code::Slash,
-        KeyCode::ShiftRight =&gt; Code::ShiftRight,
-
-        KeyCode::Space =&gt; Code::Space,
-
-        KeyCode::F1 =&gt; Code::F1,
-        KeyCode::F2 =&gt; Code::F2,
-        KeyCode::F3 =&gt; Code::F3,
-        KeyCode::F4 =&gt; Code::F4,
-        KeyCode::F5 =&gt; Code::F5,
-        KeyCode::F6 =&gt; Code::F6,
-        KeyCode::F7 =&gt; Code::F7,
-        KeyCode::F8 =&gt; Code::F8,
-        KeyCode::F9 =&gt; Code::F9,
-        KeyCode::F10 =&gt; Code::F10,
-
-        KeyCode::F11 =&gt; Code::F11,
-        KeyCode::F12 =&gt; Code::F12,
-
-        KeyCode::ArrowUp =&gt; Code::ArrowUp,
-        KeyCode::PageUp =&gt; Code::PageUp,
-        KeyCode::ArrowLeft =&gt; Code::ArrowLeft,
-        KeyCode::ArrowRight =&gt; Code::ArrowRight,
-
-        KeyCode::Home =&gt; Code::Home,
-        KeyCode::End =&gt; Code::End,
-        KeyCode::ArrowDown =&gt; Code::ArrowDown,
-        KeyCode::PageDown =&gt; Code::PageDown,
-        KeyCode::Insert =&gt; Code::Insert,
-        KeyCode::Delete =&gt; Code::Delete,
-
-        <span class="kw">_ </span>=&gt; Code::Unidentified,
+    </span><span class="macro">physical_key_to_code!</span> {key_code,
+        Escape, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+        Backquote, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, Minus, Equal, Backspace,
+        Tab, KeyQ, KeyW, KeyE, KeyR, KeyT, KeyY, KeyU, KeyI, KeyO, KeyP, BracketLeft, BracketRight, Backslash,
+        CapsLock, KeyA, KeyS, KeyD, KeyF, KeyG, KeyH, KeyJ, KeyK, KeyL, Semicolon, Quote, Enter,
+        ShiftLeft, KeyZ, KeyX, KeyC, KeyV, KeyB, KeyN, KeyM, Comma, Period, Slash, ShiftRight,
+        ControlLeft, AltLeft, Space, AltRight, ControlRight,
+        PrintScreen, ScrollLock, Pause,
+        Insert, Home, PageUp,
+        Delete, End, PageDown,
+        ArrowUp, ArrowLeft, ArrowDown, ArrowRight,
+        NumLock, NumpadDivide, NumpadMultiply, NumpadStar, NumpadSubtract,
+        Numpad7, Numpad8, Numpad9, NumpadAdd,
+        Numpad4, Numpad5, Numpad6,
+        Numpad1, Numpad2, Numpad3, NumpadEnter,
+        Numpad0, NumpadDecimal,
+        NumpadParenLeft, NumpadParenRight, NumpadComma, NumpadHash, NumpadBackspace
     }
 }
 
