@@ -2234,9 +2234,46 @@
 <a href="#2234" id="2234">2234</a>
 <a href="#2235" id="2235">2235</a>
 <a href="#2236" id="2236">2236</a>
+<a href="#2237" id="2237">2237</a>
+<a href="#2238" id="2238">2238</a>
+<a href="#2239" id="2239">2239</a>
+<a href="#2240" id="2240">2240</a>
+<a href="#2241" id="2241">2241</a>
+<a href="#2242" id="2242">2242</a>
+<a href="#2243" id="2243">2243</a>
+<a href="#2244" id="2244">2244</a>
+<a href="#2245" id="2245">2245</a>
+<a href="#2246" id="2246">2246</a>
+<a href="#2247" id="2247">2247</a>
+<a href="#2248" id="2248">2248</a>
+<a href="#2249" id="2249">2249</a>
+<a href="#2250" id="2250">2250</a>
+<a href="#2251" id="2251">2251</a>
+<a href="#2252" id="2252">2252</a>
+<a href="#2253" id="2253">2253</a>
+<a href="#2254" id="2254">2254</a>
+<a href="#2255" id="2255">2255</a>
+<a href="#2256" id="2256">2256</a>
+<a href="#2257" id="2257">2257</a>
+<a href="#2258" id="2258">2258</a>
+<a href="#2259" id="2259">2259</a>
+<a href="#2260" id="2260">2260</a>
+<a href="#2261" id="2261">2261</a>
+<a href="#2262" id="2262">2262</a>
+<a href="#2263" id="2263">2263</a>
+<a href="#2264" id="2264">2264</a>
+<a href="#2265" id="2265">2265</a>
+<a href="#2266" id="2266">2266</a>
+<a href="#2267" id="2267">2267</a>
+<a href="#2268" id="2268">2268</a>
+<a href="#2269" id="2269">2269</a>
+<a href="#2270" id="2270">2270</a>
+<a href="#2271" id="2271">2271</a>
+<a href="#2272" id="2272">2272</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
+<span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 <span class="kw">use </span>base::cross_process_instant::CrossProcessInstant;
@@ -2250,7 +2287,7 @@
 <span class="kw">use </span>embedder_traits::Cursor;
 <span class="kw">use </span>euclid::{vec2, Point2D, Scale, Size2D, Transform3D, Vector2D};
 <span class="kw">use </span>gleam::gl;
-<span class="kw">use </span>ipc_channel::ipc;
+<span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSharedMemory};
 <span class="kw">use </span>log::{debug, error, trace, warn};
 <span class="kw">use </span>profile_traits::time::{<span class="self">self </span><span class="kw">as </span>profile_time, profile, ProfilerCategory};
 <span class="kw">use </span>profile_traits::{mem, time};
@@ -2269,9 +2306,10 @@
 <span class="kw">use </span>webrender_api::{
     BorderRadius, BoxShadowClipMode, BuiltDisplayList, ClipMode, ColorF, CommonItemProperties,
     ComplexClipRegion, DirtyRect, DisplayListPayload, DocumentId, Epoch <span class="kw">as </span>WebRenderEpoch,
-    ExternalScrollId, FontInstanceOptions, HitTestFlags, PipelineId <span class="kw">as </span>WebRenderPipelineId,
-    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
-    SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
+    ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
+    HitTestFlags, PipelineId <span class="kw">as </span>WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
+    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
+    SpatialTreeItemKey, TransformStyle,
 };
 <span class="kw">use </span>webrender_traits::display_list::{HitTestInfo, ScrollTree};
 <span class="kw">use </span>webrender_traits::{
@@ -2991,6 +3029,23 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
+            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFont(
+                data,
+                index,
+                key_sender,
+            )) =&gt; {
+                <span class="kw">let _ </span>= key_sender.send(<span class="self">self</span>.add_font(index, data));
+            }
+
+            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFontInstance(
+                font_key,
+                size,
+                flags,
+                sender,
+            )) =&gt; {
+                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.add_font_instance(font_key, size, flags));
+            }
+
             ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::RemoveFonts(
                 keys,
                 instance_keys,
@@ -3015,48 +3070,24 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFontInstance(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
                 font_key,
                 size,
                 flags,
                 sender,
             )) =&gt; {
-                <span class="kw">let </span>key = <span class="self">self</span>.webrender_api.generate_font_instance_key();
-                <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
-
-                <span class="kw">let </span>font_instance_options = FontInstanceOptions {
-                    flags,
-                    ..Default::default()
-                };
-                transaction.add_font_instance(
-                    key,
-                    font_key,
-                    size,
-                    <span class="prelude-val">Some</span>(font_instance_options),
-                    <span class="prelude-val">None</span>,
-                    Vec::new(),
-                );
-
-                <span class="self">self</span>.webrender_api
-                    .send_transaction(<span class="self">self</span>.webrender_document, transaction);
-                <span class="kw">let _ </span>= sender.send(key);
+                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.add_font_instance(font_key, size, flags));
             }
 
-            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFont(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
                 key_sender,
                 index,
-                bytes_receiver,
+                data,
             )) =&gt; {
-                <span class="kw">let </span>font_key = <span class="self">self</span>.webrender_api.generate_font_key();
-                <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
-                <span class="kw">let </span>bytes = bytes_receiver.recv().unwrap_or_default();
-                transaction.add_raw_font(font_key, bytes, index);
-                <span class="self">self</span>.webrender_api
-                    .send_transaction(<span class="self">self</span>.webrender_document, transaction);
-                <span class="kw">let _ </span>= key_sender.send(font_key);
+                <span class="kw">let _ </span>= key_sender.send(<span class="self">self</span>.add_font(index, data));
             }
 
-            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddSystemFont(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
                 key_sender,
                 native_handle,
             )) =&gt; {
@@ -3111,12 +3142,17 @@
                 <span class="self">self</span>.remove_pipeline_root_layer(pipeline_id);
                 <span class="kw">let _ </span>= sender.send(());
             }
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::SystemFontService(
                 FontToCompositorMsg::AddFontInstance(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, sender),
             )) =&gt; {
                 <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_font_instance_key());
             }
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Layout(
+                ScriptToCompositorMsg::AddFontInstance(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, sender),
+            )) =&gt; {
+                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_font_instance_key());
+            }
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::SystemFontService(
                 FontToCompositorMsg::AddFont(sender, <span class="kw">_</span>, <span class="kw">_</span>),
             )) =&gt; {
                 <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_font_key());
@@ -4270,7 +4306,9 @@
                             pipeline
                                 .script_chan
                                 .send(ConstellationControlMsg::SetEpochPaintTime(
-                                    <span class="kw-2">*</span>id, epoch, CrossProcessInstant::now(),
+                                    <span class="kw-2">*</span>id,
+                                    epoch,
+                                    CrossProcessInstant::now(),
                                 ))
                         {
                             <span class="macro">warn!</span>(<span class="string">"Sending RequestLayoutPaintMetric message to layout failed ({e:?})."</span>);
@@ -4438,6 +4476,40 @@
         <span class="self">self</span>.generate_frame(<span class="kw-2">&amp;mut </span>txn, RenderReasons::TESTING);
         <span class="self">self</span>.webrender_api
             .send_transaction(<span class="self">self</span>.webrender_document, txn);
+    }
+
+    <span class="kw">fn </span>add_font_instance(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        font_key: FontKey,
+        size: f32,
+        flags: FontInstanceFlags,
+    ) -&gt; FontInstanceKey {
+        <span class="kw">let </span>instance_key = <span class="self">self</span>.webrender_api.generate_font_instance_key();
+        <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
+        <span class="kw">let </span>font_instance_options = FontInstanceOptions {
+            flags,
+            ..Default::default()
+        };
+        transaction.add_font_instance(
+            instance_key,
+            font_key,
+            size,
+            <span class="prelude-val">Some</span>(font_instance_options),
+            <span class="prelude-val">None</span>,
+            Vec::new(),
+        );
+        <span class="self">self</span>.webrender_api
+            .send_transaction(<span class="self">self</span>.webrender_document, transaction);
+        instance_key
+    }
+
+    <span class="kw">fn </span>add_font(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: u32, data: Arc&lt;IpcSharedMemory&gt;) -&gt; FontKey {
+        <span class="kw">let </span>font_key = <span class="self">self</span>.webrender_api.generate_font_key();
+        <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
+        transaction.add_raw_font(font_key, (<span class="kw-2">**</span>data).into(), index);
+        <span class="self">self</span>.webrender_api
+            .send_transaction(<span class="self">self</span>.webrender_document, transaction);
+        font_key
     }
 }
 

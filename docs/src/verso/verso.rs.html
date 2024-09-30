@@ -698,32 +698,6 @@
 <a href="#698" id="698">698</a>
 <a href="#699" id="699">699</a>
 <a href="#700" id="700">700</a>
-<a href="#701" id="701">701</a>
-<a href="#702" id="702">702</a>
-<a href="#703" id="703">703</a>
-<a href="#704" id="704">704</a>
-<a href="#705" id="705">705</a>
-<a href="#706" id="706">706</a>
-<a href="#707" id="707">707</a>
-<a href="#708" id="708">708</a>
-<a href="#709" id="709">709</a>
-<a href="#710" id="710">710</a>
-<a href="#711" id="711">711</a>
-<a href="#712" id="712">712</a>
-<a href="#713" id="713">713</a>
-<a href="#714" id="714">714</a>
-<a href="#715" id="715">715</a>
-<a href="#716" id="716">716</a>
-<a href="#717" id="717">717</a>
-<a href="#718" id="718">718</a>
-<a href="#719" id="719">719</a>
-<a href="#720" id="720">720</a>
-<a href="#721" id="721">721</a>
-<a href="#722" id="722">722</a>
-<a href="#723" id="723">723</a>
-<a href="#724" id="724">724</a>
-<a href="#725" id="725">725</a>
-<a href="#726" id="726">726</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -744,8 +718,8 @@
 <span class="kw">use </span>devtools;
 <span class="kw">use </span>embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 <span class="kw">use </span>euclid::Scale;
-<span class="kw">use </span>fonts::FontCacheThread;
-<span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSender};
+<span class="kw">use </span>fonts::SystemFontService;
+<span class="kw">use </span>ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 <span class="kw">use </span>layout_thread_2020;
 <span class="kw">use </span>log::{Log, Metadata, Record};
 <span class="kw">use </span>media::{GlApi, GlContext, NativeDisplay, WindowGLContext};
@@ -993,14 +967,17 @@
             );
 
         <span class="comment">// Create font cache thread
-        </span><span class="kw">let </span>font_cache_thread = FontCacheThread::new(Box::new(WebRenderFontApiCompositorProxy(
-            compositor_sender.clone(),
-        )));
+        </span><span class="kw">let </span>system_font_service = Arc::new(
+            SystemFontService::spawn(Box::new(WebRenderFontApiCompositorProxy(
+                compositor_sender.clone(),
+            )))
+            .to_proxy(),
+        );
 
         <span class="comment">// Create canvas thread
         </span><span class="kw">let </span>(canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
             Box::new(CanvasWebrenderApi(compositor_sender.clone())),
-            font_cache_thread.clone(),
+            system_font_service.clone(),
             public_resource_threads.clone(),
         );
 
@@ -1011,7 +988,7 @@
             embedder_proxy: embedder_sender,
             devtools_sender,
             bluetooth_thread,
-            font_cache_thread,
+            system_font_service,
             public_resource_threads,
             private_resource_threads,
             time_profiler_chan: time_profiler_sender.clone(),
@@ -1323,61 +1300,32 @@
         flags: FontInstanceFlags,
     ) -&gt; FontInstanceKey {
         <span class="kw">let </span>(sender, receiver) = unbounded();
-        <span class="self">self</span>.<span class="number">0
-            </span>.send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFontInstance(font_key, size, flags, sender),
-            )));
+        <span class="self">self</span>.<span class="number">0</span>.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
+                font_key, size, flags, sender,
+            )),
+        ));
         receiver.recv().unwrap()
     }
 
-    <span class="kw">fn </span>add_font(<span class="kw-2">&amp;</span><span class="self">self</span>, data: Arc&lt;Vec&lt;u8&gt;&gt;, index: u32) -&gt; FontKey {
+    <span class="kw">fn </span>add_font(<span class="kw-2">&amp;</span><span class="self">self</span>, data: Arc&lt;IpcSharedMemory&gt;, index: u32) -&gt; FontKey {
         <span class="kw">let </span>(sender, receiver) = unbounded();
-        <span class="kw">let </span>(bytes_sender, bytes_receiver) =
-            ipc::bytes_channel().expect(<span class="string">"failed to create IPC channel"</span>);
-        <span class="self">self</span>.<span class="number">0
-            </span>.send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFont(sender, index, bytes_receiver),
-            )));
-        <span class="kw">let _ </span>= bytes_sender.send(<span class="kw-2">&amp;</span>data);
+        <span class="self">self</span>.<span class="number">0</span>.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
+                sender, index, data,
+            )),
+        ));
         receiver.recv().unwrap()
     }
 
     <span class="kw">fn </span>add_system_font(<span class="kw-2">&amp;</span><span class="self">self</span>, handle: NativeFontHandle) -&gt; FontKey {
         <span class="kw">let </span>(sender, receiver) = unbounded();
-        <span class="self">self</span>.<span class="number">0
-            </span>.send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddSystemFont(sender, handle),
-            )));
+        <span class="self">self</span>.<span class="number">0</span>.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
+                sender, handle,
+            )),
+        ));
         receiver.recv().unwrap()
-    }
-
-    <span class="kw">fn </span>forward_add_font_message(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        bytes_receiver: ipc::IpcBytesReceiver,
-        font_index: u32,
-        result_sender: IpcSender&lt;FontKey&gt;,
-    ) {
-        <span class="kw">let </span>(sender, receiver) = unbounded();
-        <span class="self">self</span>.<span class="number">0
-            </span>.send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFont(sender, font_index, bytes_receiver),
-            )));
-        <span class="kw">let _ </span>= result_sender.send(receiver.recv().unwrap());
-    }
-
-    <span class="kw">fn </span>forward_add_font_instance_message(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        font_key: FontKey,
-        size: f32,
-        flags: FontInstanceFlags,
-        result_sender: IpcSender&lt;FontInstanceKey&gt;,
-    ) {
-        <span class="kw">let </span>(sender, receiver) = unbounded();
-        <span class="self">self</span>.<span class="number">0
-            </span>.send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFontInstance(font_key, size, flags, sender),
-            )));
-        <span class="kw">let _ </span>= result_sender.send(receiver.recv().unwrap());
     }
 }
 
