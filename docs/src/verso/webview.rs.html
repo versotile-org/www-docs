@@ -299,6 +299,9 @@
 <a href="#299" id="299">299</a>
 <a href="#300" id="300">300</a>
 <a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{BrowsingContextId, PipelineNamespace, PipelineNamespaceId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -557,6 +560,9 @@
                                     <span class="string">"MAXIMIZE" </span>=&gt; {
                                         <span class="kw">let </span>is_maximized = <span class="self">self</span>.window.is_maximized();
                                         <span class="self">self</span>.window.set_maximized(!is_maximized);
+                                    }
+                                    <span class="string">"DRAG_WINDOW" </span>=&gt; {
+                                        <span class="self">self</span>.window.drag_window();
                                     }
                                     e =&gt; <span class="macro">log::trace!</span>(
                                         <span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"
