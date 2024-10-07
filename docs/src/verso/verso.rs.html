@@ -698,6 +698,23 @@
 <a href="#698" id="698">698</a>
 <a href="#699" id="699">699</a>
 <a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -1280,13 +1297,16 @@
 
     <span class="kw">fn </span>new_frame_ready(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        _document_id: DocumentId,
+        document_id: DocumentId,
         _scrolled: bool,
         composite_needed: bool,
         _frame_publish_id: FramePublishId,
     ) {
         <span class="self">self</span>.compositor_proxy
-            .send(CompositorMsg::NewWebRenderFrameReady(composite_needed));
+            .send(CompositorMsg::NewWebRenderFrameReady(
+                document_id,
+                composite_needed,
+            ));
     }
 }
 
@@ -1295,34 +1315,48 @@
 <span class="kw">impl </span>WebRenderFontApi <span class="kw">for </span>WebRenderFontApiCompositorProxy {
     <span class="kw">fn </span>add_font_instance(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
+        font_instance_key: FontInstanceKey,
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
-    ) -&gt; FontInstanceKey {
-        <span class="kw">let </span>(sender, receiver) = unbounded();
+    ) {
         <span class="self">self</span>.<span class="number">0</span>.send(CompositorMsg::Forwarded(
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
-                font_key, size, flags, sender,
+                font_instance_key,
+                font_key,
+                size,
+                flags,
             )),
         ));
-        receiver.recv().unwrap()
     }
 
-    <span class="kw">fn </span>add_font(<span class="kw-2">&amp;</span><span class="self">self</span>, data: Arc&lt;IpcSharedMemory&gt;, index: u32) -&gt; FontKey {
-        <span class="kw">let </span>(sender, receiver) = unbounded();
+    <span class="kw">fn </span>add_font(<span class="kw-2">&amp;</span><span class="self">self</span>, font_key: FontKey, data: Arc&lt;IpcSharedMemory&gt;, index: u32) {
         <span class="self">self</span>.<span class="number">0</span>.send(CompositorMsg::Forwarded(
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
-                sender, index, data,
+                font_key, index, data,
             )),
         ));
-        receiver.recv().unwrap()
     }
 
-    <span class="kw">fn </span>add_system_font(<span class="kw-2">&amp;</span><span class="self">self</span>, handle: NativeFontHandle) -&gt; FontKey {
-        <span class="kw">let </span>(sender, receiver) = unbounded();
+    <span class="kw">fn </span>add_system_font(<span class="kw-2">&amp;</span><span class="self">self</span>, font_key: FontKey, handle: NativeFontHandle) {
         <span class="self">self</span>.<span class="number">0</span>.send(CompositorMsg::Forwarded(
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
-                sender, handle,
+                font_key, handle,
+            )),
+        ));
+    }
+
+    <span class="kw">fn </span>fetch_font_keys(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        number_of_font_keys: usize,
+        number_of_font_instance_keys: usize,
+    ) -&gt; (Vec&lt;FontKey&gt;, Vec&lt;FontInstanceKey&gt;) {
+        <span class="kw">let </span>(sender, receiver) = unbounded();
+        <span class="self">self</span>.<span class="number">0</span>.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::GenerateKeys(
+                number_of_font_keys,
+                number_of_font_instance_keys,
+                sender,
             )),
         ));
         receiver.recv().unwrap()

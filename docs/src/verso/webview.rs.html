@@ -562,7 +562,7 @@
                                         <span class="self">self</span>.window.set_maximized(!is_maximized);
                                     }
                                     <span class="string">"DRAG_WINDOW" </span>=&gt; {
-                                        <span class="self">self</span>.window.drag_window();
+                                        <span class="kw">let _ </span>= <span class="self">self</span>.window.drag_window();
                                     }
                                     e =&gt; <span class="macro">log::trace!</span>(
                                         <span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"

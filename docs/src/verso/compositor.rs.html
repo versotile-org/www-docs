@@ -2264,12 +2264,6 @@
 <a href="#2264" id="2264">2264</a>
 <a href="#2265" id="2265">2265</a>
 <a href="#2266" id="2266">2266</a>
-<a href="#2267" id="2267">2267</a>
-<a href="#2268" id="2268">2268</a>
-<a href="#2269" id="2269">2269</a>
-<a href="#2270" id="2270">2270</a>
-<a href="#2271" id="2271">2271</a>
-<a href="#2272" id="2272">2272</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2802,7 +2796,7 @@
                 <span class="kw">let _ </span>= sender.send(());
             }
 
-            CompositorMsg::NewWebRenderFrameReady(recomposite_needed) =&gt; {
+            CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) =&gt; {
                 <span class="self">self</span>.pending_frames -= <span class="number">1</span>;
 
                 <span class="kw">if </span>recomposite_needed {
@@ -3030,20 +3024,20 @@
             }
 
             ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFont(
+                font_key,
                 data,
                 index,
-                key_sender,
             )) =&gt; {
-                <span class="kw">let _ </span>= key_sender.send(<span class="self">self</span>.add_font(index, data));
+                <span class="self">self</span>.add_font(font_key, index, data);
             }
 
             ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFontInstance(
+                font_instance_key,
                 font_key,
                 size,
                 flags,
-                sender,
             )) =&gt; {
-                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.add_font_instance(font_key, size, flags));
+                <span class="self">self</span>.add_font_instance(font_instance_key, font_key, size, flags);
             }
 
             ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::RemoveFonts(
@@ -3063,6 +3057,20 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
             }
 
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::GenerateKeys(
+                number_of_font_keys,
+                number_of_font_instance_keys,
+                result_sender,
+            )) =&gt; {
+                <span class="kw">let </span>font_keys = (<span class="number">0</span>..number_of_font_keys)
+                    .map(|<span class="kw">_</span>| <span class="self">self</span>.webrender_api.generate_font_key())
+                    .collect();
+                <span class="kw">let </span>font_instance_keys = (<span class="number">0</span>..number_of_font_instance_keys)
+                    .map(|<span class="kw">_</span>| <span class="self">self</span>.webrender_api.generate_font_instance_key())
+                    .collect();
+                <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
+            }
+
             ForwardedToCompositorMsg::Net(NetToCompositorMsg::AddImage(key, desc, data)) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
                 txn.add_image(key, desc, data, <span class="prelude-val">None</span>);
@@ -3071,32 +3079,30 @@
             }
 
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
+                font_instance_key,
                 font_key,
                 size,
                 flags,
-                sender,
             )) =&gt; {
-                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.add_font_instance(font_key, size, flags));
+                <span class="self">self</span>.add_font_instance(font_instance_key, font_key, size, flags);
             }
 
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
-                key_sender,
+                font_key,
                 index,
                 data,
             )) =&gt; {
-                <span class="kw">let _ </span>= key_sender.send(<span class="self">self</span>.add_font(index, data));
+                <span class="self">self</span>.add_font(font_key, index, data);
             }
 
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
-                key_sender,
+                font_key,
                 native_handle,
             )) =&gt; {
-                <span class="kw">let </span>font_key = <span class="self">self</span>.webrender_api.generate_font_key();
                 <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
                 transaction.add_native_font(font_key, native_handle);
                 <span class="self">self</span>.webrender_api
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
-                <span class="kw">let _ </span>= key_sender.send(font_key);
             }
 
             ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::GenerateKey(sender)) =&gt; {
@@ -3142,21 +3148,6 @@
                 <span class="self">self</span>.remove_pipeline_root_layer(pipeline_id);
                 <span class="kw">let _ </span>= sender.send(());
             }
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::SystemFontService(
-                FontToCompositorMsg::AddFontInstance(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, sender),
-            )) =&gt; {
-                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_font_instance_key());
-            }
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Layout(
-                ScriptToCompositorMsg::AddFontInstance(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, sender),
-            )) =&gt; {
-                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_font_instance_key());
-            }
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::SystemFontService(
-                FontToCompositorMsg::AddFont(sender, <span class="kw">_</span>, <span class="kw">_</span>),
-            )) =&gt; {
-                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_font_key());
-            }
             CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
                 CanvasToCompositorMsg::GenerateKey(sender),
             )) =&gt; {
@@ -3180,7 +3171,7 @@
                     );
                 }
             }
-            CompositorMsg::NewWebRenderFrameReady(<span class="kw">_</span>) =&gt; {
+            CompositorMsg::NewWebRenderFrameReady(..) =&gt; {
                 <span class="comment">// Subtract from the number of pending frames, but do not do any compositing.
                 </span><span class="self">self</span>.pending_frames -= <span class="number">1</span>;
             }
@@ -4359,12 +4350,12 @@
         <span class="kw">let </span><span class="kw-2">mut </span>found_recomposite_msg = <span class="bool-val">false</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(msg) = <span class="self">self</span>.port.try_recv_compositor_msg() {
             <span class="kw">match </span>msg {
-                CompositorMsg::NewWebRenderFrameReady(<span class="kw">_</span>) <span class="kw">if </span>found_recomposite_msg =&gt; {
+                CompositorMsg::NewWebRenderFrameReady(..) <span class="kw">if </span>found_recomposite_msg =&gt; {
                     <span class="comment">// Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
                     </span><span class="self">self</span>.pending_frames -= <span class="number">1</span>;
                 }
-                CompositorMsg::NewWebRenderFrameReady(<span class="kw">_</span>) =&gt; {
+                CompositorMsg::NewWebRenderFrameReady(..) =&gt; {
                     found_recomposite_msg = <span class="bool-val">true</span>;
                     compositor_messages.push(msg)
                 }
@@ -4424,7 +4415,7 @@
     </span><span class="kw">pub fn </span>repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>, windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;) {
         <span class="kw">while </span><span class="self">self</span>.shutdown_state != ShutdownState::ShuttingDown {
             <span class="kw">let </span>msg = <span class="self">self</span>.port.recv_compositor_msg();
-            <span class="kw">let </span>need_recomposite = <span class="macro">matches!</span>(msg, CompositorMsg::NewWebRenderFrameReady(<span class="kw">_</span>));
+            <span class="kw">let </span>need_recomposite = <span class="macro">matches!</span>(msg, CompositorMsg::NewWebRenderFrameReady(..));
             <span class="kw">let </span>keep_going = <span class="self">self</span>.handle_browser_message(msg, windows);
             <span class="kw">if </span>need_recomposite {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
@@ -4480,11 +4471,11 @@
 
     <span class="kw">fn </span>add_font_instance(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        instance_key: FontInstanceKey,
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
-    ) -&gt; FontInstanceKey {
-        <span class="kw">let </span>instance_key = <span class="self">self</span>.webrender_api.generate_font_instance_key();
+    ) {
         <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
         <span class="kw">let </span>font_instance_options = FontInstanceOptions {
             flags,
@@ -4500,16 +4491,13 @@
         );
         <span class="self">self</span>.webrender_api
             .send_transaction(<span class="self">self</span>.webrender_document, transaction);
-        instance_key
     }
 
-    <span class="kw">fn </span>add_font(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: u32, data: Arc&lt;IpcSharedMemory&gt;) -&gt; FontKey {
-        <span class="kw">let </span>font_key = <span class="self">self</span>.webrender_api.generate_font_key();
+    <span class="kw">fn </span>add_font(<span class="kw-2">&amp;mut </span><span class="self">self</span>, font_key: FontKey, index: u32, data: Arc&lt;IpcSharedMemory&gt;) {
         <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
         transaction.add_raw_font(font_key, (<span class="kw-2">**</span>data).into(), index);
         <span class="self">self</span>.webrender_api
             .send_transaction(<span class="self">self</span>.webrender_document, transaction);
-        font_key
     }
 }
 
