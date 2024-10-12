@@ -2264,6 +2264,11 @@
 <a href="#2264" id="2264">2264</a>
 <a href="#2265" id="2265">2265</a>
 <a href="#2266" id="2266">2266</a>
+<a href="#2267" id="2267">2267</a>
+<a href="#2268" id="2268">2268</a>
+<a href="#2269" id="2269">2269</a>
+<a href="#2270" id="2270">2270</a>
+<a href="#2271" id="2271">2271</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2711,7 +2716,7 @@
     <span class="kw">fn </span>handle_browser_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         msg: CompositorMsg,
-        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;,
+        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;,
     ) -&gt; bool {
         <span class="kw">match </span><span class="self">self</span>.shutdown_state {
             ShutdownState::NotShuttingDown =&gt; {}
@@ -3382,8 +3387,7 @@
     <span class="kw">fn </span>create_or_update_webview(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         frame_tree: <span class="kw-2">&amp;</span>SendableFrameTree,
-
-        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;,
+        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;,
     ) {
         <span class="kw">let </span>pipeline_id = frame_tree.pipeline.id;
         <span class="kw">let </span>webview_id = frame_tree.pipeline.top_level_browsing_context_id;
@@ -3395,7 +3399,7 @@
             <span class="macro">debug!</span>(<span class="string">"{webview_id}'s pipeline has changed from {old_pipeline} to {pipeline_id}"</span>);
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>((window, <span class="kw">_</span>)) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
             <span class="self">self</span>.send_root_pipeline_display_list(window);
         }
         <span class="self">self</span>.create_or_update_pipeline_details_with_frame_tree(frame_tree, <span class="prelude-val">None</span>);
@@ -3407,14 +3411,14 @@
     <span class="kw">fn </span>remove_webview(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;,
+        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;,
     ) {
         <span class="macro">debug!</span>(
             <span class="string">"Verso Compositor is removing webview {}"</span>,
             top_level_browsing_context_id
         );
         <span class="kw">let </span><span class="kw-2">mut </span>window_id = <span class="prelude-val">None</span>;
-        <span class="kw">for </span>window <span class="kw">in </span>windows.values_mut() {
+        <span class="kw">for </span>(window, <span class="kw">_</span>) <span class="kw">in </span>windows.values_mut() {
             <span class="kw">let </span>(webview, close_window) =
                 window.remove_webview(top_level_browsing_context_id, <span class="self">self</span>);
             <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = webview {
@@ -4344,7 +4348,10 @@
     }
 
     <span class="doccomment">/// Receive and handle compositor messages.
-    </span><span class="kw">pub fn </span>receive_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>, windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;) -&gt; bool {
+    </span><span class="kw">pub fn </span>receive_messages(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;,
+    ) -&gt; bool {
         <span class="comment">// Check for new messages coming from the other threads in the system.
         </span><span class="kw">let </span><span class="kw-2">mut </span>compositor_messages = <span class="macro">vec!</span>[];
         <span class="kw">let </span><span class="kw-2">mut </span>found_recomposite_msg = <span class="bool-val">false</span>;
@@ -4371,7 +4378,10 @@
     </span>}
 
     <span class="doccomment">/// Perform composition and related actions.
-    </span><span class="kw">pub fn </span>perform_updates(<span class="kw-2">&amp;mut </span><span class="self">self</span>, windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;) -&gt; bool {
+    </span><span class="kw">pub fn </span>perform_updates(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;,
+    ) -&gt; bool {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state == ShutdownState::FinishedShuttingDown {
             <span class="kw">return </span><span class="bool-val">false</span>;
         }
@@ -4385,7 +4395,7 @@
             <span class="self">self</span>.zoom_action = <span class="bool-val">false</span>;
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>((window, <span class="kw">_</span>)) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
             <span class="kw">match </span><span class="self">self</span>.composition_request {
                 CompositionRequest::NoCompositingNecessary =&gt; {}
                 CompositionRequest::CompositeNow(<span class="kw">_</span>) =&gt; {
@@ -4412,13 +4422,13 @@
     /// paint is not scheduled the compositor will hang forever.
     ///
     /// This is used when resizing the window.
-    </span><span class="kw">pub fn </span>repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>, windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, Window&gt;) {
+    </span><span class="kw">pub fn </span>repaint_synchronously(<span class="kw-2">&amp;mut </span><span class="self">self</span>, windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;) {
         <span class="kw">while </span><span class="self">self</span>.shutdown_state != ShutdownState::ShuttingDown {
             <span class="kw">let </span>msg = <span class="self">self</span>.port.recv_compositor_msg();
             <span class="kw">let </span>need_recomposite = <span class="macro">matches!</span>(msg, CompositorMsg::NewWebRenderFrameReady(..));
             <span class="kw">let </span>keep_going = <span class="self">self</span>.handle_browser_message(msg, windows);
             <span class="kw">if </span>need_recomposite {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>((window, <span class="kw">_</span>)) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
                     <span class="self">self</span>.composite(window);
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = <span class="self">self</span>.rendering_context.present(<span class="kw-2">&amp;</span>window.surface) {
                         <span class="macro">log::warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);

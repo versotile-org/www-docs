@@ -715,6 +715,8 @@
 <a href="#715" id="715">715</a>
 <a href="#716" id="716">716</a>
 <a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -768,7 +770,7 @@
 
 <span class="doccomment">/// Main entry point of Verso browser.
 </span><span class="kw">pub struct </span>Verso {
-    windows: HashMap&lt;WindowId, Window&gt;,
+    windows: HashMap&lt;WindowId, (Window, DocumentId)&gt;,
     compositor: <span class="prelude-ty">Option</span>&lt;IOCompositor&gt;,
     constellation_sender: Sender&lt;ConstellationMsg&gt;,
     embedder_receiver: EmbedderReceiver,
@@ -1083,7 +1085,7 @@
         );
 
         <span class="kw">let </span><span class="kw-2">mut </span>windows = HashMap::new();
-        windows.insert(window.id(), window);
+        windows.insert(window.id(), (window, webrender_document));
 
         <span class="comment">// Create Verso instance
         </span><span class="kw">let </span>verso = Verso {
@@ -1109,7 +1111,7 @@
                 </span>compositor.maybe_start_shutting_down();
             } <span class="kw">else </span>{
                 <span class="kw">let </span>need_repaint = <span class="kw">match </span><span class="self">self</span>.windows.get_mut(<span class="kw-2">&amp;</span>window_id) {
-                    <span class="prelude-val">Some</span>(window) =&gt; window.handle_winit_window_event(
+                    <span class="prelude-val">Some</span>(window) =&gt; window.<span class="number">0</span>.handle_winit_window_event(
                         <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
                         compositor,
                         <span class="kw-2">&amp;</span>event,
@@ -1139,7 +1141,7 @@
                     <span class="kw">match </span>compositor.shutdown_state {
                         ShutdownState::NotShuttingDown =&gt; {
                             <span class="kw">if let </span><span class="prelude-val">Some</span>(id) = webview_id {
-                                <span class="kw">for </span>window <span class="kw">in </span><span class="self">self</span>.windows.values_mut() {
+                                <span class="kw">for </span>(window, document) <span class="kw">in </span><span class="self">self</span>.windows.values_mut() {
                                     <span class="kw">if </span>window.has_webview(id) {
                                         <span class="kw">if </span>window.handle_servo_message(
                                             id,
@@ -1161,7 +1163,9 @@
                                             );
                                             <span class="kw">let </span>rect = DeviceIntRect::from_size(window.size());
                                             window.panel = <span class="prelude-val">Some</span>(WebView::new(panel_id, rect));
-                                            <span class="self">self</span>.windows.insert(window.id(), window);
+                                            <span class="kw">let </span>webrender_document = document.clone();
+                                            <span class="self">self</span>.windows
+                                                .insert(window.id(), (window, webrender_document));
                                         }
                                         <span class="kw">break</span>;
                                     }
@@ -1175,7 +1179,7 @@
                                         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(window) =
                                             <span class="self">self</span>.windows.get(<span class="kw-2">&amp;</span>compositor.current_window)
                                         {
-                                            window.set_cursor_icon(cursor);
+                                            window.<span class="number">0</span>.set_cursor_icon(cursor);
                                         }
                                     }
                                     EmbedderMsg::Shutdown | EmbedderMsg::ReadyToPresent(<span class="kw">_</span>) =&gt; {}
