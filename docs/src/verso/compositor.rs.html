@@ -2220,55 +2220,6 @@
 <a href="#2220" id="2220">2220</a>
 <a href="#2221" id="2221">2221</a>
 <a href="#2222" id="2222">2222</a>
-<a href="#2223" id="2223">2223</a>
-<a href="#2224" id="2224">2224</a>
-<a href="#2225" id="2225">2225</a>
-<a href="#2226" id="2226">2226</a>
-<a href="#2227" id="2227">2227</a>
-<a href="#2228" id="2228">2228</a>
-<a href="#2229" id="2229">2229</a>
-<a href="#2230" id="2230">2230</a>
-<a href="#2231" id="2231">2231</a>
-<a href="#2232" id="2232">2232</a>
-<a href="#2233" id="2233">2233</a>
-<a href="#2234" id="2234">2234</a>
-<a href="#2235" id="2235">2235</a>
-<a href="#2236" id="2236">2236</a>
-<a href="#2237" id="2237">2237</a>
-<a href="#2238" id="2238">2238</a>
-<a href="#2239" id="2239">2239</a>
-<a href="#2240" id="2240">2240</a>
-<a href="#2241" id="2241">2241</a>
-<a href="#2242" id="2242">2242</a>
-<a href="#2243" id="2243">2243</a>
-<a href="#2244" id="2244">2244</a>
-<a href="#2245" id="2245">2245</a>
-<a href="#2246" id="2246">2246</a>
-<a href="#2247" id="2247">2247</a>
-<a href="#2248" id="2248">2248</a>
-<a href="#2249" id="2249">2249</a>
-<a href="#2250" id="2250">2250</a>
-<a href="#2251" id="2251">2251</a>
-<a href="#2252" id="2252">2252</a>
-<a href="#2253" id="2253">2253</a>
-<a href="#2254" id="2254">2254</a>
-<a href="#2255" id="2255">2255</a>
-<a href="#2256" id="2256">2256</a>
-<a href="#2257" id="2257">2257</a>
-<a href="#2258" id="2258">2258</a>
-<a href="#2259" id="2259">2259</a>
-<a href="#2260" id="2260">2260</a>
-<a href="#2261" id="2261">2261</a>
-<a href="#2262" id="2262">2262</a>
-<a href="#2263" id="2263">2263</a>
-<a href="#2264" id="2264">2264</a>
-<a href="#2265" id="2265">2265</a>
-<a href="#2266" id="2266">2266</a>
-<a href="#2267" id="2267">2267</a>
-<a href="#2268" id="2268">2268</a>
-<a href="#2269" id="2269">2269</a>
-<a href="#2270" id="2270">2270</a>
-<a href="#2271" id="2271">2271</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2280,7 +2231,7 @@
 <span class="kw">use </span>base::{Epoch, WebRenderEpochToU16};
 <span class="kw">use </span>compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg,
-    ForwardedToCompositorMsg, SendableFrameTree,
+    SendableFrameTree,
 };
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::Cursor;
@@ -2312,8 +2263,7 @@
 };
 <span class="kw">use </span>webrender_traits::display_list::{HitTestInfo, ScrollTree};
 <span class="kw">use </span>webrender_traits::{
-    CanvasToCompositorMsg, CompositorHitTestResult, FontToCompositorMsg, ImageUpdate,
-    NetToCompositorMsg, ScriptToCompositorMsg, SerializedImageUpdate, UntrustedNodeAddress,
+    CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress
 };
 <span class="kw">use </span>winit::window::WindowId;
 
@@ -2842,33 +2792,9 @@
                 <span class="self">self</span>.pending_paint_metrics.insert(pipeline_id, epoch);
             }
 
-            CompositorMsg::GetClientWindow(req) =&gt; {
-                <span class="comment">// TODO get real size
-                </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send((<span class="self">self</span>.viewport, Point2D::new(<span class="number">0</span>, <span class="number">0</span>))) {
-                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
-                }
-            }
-
-            CompositorMsg::GetScreenSize(req) =&gt; {
-                <span class="comment">// TODO get real size
-                </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
-                    <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
-                }
-            }
-
-            CompositorMsg::GetScreenAvailSize(req) =&gt; {
-                <span class="comment">// TODO get real size
-                </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
-                    <span class="macro">warn!</span>(
-                        <span class="string">"Sending response to get screen avail size failed ({:?})."</span>,
-                        e
-                    );
-                }
-            }
-
-            CompositorMsg::Forwarded(msg) =&gt; {
-                <span class="self">self</span>.handle_webrender_message(msg);
-            }
+            CompositorMsg::CrossProcess(cross_proces_message) =&gt; {
+                <span class="self">self</span>.handle_cross_process_message(cross_proces_message);
+            },
         }
 
         <span class="bool-val">true
@@ -2876,11 +2802,9 @@
 
     <span class="doccomment">/// Accept messages from content processes that need to be relayed to the WebRender
     /// instance in the parent process.
-    </span><span class="kw">fn </span>handle_webrender_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, msg: ForwardedToCompositorMsg) {
+    </span><span class="kw">fn </span>handle_cross_process_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, msg: CrossProcessCompositorMessage) {
         <span class="kw">match </span>msg {
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::SendInitialTransaction(
-                pipeline,
-            )) =&gt; {
+            CrossProcessCompositorMessage::SendInitialTransaction(pipeline) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
                 txn.set_display_list(WebRenderEpoch(<span class="number">0</span>), (pipeline, Default::default()));
                 <span class="self">self</span>.generate_frame(<span class="kw-2">&amp;mut </span>txn, RenderReasons::SCENE);
@@ -2888,11 +2812,11 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::SendScrollNode(
+            CrossProcessCompositorMessage::SendScrollNode(
                 pipeline_id,
                 point,
                 external_scroll_id,
-            )) =&gt; {
+            ) =&gt; {
                 <span class="kw">let </span>pipeline_id = pipeline_id.into();
                 <span class="kw">let </span>pipeline_details = <span class="kw">match </span><span class="self">self</span>.pipeline_details.get_mut(<span class="kw-2">&amp;</span>pipeline_id) {
                     <span class="prelude-val">Some</span>(details) =&gt; details,
@@ -2924,11 +2848,11 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::SendDisplayList {
+            CrossProcessCompositorMessage::SendDisplayList {
                 display_list_info,
                 display_list_descriptor,
                 display_list_receiver,
-            }) =&gt; {
+            } =&gt; {
                 <span class="comment">// This must match the order from the sender, currently in `shared/script/lib.rs`.
                 </span><span class="kw">let </span>items_data = <span class="kw">match </span>display_list_receiver.recv() {
                     <span class="prelude-val">Ok</span>(display_list_data) =&gt; display_list_data,
@@ -2978,12 +2902,7 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::HitTest(
-                pipeline,
-                point,
-                flags,
-                sender,
-            )) =&gt; {
+            CrossProcessCompositorMessage::HitTest(pipeline, point, flags, sender) =&gt; {
                 <span class="comment">// When a display list is sent to WebRender, it starts scene building in a
                 // separate thread and then that display list is available for hit testing.
                 // Without flushing scene building, any hit test we do might be done against
@@ -3000,55 +2919,48 @@
                 <span class="kw">let _ </span>= sender.send(result);
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::GenerateImageKey(sender))
-            | ForwardedToCompositorMsg::Net(NetToCompositorMsg::GenerateImageKey(sender)) =&gt; {
+            CrossProcessCompositorMessage::GenerateImageKey(sender) =&gt; {
                 <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_image_key());
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::UpdateImages(updates)) =&gt; {
+            CrossProcessCompositorMessage::UpdateImages(updates) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
                 <span class="kw">for </span>update <span class="kw">in </span>updates {
                     <span class="kw">match </span>update {
-                        SerializedImageUpdate::AddImage(key, desc, data) =&gt; {
-                            <span class="kw">match </span>data.to_image_data() {
-                                <span class="prelude-val">Ok</span>(data) =&gt; txn.add_image(key, desc, data, <span class="prelude-val">None</span>),
-                                <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"error when sending image data: {:?}"</span>, e),
-                            }
-                        }
-                        SerializedImageUpdate::DeleteImage(key) =&gt; txn.delete_image(key),
-                        SerializedImageUpdate::UpdateImage(key, desc, data) =&gt; {
-                            <span class="kw">match </span>data.to_image_data() {
-                                <span class="prelude-val">Ok</span>(data) =&gt; txn.update_image(key, desc, data, <span class="kw-2">&amp;</span>DirtyRect::All),
-                                <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"error when sending image data: {:?}"</span>, e),
-                            }
-                        }
+                        ImageUpdate::AddImage(key, desc, data) =&gt; {
+                            txn.add_image(key, desc, data.into(), <span class="prelude-val">None</span>)
+                        },
+                        ImageUpdate::DeleteImage(key) =&gt; txn.delete_image(key),
+                        ImageUpdate::UpdateImage(key, desc, data) =&gt; {
+                            txn.update_image(key, desc, data.into(), <span class="kw-2">&amp;</span>DirtyRect::All)
+                        },
                     }
                 }
                 <span class="self">self</span>.webrender_api
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFont(
-                font_key,
-                data,
-                index,
-            )) =&gt; {
+            CrossProcessCompositorMessage::AddFont(font_key, data, index) =&gt; {
                 <span class="self">self</span>.add_font(font_key, index, data);
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFontInstance(
+            CrossProcessCompositorMessage::AddSystemFont(font_key, native_handle) =&gt; {
+                <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
+                transaction.add_native_font(font_key, native_handle);
+                <span class="self">self</span>.webrender_api
+                    .send_transaction(<span class="self">self</span>.webrender_document, transaction);
+            },
+
+            CrossProcessCompositorMessage::AddFontInstance(
                 font_instance_key,
                 font_key,
                 size,
                 flags,
-            )) =&gt; {
+            ) =&gt; {
                 <span class="self">self</span>.add_font_instance(font_instance_key, font_key, size, flags);
             }
 
-            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::RemoveFonts(
-                keys,
-                instance_keys,
-            )) =&gt; {
+            CrossProcessCompositorMessage::RemoveFonts(keys, instance_keys) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
 
                 <span class="kw">for </span>instance <span class="kw">in </span>instance_keys.into_iter() {
@@ -3062,11 +2974,18 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
             }
 
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::GenerateKeys(
+            CrossProcessCompositorMessage::AddImage(key, desc, data) =&gt; {
+                <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
+                txn.add_image(key, desc, data.into(), <span class="prelude-val">None</span>);
+                <span class="self">self</span>.webrender_api
+                    .send_transaction(<span class="self">self</span>.webrender_document, txn);
+            }
+
+            CrossProcessCompositorMessage::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-            )) =&gt; {
+            ) =&gt; {
                 <span class="kw">let </span>font_keys = (<span class="number">0</span>..number_of_font_keys)
                     .map(|<span class="kw">_</span>| <span class="self">self</span>.webrender_api.generate_font_key())
                     .collect();
@@ -3076,59 +2995,25 @@
                 <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
             }
 
-            ForwardedToCompositorMsg::Net(NetToCompositorMsg::AddImage(key, desc, data)) =&gt; {
-                <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
-                txn.add_image(key, desc, data, <span class="prelude-val">None</span>);
-                <span class="self">self</span>.webrender_api
-                    .send_transaction(<span class="self">self</span>.webrender_document, txn);
-            }
-
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
-                font_instance_key,
-                font_key,
-                size,
-                flags,
-            )) =&gt; {
-                <span class="self">self</span>.add_font_instance(font_instance_key, font_key, size, flags);
-            }
-
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
-                font_key,
-                index,
-                data,
-            )) =&gt; {
-                <span class="self">self</span>.add_font(font_key, index, data);
-            }
-
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
-                font_key,
-                native_handle,
-            )) =&gt; {
-                <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
-                transaction.add_native_font(font_key, native_handle);
-                <span class="self">self</span>.webrender_api
-                    .send_transaction(<span class="self">self</span>.webrender_document, transaction);
-            }
-
-            ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::GenerateKey(sender)) =&gt; {
-                <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_image_key());
-            }
-
-            ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::UpdateImages(updates)) =&gt; {
-                <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
-                <span class="kw">for </span>update <span class="kw">in </span>updates {
-                    <span class="kw">match </span>update {
-                        ImageUpdate::AddImage(key, descriptor, data) =&gt; {
-                            txn.add_image(key, descriptor, data, <span class="prelude-val">None</span>)
-                        }
-                        ImageUpdate::UpdateImage(key, descriptor, data) =&gt; {
-                            txn.update_image(key, descriptor, data, <span class="kw-2">&amp;</span>DirtyRect::All)
-                        }
-                        ImageUpdate::DeleteImage(key) =&gt; txn.delete_image(key),
-                    }
+            CrossProcessCompositorMessage::GetClientWindowRect(req) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport.into()) {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
                 }
-                <span class="self">self</span>.webrender_api
-                    .send_transaction(<span class="self">self</span>.webrender_document, txn);
+            },
+
+            CrossProcessCompositorMessage::GetScreenSize(req) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
+                }
+            },
+
+            CrossProcessCompositorMessage::GetAvailableScreenSize(req) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
+                    <span class="macro">warn!</span>(
+                        <span class="string">"Sending response to get screen avail size failed ({:?})."</span>,
+                        e
+                    );
+                }
             }
         }
     }
@@ -3153,23 +3038,40 @@
                 <span class="self">self</span>.remove_pipeline_root_layer(pipeline_id);
                 <span class="kw">let _ </span>= sender.send(());
             }
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
-                CanvasToCompositorMsg::GenerateKey(sender),
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateImageKey(
+                sender,
             )) =&gt; {
                 <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_image_key());
             }
-            CompositorMsg::GetClientWindow(sender) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send((<span class="self">self</span>.viewport, Point2D::new(<span class="number">0</span>, <span class="number">0</span>))) {
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateFontKeys(
+                number_of_font_keys,
+                number_of_font_instance_keys,
+                result_sender,
+            )) =&gt; {
+                <span class="kw">let </span>font_keys = (<span class="number">0</span>..number_of_font_keys)
+                    .map(|<span class="kw">_</span>| <span class="self">self</span>.webrender_api.generate_font_key())
+                    .collect();
+                <span class="kw">let </span>font_instance_keys = (<span class="number">0</span>..number_of_font_instance_keys)
+                    .map(|<span class="kw">_</span>| <span class="self">self</span>.webrender_api.generate_font_instance_key())
+                    .collect();
+                <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
+            },
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
+                req,
+            )) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport.into()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
                 }
             }
-            CompositorMsg::GetScreenSize(sender) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(<span class="self">self</span>.viewport) {
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(req)) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
                 }
             }
-            CompositorMsg::GetScreenAvailSize(sender) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(<span class="self">self</span>.viewport) {
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
+                req,
+            )) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
                     <span class="macro">warn!</span>(
                         <span class="string">"Sending response to get screen avail size failed ({:?})."</span>,
                         e
