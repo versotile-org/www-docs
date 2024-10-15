@@ -644,29 +644,18 @@
 <a href="#644" id="644">644</a>
 <a href="#645" id="645">645</a>
 <a href="#646" id="646">646</a>
-<a href="#647" id="647">647</a>
-<a href="#648" id="648">648</a>
-<a href="#649" id="649">649</a>
-<a href="#650" id="650">650</a>
-<a href="#651" id="651">651</a>
-<a href="#652" id="652">652</a>
-<a href="#653" id="653">653</a>
-<a href="#654" id="654">654</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
-    path::PathBuf,
     sync::{atomic::Ordering, Arc},
 };
 
 <span class="kw">use </span>arboard::Clipboard;
-<span class="kw">use </span>base::id::WebViewId;
+<span class="kw">use </span>base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 <span class="kw">use </span>bluetooth::BluetoothThreadFactory;
 <span class="kw">use </span>bluetooth_traits::BluetoothRequest;
 <span class="kw">use </span>canvas::canvas_paint_thread::CanvasPaintThread;
-<span class="kw">use </span>compositing_traits::{
-    CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg,
-};
+<span class="kw">use </span>compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
 <span class="kw">use </span>constellation::{Constellation, FromCompositorLogger, InitialConstellationState};
 <span class="kw">use </span>crossbeam_channel::{unbounded, Sender};
 <span class="kw">use </span>devtools;
@@ -678,7 +667,7 @@
 <span class="kw">use </span>layout_thread_2020;
 <span class="kw">use </span>log::{Log, Metadata, Record};
 <span class="kw">use </span>media::{GlApi, GlContext, NativeDisplay, WindowGLContext};
-<span class="kw">use </span>net::{protocols::ProtocolRegistry, resource_thread};
+<span class="kw">use </span>net::resource_thread;
 <span class="kw">use </span>profile;
 <span class="kw">use </span>script::{<span class="self">self</span>, JSEngineSetup};
 <span class="kw">use </span>script_traits::WindowSizeData;
@@ -716,7 +705,6 @@
     </span>_js_engine_setup: <span class="prelude-ty">Option</span>&lt;JSEngineSetup&gt;,
     <span class="doccomment">/// FIXME: It's None on wayland in Flatpak. Find a way to support this.
     </span>clipboard: <span class="prelude-ty">Option</span>&lt;Clipboard&gt;,
-    resource_dir: PathBuf,
 }
 
 <span class="kw">impl </span>Verso {
@@ -738,8 +726,10 @@
     /// - Image Cache: Enabled
     </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop, proxy: EventLoopProxy&lt;()&gt;, config: Config) -&gt; <span class="self">Self </span>{
         <span class="comment">// Initialize configurations and Verso window
-        </span><span class="kw">let </span>resource_dir = config.resource_dir.clone();
+        </span><span class="kw">let </span>protocols = config.create_protocols();
         config.init();
+        <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
+        </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
         <span class="kw">let </span>(window, rendering_context) = Window::new(evl);
         <span class="kw">let </span>event_loop_waker = Box::new(Waker(proxy));
         <span class="kw">let </span>opts = opts::get();
@@ -916,9 +906,6 @@
         </span><span class="kw">let </span>bluetooth_thread: IpcSender&lt;BluetoothRequest&gt; =
             BluetoothThreadFactory::new(embedder_sender.clone());
 
-        <span class="comment">// Register URL scheme protocols
-        </span><span class="kw">let </span>protocols = ProtocolRegistry::with_internal_protocols();
-
         <span class="comment">// Create resource thread pool
         </span><span class="kw">let </span>user_agent: Cow&lt;<span class="lifetime">'static</span>, str&gt; = default_user_agent_string().into();
         <span class="kw">let </span>(public_resource_threads, private_resource_threads) =
@@ -936,7 +923,8 @@
 
         <span class="comment">// Create font cache thread
         </span><span class="kw">let </span>system_font_service = Arc::new(
-            SystemFontService::spawn(compositor_sender.cross_process_compositor_api.clone()).to_proxy(),
+            SystemFontService::spawn(compositor_sender.cross_process_compositor_api.clone())
+                .to_proxy(),
         );
 
         <span class="comment">// Create canvas thread
@@ -1023,8 +1011,7 @@
         <span class="comment">// Send the constellation message to start Panel UI
         // TODO: Should become a window method
         </span><span class="kw">let </span>panel_id = window.panel.as_ref().unwrap().webview_id;
-        <span class="kw">let </span>path = resource_dir.join(<span class="string">"panel.html"</span>);
-        <span class="kw">let </span>url = ServoUrl::from_file_path(path.to_str().unwrap()).unwrap();
+        <span class="kw">let </span>url = ServoUrl::parse(<span class="string">"verso://panel.html"</span>).unwrap();
         send_to_constellation(
             <span class="kw-2">&amp;</span>constellation_sender,
             ConstellationMsg::NewWebView(url, panel_id),
@@ -1041,7 +1028,6 @@
             embedder_receiver,
             _js_engine_setup: js_engine_setup,
             clipboard: Clipboard::new().ok(),
-            resource_dir,
         };
 
         verso.setup_logging();
@@ -1099,10 +1085,8 @@
                                             <span class="kw">let </span><span class="kw-2">mut </span>window =
                                                 Window::new_with_compositor(evl, compositor);
                                             <span class="kw">let </span>panel_id = WebViewId::new();
-                                            <span class="kw">let </span>path = <span class="self">self</span>.resource_dir.join(<span class="string">"panel.html"</span>);
                                             <span class="kw">let </span>url =
-                                                ServoUrl::from_file_path(path.to_str().unwrap())
-                                                    .unwrap();
+                                                ServoUrl::parse(<span class="string">"verso://panel.html"</span>).unwrap();
                                             send_to_constellation(
                                                 <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
                                                 ConstellationMsg::NewWebView(url, panel_id),

@@ -2263,7 +2263,7 @@
 };
 <span class="kw">use </span>webrender_traits::display_list::{HitTestInfo, ScrollTree};
 <span class="kw">use </span>webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress
+    CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
 };
 <span class="kw">use </span>winit::window::WindowId;
 
@@ -2794,7 +2794,7 @@
 
             CompositorMsg::CrossProcess(cross_proces_message) =&gt; {
                 <span class="self">self</span>.handle_cross_process_message(cross_proces_message);
-            },
+            }
         }
 
         <span class="bool-val">true
@@ -2929,11 +2929,11 @@
                     <span class="kw">match </span>update {
                         ImageUpdate::AddImage(key, desc, data) =&gt; {
                             txn.add_image(key, desc, data.into(), <span class="prelude-val">None</span>)
-                        },
+                        }
                         ImageUpdate::DeleteImage(key) =&gt; txn.delete_image(key),
                         ImageUpdate::UpdateImage(key, desc, data) =&gt; {
                             txn.update_image(key, desc, data.into(), <span class="kw-2">&amp;</span>DirtyRect::All)
-                        },
+                        }
                     }
                 }
                 <span class="self">self</span>.webrender_api
@@ -2949,7 +2949,7 @@
                 transaction.add_native_font(font_key, native_handle);
                 <span class="self">self</span>.webrender_api
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
-            },
+            }
 
             CrossProcessCompositorMessage::AddFontInstance(
                 font_instance_key,
@@ -2999,13 +2999,13 @@
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport.into()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
                 }
-            },
+            }
 
             CrossProcessCompositorMessage::GetScreenSize(req) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
                 }
-            },
+            }
 
             CrossProcessCompositorMessage::GetAvailableScreenSize(req) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
@@ -3055,7 +3055,7 @@
                     .map(|<span class="kw">_</span>| <span class="self">self</span>.webrender_api.generate_font_instance_key())
                     .collect();
                 <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
-            },
+            }
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
                 req,
             )) =&gt; {

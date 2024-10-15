@@ -281,29 +281,8 @@
 <a href="#281" id="281">281</a>
 <a href="#282" id="282">282</a>
 <a href="#283" id="283">283</a>
-<a href="#284" id="284">284</a>
-<a href="#285" id="285">285</a>
-<a href="#286" id="286">286</a>
-<a href="#287" id="287">287</a>
-<a href="#288" id="288">288</a>
-<a href="#289" id="289">289</a>
-<a href="#290" id="290">290</a>
-<a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a>
-<a href="#294" id="294">294</a>
-<a href="#295" id="295">295</a>
-<a href="#296" id="296">296</a>
-<a href="#297" id="297">297</a>
-<a href="#298" id="298">298</a>
-<a href="#299" id="299">299</a>
-<a href="#300" id="300">300</a>
-<a href="#301" id="301">301</a>
-<a href="#302" id="302">302</a>
-<a href="#303" id="303">303</a>
-<a href="#304" id="304">304</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
-<span class="kw">use </span>base::id::{BrowsingContextId, PipelineNamespace, PipelineNamespaceId, WebViewId};
+<span class="kw">use </span>base::id::{BrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{CompositorEventVariant, EmbedderMsg, PromptDefinition};
@@ -331,27 +310,6 @@
     <span class="doccomment">/// Create a web view from Winit window.
     </span><span class="kw">pub fn </span>new(webview_id: WebViewId, rect: DeviceIntRect) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ webview_id, rect }
-    }
-
-    <span class="doccomment">/// Create a panel view from Winit window. A panel is a special web view that focus on controlling states around window.
-    /// It could be treated as the control panel or navigation bar of the window depending on usages.
-    ///
-    /// At the moment, following Web API is supported:
-    /// - Close window: `window.close()`
-    /// - Navigate to previous page: `window.prompt('PREV')`
-    /// - Navigate to next page: `window.prompt('FORWARD')`
-    /// - Refresh the page: `window.prompt('REFRESH')`
-    /// - Minimize the window: `window.prompt('MINIMIZE')`
-    /// - Maximize the window: `window.prompt('MAXIMIZE')`
-    /// - Navigate to a specific URL: `window.prompt('NAVIGATE_TO:${url}')`
-    </span><span class="kw">pub fn </span>new_panel(rect: DeviceIntRect) -&gt; <span class="self">Self </span>{
-        <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
-        </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
-        <span class="kw">let </span>id = WebViewId::new();
-        <span class="self">Self </span>{
-            webview_id: id,
-            rect,
-        }
     }
 
     <span class="doccomment">/// Set the webview size corresponding to the window size.
