@@ -277,10 +277,6 @@
 <a href="#277" id="277">277</a>
 <a href="#278" id="278">278</a>
 <a href="#279" id="279">279</a>
-<a href="#280" id="280">280</a>
-<a href="#281" id="281">281</a>
-<a href="#282" id="282">282</a>
-<a href="#283" id="283">283</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{BrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -312,12 +308,8 @@
         <span class="self">Self </span>{ webview_id, rect }
     }
 
-    <span class="doccomment">/// Set the webview size corresponding to the window size.
-    </span><span class="kw">pub fn </span>set_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>rect: DeviceIntRect) {
-        rect.min.y = rect.max.y.min(<span class="number">100</span>);
-        rect.min.x += <span class="number">10</span>;
-        rect.max.y -= <span class="number">10</span>;
-        rect.max.x -= <span class="number">10</span>;
+    <span class="doccomment">/// Set the webview size.
+    </span><span class="kw">pub fn </span>set_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceIntRect) {
         <span class="self">self</span>.rect = rect;
     }
 }
@@ -447,7 +439,7 @@
                 <span class="kw">let </span>size = <span class="self">self</span>.size();
                 <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
                 <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(demo_id, rect);
-                webview.set_size(rect);
+                webview.set_size(<span class="self">self</span>.get_content_size(rect));
                 <span class="self">self</span>.webview = <span class="prelude-val">Some</span>(webview);
                 send_to_constellation(sender, ConstellationMsg::NewWebView(demo_url, demo_id));
                 <span class="macro">log::debug!</span>(<span class="string">"Verso Window {:?} adds webview {}"</span>, <span class="self">self</span>.id(), demo_id);

@@ -2220,6 +2220,7 @@
 <a href="#2220" id="2220">2220</a>
 <a href="#2221" id="2221">2221</a>
 <a href="#2222" id="2222">2222</a>
+<a href="#2223" id="2223">2223</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -3462,9 +3463,10 @@
             <span class="self">self</span>.on_resize_webview_event(panel.webview_id, rect);
         }
 
+        <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+        <span class="kw">let </span>content_size = window.get_content_size(rect);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(w) = <span class="kw-2">&amp;mut </span>window.webview {
-            <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
-            w.set_size(rect);
+            w.set_size(content_size);
             <span class="self">self</span>.on_resize_webview_event(w.webview_id, w.rect);
         }
 

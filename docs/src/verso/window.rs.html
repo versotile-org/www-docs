@@ -428,6 +428,28 @@
 <a href="#428" id="428">428</a>
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
+<a href="#452" id="452">452</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -441,6 +463,7 @@
 };
 <span class="kw">use </span>glutin_winit::DisplayBuilder;
 <span class="kw">use </span>script_traits::{TouchEventType, WheelDelta, WheelMode};
+<span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>webrender_api::{
     units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutVector2D},
     ScrollLocation,
@@ -523,16 +546,11 @@
             .expect(<span class="string">"Failed to create rendering context"</span>);
         <span class="macro">log::trace!</span>(<span class="string">"Created rendering context for window {:?}"</span>, window);
 
-        <span class="kw">let </span>size = window.inner_size();
-        <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
         (
             <span class="self">Self </span>{
                 window,
                 surface,
-                panel: <span class="prelude-val">Some</span>(WebView::new(
-                    WebViewId::new(),
-                    DeviceIntRect::from_size(size),
-                )),
+                panel: <span class="prelude-val">None</span>,
                 webview: <span class="prelude-val">None</span>,
                 mouse_position: Cell::new(PhysicalPosition::default()),
                 modifiers_state: Cell::new(ModifiersState::default()),
@@ -563,6 +581,7 @@
             .rendering_context
             .create_surface(<span class="kw-2">&amp;</span>window)
             .unwrap();
+
         <span class="kw">let </span><span class="kw-2">mut </span>window = <span class="self">Self </span>{
             window,
             surface,
@@ -573,6 +592,31 @@
         };
         compositor.swap_current_window(<span class="kw-2">&amp;mut </span>window);
         window
+    }
+
+    <span class="doccomment">/// Get the content area size for the webview to draw on
+    </span><span class="kw">pub fn </span>get_content_size(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">mut </span>size: DeviceIntRect) -&gt; DeviceIntRect {
+        <span class="kw">if </span><span class="self">self</span>.panel.is_some() {
+            size.min.y = size.max.y.min(<span class="number">100</span>);
+            size.min.x += <span class="number">10</span>;
+            size.max.y -= <span class="number">10</span>;
+            size.max.x -= <span class="number">10</span>;
+        }
+        size
+    }
+
+    <span class="doccomment">/// Send the constellation message to start Panel UI
+    </span><span class="kw">pub fn </span>create_panel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;) {
+        <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
+        <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
+        <span class="kw">let </span>panel_id = WebViewId::new();
+        <span class="self">self</span>.panel = <span class="prelude-val">Some</span>(WebView::new(panel_id, DeviceIntRect::from_size(size)));
+
+        <span class="kw">let </span>url = ServoUrl::parse(<span class="string">"verso://panel.html"</span>).unwrap();
+        send_to_constellation(
+            constellation_sender,
+            ConstellationMsg::NewWebView(url, panel_id),
+        );
     }
 
     <span class="doccomment">/// Handle Winit window event and return a boolean to indicate if the compositor should repaint immediately.
