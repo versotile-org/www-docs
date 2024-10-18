@@ -3459,8 +3459,8 @@
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;mut </span>window.panel {
             <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
-            panel.rect = rect;
-            <span class="self">self</span>.on_resize_webview_event(panel.webview_id, rect);
+            panel.webview.rect = rect;
+            <span class="self">self</span>.on_resize_webview_event(panel.webview.webview_id, rect);
         }
 
         <span class="kw">let </span>rect = DeviceIntRect::from_size(size);

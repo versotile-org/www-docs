@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["WebView"]};
+window.SIDEBAR_ITEMS = {"struct":["Panel","WebView"]};

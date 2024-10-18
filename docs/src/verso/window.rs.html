@@ -450,6 +450,14 @@
 <a href="#450" id="450">450</a>
 <a href="#451" id="451">451</a>
 <a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -481,7 +489,7 @@
     keyboard::keyboard_event_from_winit,
     rendering::{gl_config_picker, RenderingContext},
     verso::send_to_constellation,
-    webview::WebView,
+    webview::{Panel, WebView},
 };
 
 <span class="kw">use </span>arboard::Clipboard;
@@ -492,18 +500,8 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) window: WinitWindow,
     <span class="doccomment">/// GL surface of the window
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) surface: Surface&lt;WindowSurface&gt;,
-    <span class="doccomment">/// The main panel of this window. A panel is a special web view that focus on controlling states around window.
-    /// It could be treated as the control panel or navigation bar of the window depending on usages.
-    ///
-    /// At the moment, following Web API is supported:
-    /// - Close window: `window.close()`
-    /// - Navigate to previous page: `window.prompt('PREV')`
-    /// - Navigate to next page: `window.prompt('FORWARD')`
-    /// - Refresh the page: `window.prompt('REFRESH')`
-    /// - Minimize the window: `window.prompt('MINIMIZE')`
-    /// - Maximize the window: `window.prompt('MAXIMIZE')`
-    /// - Navigate to a specific URL: `window.prompt('NAVIGATE_TO:${url}')`
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) panel: <span class="prelude-ty">Option</span>&lt;WebView&gt;,
+    <span class="doccomment">/// The main panel of this window.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) panel: <span class="prelude-ty">Option</span>&lt;Panel&gt;,
     <span class="doccomment">/// The WebView of this window.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) webview: <span class="prelude-ty">Option</span>&lt;WebView&gt;,
     <span class="doccomment">/// The mouse physical position in the web view.
@@ -606,11 +604,22 @@
     }
 
     <span class="doccomment">/// Send the constellation message to start Panel UI
-    </span><span class="kw">pub fn </span>create_panel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;) {
+    </span><span class="kw">pub fn </span>create_panel(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        initial_url: <span class="prelude-ty">Option</span>&lt;url::Url&gt;,
+    ) {
         <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
         <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
         <span class="kw">let </span>panel_id = WebViewId::new();
-        <span class="self">self</span>.panel = <span class="prelude-val">Some</span>(WebView::new(panel_id, DeviceIntRect::from_size(size)));
+        <span class="self">self</span>.panel = <span class="prelude-val">Some</span>(Panel {
+            webview: WebView::new(panel_id, DeviceIntRect::from_size(size)),
+            initial_url: <span class="kw">if let </span><span class="prelude-val">Some</span>(initial_url) = initial_url {
+                servo_url::ServoUrl::from_url(initial_url)
+            } <span class="kw">else </span>{
+                ServoUrl::parse(<span class="string">"https://example.com"</span>).unwrap()
+            },
+        });
 
         <span class="kw">let </span>url = ServoUrl::parse(<span class="string">"verso://panel.html"</span>).unwrap();
         send_to_constellation(
@@ -754,7 +763,7 @@
     ) -&gt; bool {
         <span class="comment">// // Handle message in Verso Panel
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
-            <span class="kw">if </span>panel.webview_id == webview_id {
+            <span class="kw">if </span>panel.webview.webview_id == webview_id {
                 <span class="kw">return </span><span class="self">self</span>.handle_servo_messages_with_panel(
                     webview_id, message, sender, clipboard, compositor,
                 );
@@ -788,7 +797,9 @@
 
     <span class="doccomment">/// Check if the window has such webview.
     </span><span class="kw">pub fn </span>has_webview(<span class="kw-2">&amp;</span><span class="self">self</span>, id: WebViewId) -&gt; bool {
-        <span class="self">self</span>.panel.as_ref().map_or(<span class="bool-val">false</span>, |w| w.webview_id == id)
+        <span class="self">self</span>.panel
+            .as_ref()
+            .map_or(<span class="bool-val">false</span>, |w| w.webview.webview_id == id)
             || <span class="self">self</span>.webview.as_ref().map_or(<span class="bool-val">false</span>, |w| w.webview_id == id)
     }
 
@@ -799,14 +810,19 @@
         id: WebViewId,
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) -&gt; (<span class="prelude-ty">Option</span>&lt;WebView&gt;, bool) {
-        <span class="kw">if </span><span class="self">self</span>.panel.as_ref().filter(|w| w.webview_id == id).is_some() {
+        <span class="kw">if </span><span class="self">self
+            </span>.panel
+            .as_ref()
+            .filter(|w| w.webview.webview_id == id)
+            .is_some()
+        {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(w) = <span class="self">self</span>.webview.as_ref() {
                 send_to_constellation(
                     <span class="kw-2">&amp;</span>compositor.constellation_chan,
                     ConstellationMsg::CloseWebView(w.webview_id),
                 )
             }
-            (<span class="self">self</span>.panel.take(), <span class="bool-val">false</span>)
+            (<span class="self">self</span>.panel.take().map(|panel| panel.webview), <span class="bool-val">false</span>)
         } <span class="kw">else if </span><span class="self">self
             </span>.webview
             .as_ref()
@@ -823,7 +839,7 @@
     </span><span class="kw">pub fn </span>painting_order(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;<span class="kw-2">&amp;</span>WebView&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>order = <span class="macro">vec!</span>[];
         <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
-            order.push(panel);
+            order.push(<span class="kw-2">&amp;</span>panel.webview);
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = <span class="kw-2">&amp;</span><span class="self">self</span>.webview {
             order.push(webview);
