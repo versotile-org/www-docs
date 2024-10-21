@@ -165,23 +165,23 @@
     <span class="kw">let </span><span class="kw-2">mut </span>opts = getopts::Options::new();
     opts.optopt(<span class="string">""</span>, <span class="string">"url"</span>, <span class="string">"URL to load on start"</span>, <span class="string">"URL"</span>);
 
-    <span class="kw">let </span>matches = opts.parse(<span class="kw-2">&amp;</span>args[<span class="number">1</span>..])<span class="question-mark">?</span>;
-    <span class="kw">let </span>initial_url = matches
-        .opt_str(<span class="string">"initial-url"</span>)
-        .and_then(|initial_url| <span class="kw">match </span>url::Url::parse(<span class="kw-2">&amp;</span>initial_url) {
+    <span class="kw">let </span>matches: getopts::Matches = opts.parse(<span class="kw-2">&amp;</span>args[<span class="number">1</span>..])<span class="question-mark">?</span>;
+    <span class="kw">let </span>url = matches
+        .opt_str(<span class="string">"url"</span>)
+        .and_then(|url| <span class="kw">match </span>url::Url::parse(<span class="kw-2">&amp;</span>url) {
             <span class="prelude-val">Ok</span>(url_parsed) =&gt; <span class="prelude-val">Some</span>(url_parsed),
             <span class="prelude-val">Err</span>(e) =&gt; {
                 <span class="kw">if </span>e == url::ParseError::RelativeUrlWithoutBase {
-                    <span class="kw">if let </span><span class="prelude-val">Ok</span>(url_parsed) = url::Url::parse(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"https://{initial_url}"</span>)) {
+                    <span class="kw">if let </span><span class="prelude-val">Ok</span>(url_parsed) = url::Url::parse(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"https://{url}"</span>)) {
                         <span class="kw">return </span><span class="prelude-val">Some</span>(url_parsed);
                     }
                 }
-                <span class="macro">log::error!</span>(<span class="string">"Invalid initial url: {initial_url}"</span>);
+                <span class="macro">log::error!</span>(<span class="string">"Invalid initial url: {url}"</span>);
                 <span class="prelude-val">None
             </span>}
         });
 
-    <span class="prelude-val">Ok</span>(CliArgs { url: initial_url })
+    <span class="prelude-val">Ok</span>(CliArgs { url })
 }
 
 <span class="kw">impl </span>Config {
