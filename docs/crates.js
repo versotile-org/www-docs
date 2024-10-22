@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["verso"];
+window.ALL_CRATES = ["versoview"];
