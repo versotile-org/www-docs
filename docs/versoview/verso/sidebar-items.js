@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Verso"]};
+window.SIDEBAR_ITEMS = {"enum":["EventLoopProxyMessage"],"struct":["Verso"]};
