@@ -553,7 +553,7 @@
                                     <span class="string">"MINIMIZE" </span>=&gt; {
                                         <span class="self">self</span>.window.set_minimized(<span class="bool-val">true</span>);
                                     }
-                                    <span class="string">"MAXIMIZE" </span>=&gt; {
+                                    <span class="string">"MAXIMIZE" </span>| <span class="string">"DBCLICK_PANEL" </span>=&gt; {
                                         <span class="kw">let </span>is_maximized = <span class="self">self</span>.window.is_maximized();
                                         <span class="self">self</span>.window.set_maximized(!is_maximized);
                                     }
