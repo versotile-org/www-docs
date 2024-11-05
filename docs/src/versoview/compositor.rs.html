@@ -2194,6 +2194,10 @@
 <a href="#2194" id="2194">2194</a>
 <a href="#2195" id="2195">2195</a>
 <a href="#2196" id="2196">2196</a>
+<a href="#2197" id="2197">2197</a>
+<a href="#2198" id="2198">2198</a>
+<a href="#2199" id="2199">2199</a>
+<a href="#2200" id="2200">2200</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2220,7 +2224,7 @@
     AnimationState, AnimationTickType, ConstellationControlMsg, MouseButton, MouseEventType,
     ScrollState, TouchEventType, TouchId, WheelDelta, WindowSizeData, WindowSizeType,
 };
-<span class="kw">use </span>servo_geometry::DeviceIndependentPixel;
+<span class="kw">use </span>servo_geometry::{DeviceIndependentIntSize, DeviceIndependentPixel};
 <span class="kw">use </span>style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 <span class="kw">use </span>webrender::{RenderApi, Transaction};
 <span class="kw">use </span>webrender_api::units::{
@@ -2970,19 +2974,19 @@
             }
 
             CrossProcessCompositorMessage::GetClientWindowRect(req) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport.into()) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
                 }
             }
 
             CrossProcessCompositorMessage::GetScreenSize(req) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
                 }
             }
 
             CrossProcessCompositorMessage::GetAvailableScreenSize(req) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
                     <span class="macro">warn!</span>(
                         <span class="string">"Sending response to get screen avail size failed ({:?})."</span>,
                         e
@@ -3033,19 +3037,19 @@
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
                 req,
             )) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport.into()) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
                 }
             }
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(req)) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
                 }
             }
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
                 req,
             )) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.viewport) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
                     <span class="macro">warn!</span>(
                         <span class="string">"Sending response to get screen avail size failed ({:?})."</span>,
                         e
@@ -3943,6 +3947,10 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
     ) -&gt; Scale&lt;f32, CSSPixel, DevicePixel&gt; {
         <span class="self">self</span>.page_zoom * <span class="self">self</span>.scale_factor
+    }
+
+    <span class="kw">fn </span>device_independent_int_size_viewport(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceIndependentIntSize {
+        (<span class="self">self</span>.viewport.to_f32() / <span class="self">self</span>.scale_factor).to_i32()
     }
 
     <span class="doccomment">/// Handle zoom reset event
