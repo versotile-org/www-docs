@@ -597,6 +597,9 @@
 <a href="#597" id="597">597</a>
 <a href="#598" id="598">598</a>
 <a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -798,8 +801,11 @@
     ) {
         <span class="kw">match </span>event {
             WindowEvent::RedrawRequested =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = compositor.rendering_context.present(<span class="kw-2">&amp;</span><span class="self">self</span>.surface) {
-                    <span class="macro">log::warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
+                <span class="kw">if </span>compositor.ready_to_present {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = compositor.rendering_context.present(<span class="kw-2">&amp;</span><span class="self">self</span>.surface) {
+                        <span class="macro">log::warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
+                    }
+                    compositor.ready_to_present = <span class="bool-val">false</span>;
                 }
             }
             WindowEvent::Focused(focused) =&gt; {

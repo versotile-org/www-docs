@@ -2198,6 +2198,11 @@
 <a href="#2198" id="2198">2198</a>
 <a href="#2199" id="2199">2199</a>
 <a href="#2200" id="2200">2200</a>
+<a href="#2201" id="2201">2201</a>
+<a href="#2202" id="2202">2202</a>
+<a href="#2203" id="2203">2203</a>
+<a href="#2204" id="2204">2204</a>
+<a href="#2205" id="2205">2205</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2339,6 +2344,9 @@
 
     <span class="doccomment">/// Tracks whether we should composite this frame.
     </span>composition_request: CompositionRequest,
+
+    <span class="doccomment">/// check if the surface is ready to present.
+    </span><span class="kw">pub </span>ready_to_present: bool,
 
     <span class="doccomment">/// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor.
@@ -2582,6 +2590,7 @@
             pending_frames: <span class="number">0</span>,
             last_animation_tick: Instant::now(),
             is_animating: <span class="bool-val">false</span>,
+            ready_to_present: <span class="bool-val">false</span>,
         };
 
         <span class="comment">// Make sure the GL state is OK
@@ -4198,6 +4207,7 @@
         }
 
         <span class="self">self</span>.composition_request = CompositionRequest::NoCompositingNecessary;
+        <span class="self">self</span>.ready_to_present = <span class="bool-val">true</span>;
 
         <span class="self">self</span>.process_animations(<span class="bool-val">true</span>);
 
