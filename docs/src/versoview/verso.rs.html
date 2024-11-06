@@ -673,6 +673,10 @@
 <a href="#673" id="673">673</a>
 <a href="#674" id="674">674</a>
 <a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -781,6 +785,7 @@
         <span class="comment">// Initialize configurations and Verso window
         </span><span class="kw">let </span>protocols = config.create_protocols();
         <span class="kw">let </span>initial_url = config.args.url.clone();
+        <span class="kw">let </span>with_panel = !config.args.no_panel;
 
         config.init();
         <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
@@ -819,24 +824,23 @@
             <span class="kw">let </span>(sender, receiver) = unbounded();
             <span class="kw">let </span>(compositor_ipc_sender, compositor_ipc_receiver) =
                 ipc::channel().expect(<span class="string">"ipc channel failure"</span>);
-            <span class="kw">let </span>sender_clone = sender.clone();
+            <span class="kw">let </span>cross_process_compositor_api = CrossProcessCompositorApi(compositor_ipc_sender);
+            <span class="kw">let </span>compositor_proxy = CompositorProxy {
+                sender,
+                cross_process_compositor_api,
+                event_loop_waker: event_loop_waker.clone(),
+            };
+
+            <span class="kw">let </span>compositor_proxy_clone = compositor_proxy.clone();
             ROUTER.add_typed_route(
                 compositor_ipc_receiver,
                 Box::new(<span class="kw">move </span>|message| {
-                    <span class="kw">let _ </span>= sender_clone.send(CompositorMsg::CrossProcess(
+                    <span class="kw">let _ </span>= compositor_proxy_clone.send(CompositorMsg::CrossProcess(
                         message.expect(<span class="string">"Could not convert Compositor message"</span>),
                     ));
                 }),
             );
-            <span class="kw">let </span>cross_process_compositor_api = CrossProcessCompositorApi(compositor_ipc_sender);
-            (
-                CompositorProxy {
-                    sender,
-                    cross_process_compositor_api,
-                    event_loop_waker: event_loop_waker.clone(),
-                },
-                CompositorReceiver { receiver },
-            )
+            (compositor_proxy, CompositorReceiver { receiver })
         };
         <span class="kw">let </span>(embedder_sender, embedder_receiver) = {
             <span class="kw">let </span>(sender, receiver) = unbounded();
@@ -1064,7 +1068,11 @@
             opts.debug.convert_mouse_to_touch,
         );
 
-        window.create_panel(<span class="kw-2">&amp;</span>constellation_sender, initial_url);
+        <span class="kw">if </span>with_panel {
+            window.create_panel(<span class="kw-2">&amp;</span>constellation_sender, initial_url);
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(initial_url) = initial_url {
+            window.create_webview(<span class="kw-2">&amp;</span>constellation_sender, initial_url.into());
+        }
 
         <span class="kw">let </span><span class="kw-2">mut </span>windows = HashMap::new();
         windows.insert(window.id(), (window, webrender_document));

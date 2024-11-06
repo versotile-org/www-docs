@@ -138,6 +138,14 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
 
 <span class="kw">use </span>embedder_traits::resources::{<span class="self">self</span>, Resource, ResourceReaderMethods};
@@ -157,6 +165,8 @@
     </span><span class="kw">pub </span>url: <span class="prelude-ty">Option</span>&lt;url::Url&gt;,
     <span class="doccomment">/// The IPC channel name used to communicate with the webview controller.
     </span><span class="kw">pub </span>ipc_channel: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Should launch without control panel
+    </span><span class="kw">pub </span>no_panel: bool,
 }
 
 <span class="doccomment">/// Configuration of Verso instance.
@@ -181,6 +191,7 @@
         <span class="string">"IPC channel name to communicate and control verso"</span>,
         <span class="string">""</span>,
     );
+    opts.optflag(<span class="string">""</span>, <span class="string">"no-panel"</span>, <span class="string">"Launch Verso without control panel"</span>);
 
     <span class="kw">let </span>matches: getopts::Matches = opts.parse(<span class="kw-2">&amp;</span>args[<span class="number">1</span>..])<span class="question-mark">?</span>;
     <span class="kw">let </span>url = matches
@@ -198,8 +209,13 @@
             </span>}
         });
     <span class="kw">let </span>ipc_channel = matches.opt_str(<span class="string">"ipc-channel"</span>);
+    <span class="kw">let </span>no_panel = matches.opt_present(<span class="string">"no-panel"</span>);
 
-    <span class="prelude-val">Ok</span>(CliArgs { url, ipc_channel })
+    <span class="prelude-val">Ok</span>(CliArgs {
+        url,
+        ipc_channel,
+        no_panel,
+    })
 }
 
 <span class="kw">impl </span>Config {

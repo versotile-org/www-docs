@@ -287,19 +287,6 @@
 <a href="#287" id="287">287</a>
 <a href="#288" id="288">288</a>
 <a href="#289" id="289">289</a>
-<a href="#290" id="290">290</a>
-<a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a>
-<a href="#294" id="294">294</a>
-<a href="#295" id="295">295</a>
-<a href="#296" id="296">296</a>
-<a href="#297" id="297">297</a>
-<a href="#298" id="298">298</a>
-<a href="#299" id="299">299</a>
-<a href="#300" id="300">300</a>
-<a href="#301" id="301">301</a>
-<a href="#302" id="302">302</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{BrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -475,20 +462,7 @@
                 <span class="self">self</span>.window.request_redraw();
                 send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
 
-                <span class="kw">let </span>demo_id = WebViewId::new();
-                <span class="kw">let </span>size = <span class="self">self</span>.size();
-                <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
-                <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(demo_id, rect);
-                webview.set_size(<span class="self">self</span>.get_content_size(rect));
-                <span class="self">self</span>.webview = <span class="prelude-val">Some</span>(webview);
-                send_to_constellation(
-                    sender,
-                    ConstellationMsg::NewWebView(
-                        <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone(),
-                        demo_id,
-                    ),
-                );
-                <span class="macro">log::debug!</span>(<span class="string">"Verso Window {:?} adds webview {}"</span>, <span class="self">self</span>.id(), demo_id);
+                <span class="self">self</span>.create_webview(sender, <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone());
             }
             EmbedderMsg::AllowNavigationRequest(id, _url) =&gt; {
                 <span class="comment">// The panel shouldn't navigate to other pages.

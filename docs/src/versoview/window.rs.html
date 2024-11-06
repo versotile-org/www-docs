@@ -578,6 +578,25 @@
 <a href="#578" id="578">578</a>
 <a href="#579" id="579">579</a>
 <a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -738,7 +757,7 @@
         <span class="self">self</span>.panel = <span class="prelude-val">Some</span>(Panel {
             webview: WebView::new(panel_id, DeviceIntRect::from_size(size)),
             initial_url: <span class="kw">if let </span><span class="prelude-val">Some</span>(initial_url) = initial_url {
-                servo_url::ServoUrl::from_url(initial_url)
+                ServoUrl::from_url(initial_url)
             } <span class="kw">else </span>{
                 ServoUrl::parse(<span class="string">"https://example.com"</span>).unwrap()
             },
@@ -749,6 +768,25 @@
             constellation_sender,
             ConstellationMsg::NewWebView(url, panel_id),
         );
+    }
+
+    <span class="doccomment">/// Create a new webview and send the constellation message to load the initial URL
+    </span><span class="kw">pub fn </span>create_webview(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        initial_url: ServoUrl,
+    ) {
+        <span class="kw">let </span>webview_id = WebViewId::new();
+        <span class="kw">let </span>size = <span class="self">self</span>.size();
+        <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+        <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(webview_id, rect);
+        webview.set_size(<span class="self">self</span>.get_content_size(rect));
+        <span class="self">self</span>.webview.replace(webview);
+        send_to_constellation(
+            constellation_sender,
+            ConstellationMsg::NewWebView(initial_url, webview_id),
+        );
+        <span class="macro">log::debug!</span>(<span class="string">"Verso Window {:?} adds webview {}"</span>, <span class="self">self</span>.id(), webview_id);
     }
 
     <span class="doccomment">/// Handle Winit window event and return a boolean to indicate if the compositor should repaint immediately.
