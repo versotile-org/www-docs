@@ -600,6 +600,17 @@
 <a href="#600" id="600">600</a>
 <a href="#601" id="601">601</a>
 <a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
@@ -652,6 +663,8 @@
     </span>mouse_position: Cell&lt;<span class="prelude-ty">Option</span>&lt;PhysicalPosition&lt;f64&gt;&gt;&gt;,
     <span class="doccomment">/// Modifiers state of the keyboard.
     </span>modifiers_state: Cell&lt;ModifiersState&gt;,
+    <span class="doccomment">/// State to indicate if the window is resizing.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) resizing: bool,
 }
 
 <span class="kw">impl </span>Window {
@@ -696,6 +709,7 @@
                 webview: <span class="prelude-val">None</span>,
                 mouse_position: Default::default(),
                 modifiers_state: Cell::new(ModifiersState::default()),
+                resizing: <span class="bool-val">false</span>,
             },
             rendering_context,
         )
@@ -732,6 +746,7 @@
             webview: <span class="prelude-val">None</span>,
             mouse_position: Default::default(),
             modifiers_state: Cell::new(ModifiersState::default()),
+            resizing: <span class="bool-val">false</span>,
         };
         compositor.swap_current_window(<span class="kw-2">&amp;mut </span>window);
         window
@@ -802,6 +817,7 @@
         <span class="kw">match </span>event {
             WindowEvent::RedrawRequested =&gt; {
                 <span class="kw">if </span>compositor.ready_to_present {
+                    <span class="self">self</span>.window.pre_present_notify();
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = compositor.rendering_context.present(<span class="kw-2">&amp;</span><span class="self">self</span>.surface) {
                         <span class="macro">log::warn!</span>(<span class="string">"Failed to present surface: {:?}"</span>, err);
                     }
@@ -814,6 +830,9 @@
                 }
             }
             WindowEvent::Resized(size) =&gt; {
+                <span class="kw">if </span><span class="self">self</span>.window.has_focus() {
+                    <span class="self">self</span>.resizing = <span class="bool-val">true</span>;
+                }
                 <span class="kw">let </span>size = Size2D::new(size.width, size.height);
                 compositor.resize(size.to_i32(), <span class="self">self</span>);
             }
@@ -874,7 +893,10 @@
 
                 <span class="kw">let </span>event: MouseWindowEvent = <span class="kw">match </span>state {
                     ElementState::Pressed =&gt; MouseWindowEvent::MouseDown(button, position),
-                    ElementState::Released =&gt; MouseWindowEvent::MouseUp(button, position),
+                    ElementState::Released =&gt; {
+                        <span class="self">self</span>.resizing = <span class="bool-val">false</span>;
+                        MouseWindowEvent::MouseUp(button, position)
+                    }
                 };
                 compositor.on_mouse_window_event_class(event);
 

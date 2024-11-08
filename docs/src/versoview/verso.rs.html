@@ -677,6 +677,56 @@
 <a href="#677" id="677">677</a>
 <a href="#678" id="678">678</a>
 <a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
+<a href="#725" id="725">725</a>
+<a href="#726" id="726">726</a>
+<a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -805,7 +855,7 @@
 
         <span class="comment">// Initialize servo media with dummy backend
         // This will create a thread to initialize a global static of servo media.
-        // The thread will be closed once the static is initialzed.
+        // The thread will be closed once the static is initialized.
         // TODO: This is used by content process. Spawn it there once if we have multiprocess mode.
         </span>servo_media::ServoMedia::init::&lt;servo_media_dummy::DummyBackend&gt;();
 
@@ -1091,8 +1141,42 @@
         verso
     }
 
+    <span class="doccomment">/// Handle Winit window events. The strategy to handle event are different between platforms
+    /// because the order of events might be different.
+    </span><span class="kw">pub fn </span>handle_window_event(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        event_loop: <span class="kw-2">&amp;</span>ActiveEventLoop,
+        window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        <span class="attr">#[cfg(linux)]
+        </span><span class="kw">if let </span>WindowEvent::Resized(<span class="kw">_</span>) = event {
+            <span class="self">self</span>.handle_winit_window_event(window_id, event);
+        } <span class="kw">else </span>{
+            <span class="self">self</span>.handle_winit_window_event(window_id, event);
+            <span class="self">self</span>.handle_servo_messages(event_loop);
+        }
+
+        <span class="attr">#[cfg(apple)]
+        </span><span class="kw">if let </span>WindowEvent::RedrawRequested = event {
+            <span class="kw">let </span>resizing = <span class="self">self</span>.handle_winit_window_event(window_id, event);
+            <span class="kw">if </span>!resizing {
+                <span class="self">self</span>.handle_servo_messages(event_loop);
+            }
+        } <span class="kw">else </span>{
+            <span class="self">self</span>.handle_winit_window_event(window_id, event);
+            <span class="self">self</span>.handle_servo_messages(event_loop);
+        }
+
+        <span class="attr">#[cfg(windows)]
+        </span>{
+            <span class="self">self</span>.handle_winit_window_event(window_id, event);
+            <span class="self">self</span>.handle_servo_messages(event_loop);
+        }
+    }
+
     <span class="doccomment">/// Handle Winit window events
-    </span><span class="kw">pub fn </span>handle_winit_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window_id: WindowId, event: WindowEvent) {
+    </span><span class="kw">fn </span>handle_winit_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window_id: WindowId, event: WindowEvent) -&gt; bool {
         <span class="macro">log::trace!</span>(<span class="string">"Verso is handling Winit event: {event:?}"</span>);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
             <span class="kw">if let </span>WindowEvent::CloseRequested = event {
@@ -1102,9 +1186,12 @@
                 window
                     .<span class="number">0
                     </span>.handle_winit_window_event(<span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender, compositor, <span class="kw-2">&amp;</span>event);
+                <span class="kw">return </span>window.<span class="number">0</span>.resizing;
             }
         }
-    }
+
+        <span class="bool-val">false
+    </span>}
 
     <span class="doccomment">/// Handle message came from Servo.
     </span><span class="kw">pub fn </span>handle_servo_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>, evl: <span class="kw-2">&amp;</span>ActiveEventLoop) {
@@ -1197,6 +1284,18 @@
         }
     }
 
+    <span class="doccomment">/// Request Verso to redraw. It will queue a redraw event on current focused window.
+    </span><span class="kw">pub fn </span>request_redraw(<span class="kw-2">&amp;mut </span><span class="self">self</span>, evl: <span class="kw-2">&amp;</span>ActiveEventLoop) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.windows.get(<span class="kw-2">&amp;</span>compositor.current_window) {
+                <span class="comment">// evl.set_control_flow(ControlFlow::Poll);
+                </span>window.<span class="number">0</span>.request_redraw();
+            } <span class="kw">else </span>{
+                <span class="self">self</span>.handle_servo_messages(evl);
+            }
+        }
+    }
+
     <span class="doccomment">/// Handle message came from webview controller.
     </span><span class="kw">pub fn </span>handle_incoming_webview_message(<span class="kw-2">&amp;</span><span class="self">self</span>, message: ControllerMessage) {
         <span class="kw">match </span>message {
@@ -1237,6 +1336,7 @@
 }
 
 <span class="doccomment">/// Message send to the event loop
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub enum </span>EventLoopProxyMessage {
     <span class="doccomment">/// Wake
     </span>Wake,
