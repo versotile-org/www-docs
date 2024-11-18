@@ -717,16 +717,6 @@
 <a href="#717" id="717">717</a>
 <a href="#718" id="718">718</a>
 <a href="#719" id="719">719</a>
-<a href="#720" id="720">720</a>
-<a href="#721" id="721">721</a>
-<a href="#722" id="722">722</a>
-<a href="#723" id="723">723</a>
-<a href="#724" id="724">724</a>
-<a href="#725" id="725">725</a>
-<a href="#726" id="726">726</a>
-<a href="#727" id="727">727</a>
-<a href="#728" id="728">728</a>
-<a href="#729" id="729">729</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -742,7 +732,10 @@
 <span class="kw">use </span>constellation::{Constellation, FromCompositorLogger, InitialConstellationState};
 <span class="kw">use </span>crossbeam_channel::{unbounded, Sender};
 <span class="kw">use </span>devtools;
-<span class="kw">use </span>embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+<span class="kw">use </span>embedder_traits::{
+    EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker, PromptDefinition, PromptOrigin,
+    PromptResult,
+};
 <span class="kw">use </span>euclid::Scale;
 <span class="kw">use </span>fonts::SystemFontService;
 <span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSender};
@@ -762,7 +755,6 @@
 <span class="kw">use </span>webrender::{create_webrender_instance, ShaderPrecacheFlags, WebRenderOptions};
 <span class="kw">use </span>webrender_api::<span class="kw-2">*</span>;
 <span class="kw">use </span>webrender_traits::<span class="kw-2">*</span>;
-<span class="kw">use </span>webxr_api::{LayerGrandManager, LayerGrandManagerAPI, LayerManager, LayerManagerFactory};
 <span class="kw">use </span>winit::{
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy},
@@ -806,11 +798,8 @@
     /// - Canvas: Enabled
     /// - Constellation: Enabled
     /// - Image Cache: Enabled
-    </span><span class="kw">pub fn </span>new(
-        evl: <span class="kw-2">&amp;</span>ActiveEventLoop,
-        proxy: EventLoopProxy&lt;EventLoopProxyMessage&gt;,
-        config: Config,
-    ) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop, proxy: EventLoopProxy&lt;EventLoopProxyMessage&gt;) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>config = Config::new();
         <span class="kw">if let </span><span class="prelude-val">Some</span>(ipc_channel) = <span class="kw-2">&amp;</span>config.args.ipc_channel {
             <span class="kw">let </span>sender =
                 IpcSender::&lt;IpcSender&lt;ControllerMessage&gt;&gt;::connect(ipc_channel.to_string())
@@ -818,29 +807,31 @@
             <span class="kw">let </span>(controller_sender, receiver) = ipc::channel::&lt;ControllerMessage&gt;().unwrap();
             sender.send(controller_sender).unwrap();
             <span class="kw">let </span>proxy_clone = proxy.clone();
-            std::thread::Builder::new()
-                .name(<span class="string">"IpcMessageRelay"</span>.to_owned())
-                .spawn(<span class="kw">move </span>|| {
-                    <span class="kw">while let </span><span class="prelude-val">Ok</span>(message) = receiver.recv() {
+            ROUTER.add_typed_route(
+                receiver,
+                Box::new(<span class="kw">move </span>|message| <span class="kw">match </span>message {
+                    <span class="prelude-val">Ok</span>(message) =&gt; {
                         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) =
                             proxy_clone.send_event(EventLoopProxyMessage::IpcMessage(message))
                         {
                             <span class="macro">log::error!</span>(<span class="string">"Failed to send controller message to Verso: {e}"</span>);
                         }
                     }
-                })
-                .unwrap();
+                    <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">log::error!</span>(<span class="string">"Failed to receive controller message: {e}"</span>),
+                }),
+            );
         };
 
         <span class="comment">// Initialize configurations and Verso window
         </span><span class="kw">let </span>protocols = config.create_protocols();
         <span class="kw">let </span>initial_url = config.args.url.clone();
         <span class="kw">let </span>with_panel = !config.args.no_panel;
+        <span class="kw">let </span>window_settings = config.args.window_attributes.clone();
 
         config.init();
         <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
         </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
-        <span class="kw">let </span>(<span class="kw-2">mut </span>window, rendering_context) = Window::new(evl);
+        <span class="kw">let </span>(<span class="kw-2">mut </span>window, rendering_context) = Window::new(evl, window_settings);
 
         <span class="kw">let </span>event_loop_waker = Box::new(Waker(proxy));
         <span class="kw">let </span>opts = opts::get();
@@ -980,20 +971,6 @@
         // Set webrender external image handler for WebGL textures
         // external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
 
-        // Create WebXR dummy
-        </span><span class="kw">let </span>webxr_layer_grand_manager = LayerGrandManager::new(DummyLayer);
-        <span class="kw">let </span>webxr_registry =
-            webxr_api::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
-                .expect(<span class="string">"Failed to create WebXR device registry"</span>);
-        <span class="comment">// if pref!(dom.webxr.enabled) {
-        // TODO if pref!(dom.webxr.test) {
-        //     webxr_main_thread.register_mock(webxr::headless::HeadlessMockDiscovery::new());
-        // }
-        // else if let Some(xr_discovery) = self.xr_discovery.take() {
-        //     webxr_main_thread.register(xr_discovery);
-        // }
-        // }
-
         // Set webrender external image handler for WebGPU textures
         </span><span class="kw">let </span>wgpu_image_handler = webgpu::WGPUExternalImages::default();
         <span class="kw">let </span>wgpu_image_map = wgpu_image_handler.images.clone();
@@ -1058,7 +1035,7 @@
             mem_profiler_chan: mem_profiler_sender.clone(),
             webrender_document,
             webrender_api_sender,
-            webxr_registry: webxr_registry.registry(),
+            webxr_registry: <span class="prelude-val">None</span>,
             webgl_threads: <span class="prelude-val">None</span>,
             glplayer_threads: <span class="prelude-val">None</span>,
             player_context: glplayer_context,
@@ -1112,7 +1089,6 @@
                 webrender_api,
                 rendering_context,
                 webrender_gl,
-                webxr_main_thread: webxr_registry,
             },
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
@@ -1241,6 +1217,26 @@
                                         }
                                     }
                                     EmbedderMsg::Shutdown | EmbedderMsg::ReadyToPresent(<span class="kw">_</span>) =&gt; {}
+                                    EmbedderMsg::Prompt(definition, origin) =&gt; <span class="kw">match </span>origin {
+                                        <span class="comment">// TODO: actually prompt the user with a dialog
+                                        </span>PromptOrigin::Trusted =&gt; <span class="kw">match </span>definition {
+                                            PromptDefinition::YesNo(question, ipc_sender) =&gt; {
+                                                <span class="kw">if </span>question
+                                                    == <span class="string">"Accept incoming devtools connection?"
+                                                </span>{
+                                                    <span class="kw">if let </span><span class="prelude-val">Err</span>(err) =
+                                                        ipc_sender.send(PromptResult::Primary)
+                                                    {
+                                                        <span class="macro">log::error!</span>(
+                                                            <span class="string">"Failed to send prompt result back: {err}"
+                                                        </span>);
+                                                    }
+                                                }
+                                            }
+                                            <span class="kw">_ </span>=&gt; {}
+                                        },
+                                        <span class="kw">_ </span>=&gt; {}
+                                    },
                                     e =&gt; {
                                         <span class="macro">log::trace!</span>(<span class="string">"Verso Window isn't supporting handling this message yet: {e:?}"</span>)
                                     }
@@ -1438,22 +1434,6 @@
     <span class="kw">let </span>variant_name = msg.variant_name();
     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(msg) {
         <span class="macro">log::warn!</span>(<span class="string">"Sending {variant_name} to constellation failed: {e:?}"</span>);
-    }
-}
-
-<span class="attr">#[derive(Clone, Copy, Debug)]
-</span><span class="kw">struct </span>DummyLayer;
-
-<span class="kw">impl </span>LayerGrandManagerAPI&lt;()&gt; <span class="kw">for </span>DummyLayer {
-    <span class="kw">fn </span>create_layer_manager(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="kw">_</span>: LayerManagerFactory&lt;()&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;LayerManager, webxr_api::Error&gt; {
-        <span class="prelude-val">Err</span>(webxr_api::Error::CommunicationError)
-    }
-
-    <span class="kw">fn </span>clone_layer_grand_manager(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; LayerGrandManager&lt;()&gt; {
-        LayerGrandManager::new(DummyLayer)
     }
 }
 </code></pre></div></section></main></body></html>

@@ -2189,20 +2189,6 @@
 <a href="#2189" id="2189">2189</a>
 <a href="#2190" id="2190">2190</a>
 <a href="#2191" id="2191">2191</a>
-<a href="#2192" id="2192">2192</a>
-<a href="#2193" id="2193">2193</a>
-<a href="#2194" id="2194">2194</a>
-<a href="#2195" id="2195">2195</a>
-<a href="#2196" id="2196">2196</a>
-<a href="#2197" id="2197">2197</a>
-<a href="#2198" id="2198">2198</a>
-<a href="#2199" id="2199">2199</a>
-<a href="#2200" id="2200">2200</a>
-<a href="#2201" id="2201">2201</a>
-<a href="#2202" id="2202">2202</a>
-<a href="#2203" id="2203">2203</a>
-<a href="#2204" id="2204">2204</a>
-<a href="#2205" id="2205">2205</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2223,7 +2209,7 @@
 <span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSharedMemory};
 <span class="kw">use </span>log::{debug, error, trace, warn};
 <span class="kw">use </span>profile_traits::time::{<span class="self">self </span><span class="kw">as </span>profile_time, profile, ProfilerCategory};
-<span class="kw">use </span>profile_traits::{mem, time};
+<span class="kw">use </span>profile_traits::{mem, time, time_profile};
 <span class="kw">use </span>script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 <span class="kw">use </span>script_traits::{
     AnimationState, AnimationTickType, ConstellationControlMsg, MouseButton, MouseEventType,
@@ -2276,8 +2262,6 @@
     </span><span class="kw">pub </span>rendering_context: RenderingContext,
     <span class="doccomment">/// Webrender GL handle
     </span><span class="kw">pub </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
-    <span class="doccomment">/// WebXR registry
-    </span><span class="kw">pub </span>webxr_main_thread: webxr_api::MainThreadRegistry&lt;()&gt;,
 }
 
 <span class="doccomment">/// Various debug and profiling flags that WebRender supports.
@@ -2388,9 +2372,6 @@
 
     <span class="doccomment">/// The GL bindings for webrender
     </span>webrender_gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
-
-    <span class="doccomment">/// Some XR devices want to run on the main thread.
-    </span><span class="kw">pub </span>webxr_main_thread: webxr_api::MainThreadRegistry&lt;()&gt;,
 
     <span class="doccomment">/// Map of the pending paint metrics per Layout.
     /// The Layout for each specific pipeline expects the compositor to
@@ -2581,7 +2562,6 @@
             webrender_api: state.webrender_api,
             rendering_context: state.rendering_context,
             webrender_gl: state.webrender_gl,
-            webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
             cursor_pos: DevicePoint::new(<span class="number">0.0</span>, <span class="number">0.0</span>),
@@ -3919,7 +3899,7 @@
                 pipeline_ids.push(<span class="kw-2">*</span>pipeline_id);
             }
         }
-        <span class="self">self</span>.is_animating = !pipeline_ids.is_empty() || <span class="self">self</span>.webxr_main_thread.running();
+        <span class="self">self</span>.is_animating = !pipeline_ids.is_empty();
         <span class="kw">for </span>pipeline_id <span class="kw">in </span><span class="kw-2">&amp;</span>pipeline_ids {
             <span class="self">self</span>.tick_animations_for_pipeline(<span class="kw-2">*</span>pipeline_id)
         }
@@ -4147,7 +4127,7 @@
             }
         }
 
-        profile(
+        <span class="macro">time_profile!</span>(
             ProfilerCategory::Compositing,
             <span class="prelude-val">None</span>,
             <span class="self">self</span>.time_profiler_chan.clone(),
@@ -4294,14 +4274,6 @@
                     window.request_redraw();
                 }
             }
-
-            <span class="comment">// Run the WebXR main thread
-            </span><span class="self">self</span>.webxr_main_thread.run_one_frame();
-
-            <span class="comment">// The WebXR thread may make a different context current
-            </span><span class="kw">let _ </span>= <span class="self">self
-                </span>.rendering_context
-                .make_gl_context_current(<span class="kw-2">&amp;</span>window.surface);
 
             <span class="kw">if </span>!<span class="self">self</span>.pending_scroll_zoom_events.is_empty() {
                 <span class="self">self</span>.process_pending_scroll_events(window)

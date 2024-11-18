@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["CliArgs","Config"]};
+window.SIDEBAR_ITEMS = {"struct":["CliArgs","Config","ProfilerSettings"]};
