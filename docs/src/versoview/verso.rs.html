@@ -717,6 +717,11 @@
 <a href="#717" id="717">717</a>
 <a href="#718" id="718">718</a>
 <a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -827,6 +832,12 @@
         <span class="kw">let </span>initial_url = config.args.url.clone();
         <span class="kw">let </span>with_panel = !config.args.no_panel;
         <span class="kw">let </span>window_settings = config.args.window_attributes.clone();
+        <span class="kw">let </span>user_agent: Cow&lt;<span class="lifetime">'static</span>, str&gt; = config
+            .args
+            .user_agent
+            .clone()
+            .unwrap_or_else(|| default_user_agent_string().to_string())
+            .into();
 
         config.init();
         <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
@@ -994,8 +1005,7 @@
             BluetoothThreadFactory::new(embedder_sender.clone());
 
         <span class="comment">// Create resource thread pool
-        </span><span class="kw">let </span>user_agent: Cow&lt;<span class="lifetime">'static</span>, str&gt; = default_user_agent_string().into();
-        <span class="kw">let </span>(public_resource_threads, private_resource_threads) =
+        </span><span class="kw">let </span>(public_resource_threads, private_resource_threads) =
             resource_thread::new_resource_threads(
                 user_agent.clone(),
                 devtools_sender.clone(),
