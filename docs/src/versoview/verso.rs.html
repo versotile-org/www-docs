@@ -722,6 +722,11 @@
 <a href="#722" id="722">722</a>
 <a href="#723" id="723">723</a>
 <a href="#724" id="724">724</a>
+<a href="#725" id="725">725</a>
+<a href="#726" id="726">726</a>
+<a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -838,6 +843,7 @@
             .clone()
             .unwrap_or_else(|| default_user_agent_string().to_string())
             .into();
+        <span class="kw">let </span>zoom_level = config.args.zoom_level;
 
         config.init();
         <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
@@ -1084,7 +1090,7 @@
 
         <span class="comment">// The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
-        </span><span class="kw">let </span>compositor = IOCompositor::new(
+        </span><span class="kw">let </span><span class="kw-2">mut </span>compositor = IOCompositor::new(
             window.id(),
             window.size(),
             Scale::new(window.scale_factor() <span class="kw">as </span>f32),
@@ -1103,6 +1109,10 @@
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
         );
+
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(zoom_level) = zoom_level {
+            compositor.on_zoom_window_event(zoom_level, <span class="kw-2">&amp;</span>window);
+        }
 
         <span class="kw">if </span>with_panel {
             window.create_panel(<span class="kw-2">&amp;</span>constellation_sender, initial_url);

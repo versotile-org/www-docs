@@ -344,6 +344,16 @@
 <a href="#344" id="344">344</a>
 <a href="#345" id="345">345</a>
 <a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
 
 <span class="kw">use </span>embedder_traits::resources::{<span class="self">self</span>, Resource, ResourceReaderMethods};
@@ -387,6 +397,8 @@
     </span><span class="kw">pub </span>resource_dir: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
     <span class="doccomment">/// Override the user agent
     </span><span class="kw">pub </span>user_agent: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Initial window's zoom level
+    </span><span class="kw">pub </span>zoom_level: <span class="prelude-ty">Option</span>&lt;f32&gt;,
 }
 
 <span class="doccomment">/// Configuration of Verso instance.
@@ -475,6 +487,8 @@
         <span class="string">"no-maximized"</span>,
         <span class="string">"Launch the initial window without maximized"</span>,
     );
+
+    opts.optopt(<span class="string">""</span>, <span class="string">"zoom"</span>, <span class="string">"Initial window's zoom level"</span>, <span class="string">"1.5"</span>);
 
     <span class="kw">let </span>matches: getopts::Matches = opts.parse(<span class="kw-2">&amp;</span>args[<span class="number">1</span>..])<span class="question-mark">?</span>;
     <span class="kw">let </span>url = matches
@@ -565,6 +579,11 @@
         window_attributes = window_attributes.with_maximized(<span class="bool-val">true</span>);
     }
 
+    <span class="kw">let </span>zoom_level = matches.opt_get::&lt;f32&gt;(<span class="string">"zoom"</span>).unwrap_or_else(|e| {
+        <span class="macro">log::error!</span>(<span class="string">"Failed to parse zoom command line argument: {e}"</span>);
+        <span class="prelude-val">None
+    </span>});
+
     <span class="prelude-val">Ok</span>(CliArgs {
         url,
         resource_dir,
@@ -574,6 +593,7 @@
         devtools_port,
         profiler_settings,
         user_agent,
+        zoom_level,
     })
 }
 
