@@ -291,6 +291,41 @@
 <a href="#291" id="291">291</a>
 <a href="#292" id="292">292</a>
 <a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{BrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -306,6 +341,9 @@
 <span class="kw">use </span>webrender_api::units::DeviceIntRect;
 
 <span class="kw">use crate</span>::{compositor::IOCompositor, verso::send_to_constellation, window::Window};
+
+<span class="attr">#[cfg(linux)]
+</span><span class="kw">use </span><span class="kw">crate</span>::context_menu::ContextMenuClickResult;
 
 <span class="doccomment">/// A web view is an area to display web browsing context. It's what user will treat as a "web page".
 </span><span class="attr">#[derive(Debug, Clone)]
@@ -577,6 +615,38 @@
                     send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
                 }
             }
+            e =&gt; {
+                <span class="macro">log::trace!</span>(<span class="string">"Verso Panel isn't supporting this message yet: {e:?}"</span>)
+            }
+        }
+        <span class="bool-val">false
+    </span>}
+
+    <span class="doccomment">/// Handle servo messages with main panel. Return true it requests a new window.
+    </span><span class="attr">#[cfg(linux)]
+    </span><span class="kw">pub fn </span>handle_servo_messages_with_context_menu(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        webview_id: WebViewId,
+        message: EmbedderMsg,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        _clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
+        _compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
+    ) -&gt; bool {
+        <span class="macro">log::trace!</span>(<span class="string">"Verso Context Menu {webview_id:?} is handling Embedder message: {message:?}"</span>,);
+        <span class="kw">match </span>message {
+            EmbedderMsg::Prompt(definition, _origin) =&gt; <span class="kw">match </span>definition {
+                PromptDefinition::Input(msg, <span class="kw">_</span>, prompt_sender) =&gt; {
+                    <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
+                    <span class="kw">if </span>msg.starts_with(<span class="string">"CONTEXT_MENU:"</span>) {
+                        <span class="kw">let </span>json_str_msg = msg.strip_prefix(<span class="string">"CONTEXT_MENU:"</span>).unwrap();
+                        <span class="kw">let </span>result =
+                            serde_json::from_str::&lt;ContextMenuClickResult&gt;(json_str_msg).unwrap();
+
+                        <span class="self">self</span>.handle_context_menu_event(sender, result);
+                    }
+                }
+                <span class="kw">_ </span>=&gt; <span class="macro">log::trace!</span>(<span class="string">"Verso Panel isn't supporting this prompt yet"</span>),
+            },
             e =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Panel isn't supporting this message yet: {e:?}"</span>)
             }
