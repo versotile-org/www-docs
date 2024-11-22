@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ContextMenu","ContextMenuClickResult","Menu","MenuItem"]};
+window.SIDEBAR_ITEMS = {"struct":["ContextMenu","ContextMenuResult","Menu","MenuItem"]};
