@@ -2203,12 +2203,6 @@
 <a href="#2203" id="2203">2203</a>
 <a href="#2204" id="2204">2204</a>
 <a href="#2205" id="2205">2205</a>
-<a href="#2206" id="2206">2206</a>
-<a href="#2207" id="2207">2207</a>
-<a href="#2208" id="2208">2208</a>
-<a href="#2209" id="2209">2209</a>
-<a href="#2210" id="2210">2210</a>
-<a href="#2211" id="2211">2211</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -2236,19 +2230,13 @@
     ScrollState, TouchEventType, TouchId, WheelDelta, WindowSizeData, WindowSizeType,
 };
 <span class="kw">use </span>servo_geometry::{DeviceIndependentIntSize, DeviceIndependentPixel};
-<span class="kw">use </span>style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
+<span class="kw">use </span>style_traits::{CSSPixel, PinchZoomFactor};
 <span class="kw">use </span>webrender::{RenderApi, Transaction};
 <span class="kw">use </span>webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
-    LayoutVector2D, WorldPoint,
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D, WorldPoint
 };
 <span class="kw">use </span>webrender_api::{
-    BorderRadius, BoxShadowClipMode, BuiltDisplayList, ClipMode, ColorF, CommonItemProperties,
-    ComplexClipRegion, DirtyRect, DisplayListPayload, DocumentId, Epoch <span class="kw">as </span>WebRenderEpoch,
-    ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    HitTestFlags, PipelineId <span class="kw">as </span>WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
-    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
-    SpatialTreeItemKey, TransformStyle,
+    BorderRadius, BoxShadowClipMode, BuiltDisplayList, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, DirtyRect, DisplayListPayload, DocumentId, Epoch <span class="kw">as </span>WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey, HitTestFlags, PipelineId <span class="kw">as </span>WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle
 };
 <span class="kw">use </span>webrender_traits::display_list::{HitTestInfo, ScrollTree};
 <span class="kw">use </span>webrender_traits::{
