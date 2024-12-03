@@ -256,15 +256,15 @@
 /// matches [`NamedKey::Escape`] =&gt; [`Key::Escape`], [`NamedKey::F1`] =&gt; [`Key::F2`], [`NamedKey::F3`] =&gt; [`Key::F3`],...
 </span><span class="macro">macro_rules!</span> logical_to_winit_key {
     <span class="comment">// Matches an optional token
-    </span>(@opt <span class="macro-nonterminal">$</span><span class="kw">_</span>: <span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$optional</span>: ident) =&gt; {
-        Key::<span class="macro-nonterminal">$optional
+    </span>(@opt <span class="macro-nonterminal">$</span><span class="kw">_</span>: <span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$optional</span>: expr) =&gt; {
+        <span class="macro-nonterminal">$optional
     </span>};
 
     (@opt <span class="macro-nonterminal">$variant</span>: ident) =&gt; {
         Key::<span class="macro-nonterminal">$variant
     </span>};
 
-    (<span class="macro-nonterminal">$key</span>: ident $(,<span class="macro-nonterminal">$variant</span>: ident $(=&gt; <span class="macro-nonterminal">$matchto</span>: ident)<span class="question-mark">?</span>)+) =&gt; {
+    (<span class="macro-nonterminal">$key</span>: ident $(,<span class="macro-nonterminal">$variant</span>: ident $(=&gt; <span class="macro-nonterminal">$matchto</span>: expr)<span class="question-mark">?</span>)+) =&gt; {
         <span class="kw">match </span><span class="macro-nonterminal">$key </span>{
             LogicalKey::Character(c) =&gt; Key::Character(c.to_string()),
             $(LogicalKey::Named(NamedKey::<span class="macro-nonterminal">$variant</span>) =&gt; <span class="macro">logical_to_winit_key!</span>(@opt <span class="macro-nonterminal">$variant </span>$(, <span class="macro-nonterminal">$matchto</span>)<span class="question-mark">?</span>),)+
@@ -287,8 +287,7 @@
         </span>Pause, Insert, Home, Delete, End, PageDown, PageUp,
         ArrowLeft, ArrowUp, ArrowRight, ArrowDown,
         Backspace, Enter,
-        <span class="comment">// printable: Space
-        </span>Compose,
+        Compose,
         <span class="comment">// Caret not mapped
         </span>NumLock,
         <span class="comment">// printable: Numpad0 to Numpad9
@@ -327,7 +326,8 @@
         <span class="comment">// printable Yen,
         </span>Copy,
         Paste,
-        Cut
+        Cut,
+        Space =&gt; Key::Character(<span class="string">" "</span>.to_string())
     }
 }
 
