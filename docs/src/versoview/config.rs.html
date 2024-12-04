@@ -354,6 +354,8 @@
 <a href="#354" id="354">354</a>
 <a href="#355" id="355">355</a>
 <a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
 
 <span class="kw">use </span>embedder_traits::resources::{<span class="self">self</span>, Resource, ResourceReaderMethods};
@@ -670,7 +672,9 @@
         _done_chan: <span class="kw-2">&amp;mut </span>net::fetch::methods::DoneChannel,
         _context: <span class="kw-2">&amp;</span>net::fetch::methods::FetchContext,
     ) -&gt; std::pin::Pin&lt;Box&lt;<span class="kw">dyn </span>std::future::Future&lt;Output = Response&gt; + Send&gt;&gt; {
-        <span class="kw">let </span>path = <span class="self">self</span>.<span class="number">0</span>.join(request.current_url().domain().unwrap());
+        <span class="kw">let </span>current_url = request.current_url();
+        <span class="kw">let </span>path = current_url.path();
+        <span class="kw">let </span>path = <span class="self">self</span>.<span class="number">0</span>.join(path.strip_prefix(<span class="string">'/'</span>).unwrap_or(path));
 
         <span class="kw">let </span>response = <span class="kw">if let </span><span class="prelude-val">Ok</span>(file) = fs::read(path) {
             <span class="kw">let </span><span class="kw-2">mut </span>response = Response::new(

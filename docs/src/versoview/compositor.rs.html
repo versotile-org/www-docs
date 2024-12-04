@@ -2200,15 +2200,6 @@
 <a href="#2200" id="2200">2200</a>
 <a href="#2201" id="2201">2201</a>
 <a href="#2202" id="2202">2202</a>
-<a href="#2203" id="2203">2203</a>
-<a href="#2204" id="2204">2204</a>
-<a href="#2205" id="2205">2205</a>
-<a href="#2206" id="2206">2206</a>
-<a href="#2207" id="2207">2207</a>
-<a href="#2208" id="2208">2208</a>
-<a href="#2209" id="2209">2209</a>
-<a href="#2210" id="2210">2210</a>
-<a href="#2211" id="2211">2211</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -3127,19 +3118,6 @@
             .expect(<span class="string">"Insert then get failed!"</span>)
     }
 
-    <span class="kw">fn </span>pipeline(<span class="kw-2">&amp;</span><span class="self">self</span>, pipeline_id: PipelineId) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>CompositionPipeline&gt; {
-        <span class="kw">match </span><span class="self">self</span>.pipeline_details.get(<span class="kw-2">&amp;</span>pipeline_id) {
-            <span class="prelude-val">Some</span>(details) =&gt; details.pipeline.as_ref(),
-            <span class="prelude-val">None </span>=&gt; {
-                <span class="macro">warn!</span>(
-                    <span class="string">"Compositor layer has an unknown pipeline ({:?})."</span>,
-                    pipeline_id
-                );
-                <span class="prelude-val">None
-            </span>}
-        }
-    }
-
     <span class="doccomment">/// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
     /// for each visible top-level browsing context, applying a transformation on the root for
     /// pinch zoom, page zoom, and HiDPI scaling.
@@ -3456,6 +3434,10 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(w) = <span class="kw-2">&amp;mut </span>window.webview {
             w.set_size(content_size);
             <span class="self">self</span>.on_resize_webview_event(w.webview_id, w.rect);
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(prompt) = <span class="kw-2">&amp;mut </span>window.prompt {
+            prompt.resize(content_size);
+            <span class="self">self</span>.on_resize_webview_event(prompt.webview().webview_id, rect);
         }
 
         <span class="self">self</span>.send_root_pipeline_display_list(window);
