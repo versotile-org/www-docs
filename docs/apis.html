@@ -61,6 +61,8 @@
 
 <li><a href="#BroadcastChannel">BroadcastChannel</a></li>
 
+<li><a href="#ByteLengthQueuingStrategy">ByteLengthQueuingStrategy</a></li>
+
 <li><a href="#CDATASection">CDATASection</a></li>
 
 <li><a href="#CSS">CSS</a></li>
@@ -115,6 +117,8 @@
 
 <li><a href="#ConstantSourceNode">ConstantSourceNode</a></li>
 
+<li><a href="#CountQueuingStrategy">CountQueuingStrategy</a></li>
+
 <li><a href="#Crypto">Crypto</a></li>
 
 <li><a href="#CustomEvent">CustomEvent</a></li>
@@ -154,6 +158,10 @@
 <li><a href="#DataTransferItemList">DataTransferItemList</a></li>
 
 <li><a href="#DedicatedWorkerGlobalScope">DedicatedWorkerGlobalScope</a></li>
+
+<li><a href="#DefaultTeeReadRequest">DefaultTeeReadRequest</a></li>
+
+<li><a href="#DefaultTeeUnderlyingSource">DefaultTeeUnderlyingSource</a></li>
 
 <li><a href="#DissimilarOriginLocation">DissimilarOriginLocation</a></li>
 
@@ -491,7 +499,17 @@
 
 <li><a href="#Range">Range</a></li>
 
+<li><a href="#ReadableByteStreamController">ReadableByteStreamController</a></li>
+
 <li><a href="#ReadableStream">ReadableStream</a></li>
+
+<li><a href="#ReadableStreamBYOBReader">ReadableStreamBYOBReader</a></li>
+
+<li><a href="#ReadableStreamBYOBRequest">ReadableStreamBYOBRequest</a></li>
+
+<li><a href="#ReadableStreamDefaultController">ReadableStreamDefaultController</a></li>
+
+<li><a href="#ReadableStreamDefaultReader">ReadableStreamDefaultReader</a></li>
 
 <li><a href="#Request">Request</a></li>
 
@@ -562,6 +580,8 @@
 <li><a href="#URLSearchParams">URLSearchParams</a></li>
 
 <li><a href="#URLSearchParamsIterator">URLSearchParamsIterator</a></li>
+
+<li><a href="#UnderlyingSourceContainer">UnderlyingSourceContainer</a></li>
 
 <li><a href="#ValidityState">ValidityState</a></li>
 
@@ -1295,6 +1315,20 @@
 
 <tr>
   <td>onmessageerror</td>
+</tr>
+
+</table>
+
+<table id="ByteLengthQueuingStrategy">
+<tr>
+<th>ByteLengthQueuingStrategy</th>
+</tr>
+<tr>
+  <td>highWaterMark</td>
+</tr>
+
+<tr>
+  <td>size</td>
 </tr>
 
 </table>
@@ -3580,6 +3614,20 @@
 
 </table>
 
+<table id="CountQueuingStrategy">
+<tr>
+<th>CountQueuingStrategy</th>
+</tr>
+<tr>
+  <td>highWaterMark</td>
+</tr>
+
+<tr>
+  <td>size</td>
+</tr>
+
+</table>
+
 <table id="Crypto">
 <tr>
 <th>Crypto</th>
@@ -4441,6 +4489,20 @@
 
 <tr>
   <td>close()</td>
+</tr>
+
+</table>
+
+<table id="DefaultTeeReadRequest">
+<tr>
+<th>DefaultTeeReadRequest</th>
+</tr>
+
+</table>
+
+<table id="DefaultTeeUnderlyingSource">
+<tr>
+<th>DefaultTeeUnderlyingSource</th>
 </tr>
 
 </table>
@@ -6261,6 +6323,10 @@
 </tr>
 
 <tr>
+  <td>referrerPolicy</td>
+</tr>
+
+<tr>
   <td>coords</td>
 </tr>
 
@@ -6336,6 +6402,10 @@
 
 <tr>
   <td>relList</td>
+</tr>
+
+<tr>
+  <td>referrerPolicy</td>
 </tr>
 
 </table>
@@ -10756,9 +10826,134 @@
 
 </table>
 
+<table id="ReadableByteStreamController">
+<tr>
+<th>ReadableByteStreamController</th>
+</tr>
+<tr>
+  <td>byobRequest</td>
+</tr>
+
+<tr>
+  <td>desiredSize</td>
+</tr>
+
+<tr>
+  <td>close()</td>
+</tr>
+
+<tr>
+  <td>enqueue()</td>
+</tr>
+
+<tr>
+  <td>error()</td>
+</tr>
+
+</table>
+
 <table id="ReadableStream">
 <tr>
 <th>ReadableStream</th>
+</tr>
+<tr>
+  <td>locked</td>
+</tr>
+
+<tr>
+  <td>cancel()</td>
+</tr>
+
+<tr>
+  <td>getReader()</td>
+</tr>
+
+<tr>
+  <td>tee()</td>
+</tr>
+
+</table>
+
+<table id="ReadableStreamBYOBReader">
+<tr>
+<th>ReadableStreamBYOBReader</th>
+</tr>
+<tr>
+  <td>read()</td>
+</tr>
+
+<tr>
+  <td>releaseLock()</td>
+</tr>
+
+<tr>
+  <td>closed</td>
+</tr>
+
+<tr>
+  <td>cancel()</td>
+</tr>
+
+</table>
+
+<table id="ReadableStreamBYOBRequest">
+<tr>
+<th>ReadableStreamBYOBRequest</th>
+</tr>
+<tr>
+  <td>view</td>
+</tr>
+
+<tr>
+  <td>respond()</td>
+</tr>
+
+<tr>
+  <td>respondWithNewView()</td>
+</tr>
+
+</table>
+
+<table id="ReadableStreamDefaultController">
+<tr>
+<th>ReadableStreamDefaultController</th>
+</tr>
+<tr>
+  <td>desiredSize</td>
+</tr>
+
+<tr>
+  <td>close()</td>
+</tr>
+
+<tr>
+  <td>enqueue()</td>
+</tr>
+
+<tr>
+  <td>error()</td>
+</tr>
+
+</table>
+
+<table id="ReadableStreamDefaultReader">
+<tr>
+<th>ReadableStreamDefaultReader</th>
+</tr>
+<tr>
+  <td>read()</td>
+</tr>
+
+<tr>
+  <td>releaseLock()</td>
+</tr>
+
+<tr>
+  <td>closed</td>
+</tr>
+
+<tr>
+  <td>cancel()</td>
 </tr>
 
 </table>
@@ -11839,6 +12034,13 @@
 </tr>
 <tr>
   <td>next()</td>
+</tr>
+
+</table>
+
+<table id="UnderlyingSourceContainer">
+<tr>
+<th>UnderlyingSourceContainer</th>
 </tr>
 
 </table>
@@ -14962,7 +15164,11 @@
 <th>console</th>
 </tr>
 <tr>
-  <td>log()</td>
+  <td>assert()</td>
+</tr>
+
+<tr>
+  <td>clear()</td>
 </tr>
 
 <tr>
@@ -14970,23 +15176,23 @@
 </tr>
 
 <tr>
-  <td>info()</td>
-</tr>
-
-<tr>
-  <td>warn()</td>
-</tr>
-
-<tr>
   <td>error()</td>
 </tr>
 
 <tr>
-  <td>assert()</td>
+  <td>info()</td>
 </tr>
 
 <tr>
-  <td>clear()</td>
+  <td>log()</td>
+</tr>
+
+<tr>
+  <td>trace()</td>
+</tr>
+
+<tr>
+  <td>warn()</td>
 </tr>
 
 <tr>
