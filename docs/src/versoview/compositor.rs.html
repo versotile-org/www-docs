@@ -2200,6 +2200,8 @@
 <a href="#2200" id="2200">2200</a>
 <a href="#2201" id="2201">2201</a>
 <a href="#2202" id="2202">2202</a>
+<a href="#2203" id="2203">2203</a>
+<a href="#2204" id="2204">2204</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
@@ -3430,14 +3432,16 @@
         }
 
         <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
-        <span class="kw">let </span>content_size = window.get_content_size(rect);
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(w) = <span class="kw-2">&amp;mut </span>window.webview {
-            w.set_size(content_size);
-            <span class="self">self</span>.on_resize_webview_event(w.webview_id, w.rect);
-        }
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(prompt) = <span class="kw-2">&amp;mut </span>window.prompt {
-            prompt.resize(content_size);
-            <span class="self">self</span>.on_resize_webview_event(prompt.webview().webview_id, rect);
+        <span class="kw">let </span>show_tab_bar = window.tab_manager.count() &gt; <span class="number">1</span>;
+        <span class="kw">let </span>content_size = window.get_content_size(rect, show_tab_bar);
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = window.tab_manager.current_tab_id() {
+            <span class="kw">let </span>(tab_id, prompt_id) = window.tab_manager.set_size(tab_id, content_size);
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = tab_id {
+                <span class="self">self</span>.on_resize_webview_event(tab_id, content_size);
+            }
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(prompt_id) = prompt_id {
+                <span class="self">self</span>.on_resize_webview_event(prompt_id, content_size);
+            }
         }
 
         <span class="self">self</span>.send_root_pipeline_display_list(window);

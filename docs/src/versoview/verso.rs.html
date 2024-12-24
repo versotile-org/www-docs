@@ -727,6 +727,8 @@
 <a href="#727" id="727">727</a>
 <a href="#728" id="728">728</a>
 <a href="#729" id="729">729</a>
+<a href="#730" id="730">730</a>
+<a href="#731" id="731">731</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
@@ -1117,7 +1119,7 @@
         <span class="kw">if </span>with_panel {
             window.create_panel(<span class="kw-2">&amp;</span>constellation_sender, initial_url);
         } <span class="kw">else if let </span><span class="prelude-val">Some</span>(initial_url) = initial_url {
-            window.create_webview(<span class="kw-2">&amp;</span>constellation_sender, initial_url.into());
+            window.create_tab(<span class="kw-2">&amp;</span>constellation_sender, initial_url.into());
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>windows = HashMap::new();
@@ -1316,9 +1318,11 @@
     </span><span class="kw">pub fn </span>handle_incoming_webview_message(<span class="kw-2">&amp;</span><span class="self">self</span>, message: ControllerMessage) {
         <span class="kw">match </span>message {
             ControllerMessage::NavigateTo(to_url) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(webview_id) = <span class="self">self</span>.windows.values().next().and_then(|(window, <span class="kw">_</span>)| {
-                    window.webview.as_ref().map(|webview| webview.webview_id)
-                }) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(webview_id) =
+                    <span class="self">self</span>.windows.values().next().and_then(|(window, <span class="kw">_</span>)| {
+                        window.tab_manager.current_tab().map(|tab| tab.id())
+                    })
+                {
                     send_to_constellation(
                         <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
                         ConstellationMsg::LoadUrl(webview_id, ServoUrl::from_url(to_url)),

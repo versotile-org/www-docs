@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TabManagerErr"],"struct":["Tab","TabActivateRequest","TabCloseRequest","TabCreateResponse","TabHistory","TabManager"]};

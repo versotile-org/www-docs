@@ -227,6 +227,10 @@
 <a href="#227" id="227">227</a>
 <a href="#228" id="228">228</a>
 <a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -308,6 +312,10 @@
     </span><span class="kw">pub fn </span>webview(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>WebView {
         <span class="kw-2">&amp;</span><span class="self">self</span>.webview
     }
+    <span class="doccomment">/// Get prompt webview ID
+    </span><span class="kw">pub fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WebViewId {
+        <span class="self">self</span>.webview.webview_id
+    }
 
     <span class="doccomment">/// Get prompt sender. Send user interaction result back to caller.
     </span><span class="kw">pub fn </span>sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;PromptSender&gt; {
@@ -320,9 +328,9 @@
     /// ```rust
     /// let rect = window.webview.as_ref().unwrap().rect;
     /// let content_size = window.get_content_size(rect);
-    /// prompt.resize(content_size);
+    /// prompt.set_size(content_size);
     /// ```
-    </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceIntRect) {
+    </span><span class="kw">pub fn </span>set_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceIntRect) {
         <span class="self">self</span>.webview.set_size(rect);
     }
 
