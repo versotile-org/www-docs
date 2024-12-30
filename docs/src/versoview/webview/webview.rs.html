@@ -570,6 +570,9 @@
 <a href="#570" id="570">570</a>
 <a href="#571" id="571">571</a>
 <a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{BrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -775,6 +778,9 @@
                         }
                         PromptDefinition::Input(message, default_value, prompt_sender) =&gt; {
                             prompt.input(sender, rect, message, <span class="prelude-val">Some</span>(default_value), prompt_sender);
+                        }
+                        PromptDefinition::Credentials(<span class="kw">_</span>) =&gt; {
+                            <span class="macro">todo!</span>();
                         }
                     }
 
