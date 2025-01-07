@@ -573,13 +573,40 @@
 <a href="#572" id="572">572</a>
 <a href="#573" id="573">573</a>
 <a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{BrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
-    CompositorEventVariant, EmbedderMsg, PermissionPrompt, PermissionRequest, PromptDefinition,
-    PromptResult,
+    CompositorEventVariant, EmbedderMsg, PermissionPrompt, PermissionRequest,
+    PromptCredentialsInput, PromptDefinition, PromptResult,
 };
 <span class="kw">use </span>ipc_channel::ipc;
 <span class="kw">use </span>script_traits::{
@@ -594,7 +621,7 @@
     compositor::IOCompositor,
     tab::{TabActivateRequest, TabCloseRequest, TabCreateResponse},
     verso::send_to_constellation,
-    webview::prompt::{PromptDialog, PromptInputResult, PromptSender},
+    webview::prompt::{HttpBasicAuthInputResult, PromptDialog, PromptInputResult, PromptSender},
     window::Window,
 };
 
@@ -648,7 +675,7 @@
         message: EmbedderMsg,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
         clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
-        _compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
+        compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
@@ -731,6 +758,8 @@
             }
             EmbedderMsg::HistoryChanged(list, index) =&gt; {
                 <span class="self">self</span>.close_prompt_dialog(webview_id);
+                compositor.send_root_pipeline_display_list(<span class="self">self</span>);
+
                 <span class="self">self</span>.tab_manager
                     .set_history(webview_id, list.clone(), index);
                 <span class="kw">let </span>url = list.get(index).unwrap();
@@ -779,8 +808,8 @@
                         PromptDefinition::Input(message, default_value, prompt_sender) =&gt; {
                             prompt.input(sender, rect, message, <span class="prelude-val">Some</span>(default_value), prompt_sender);
                         }
-                        PromptDefinition::Credentials(<span class="kw">_</span>) =&gt; {
-                            <span class="macro">todo!</span>();
+                        PromptDefinition::Credentials(prompt_sender) =&gt; {
+                            prompt.http_basic_auth(sender, rect, prompt_sender);
                         }
                     }
 
@@ -1132,6 +1161,31 @@
                                 }
                             };
                             <span class="kw">let _ </span>= sender.send(result);
+                        }
+                        PromptSender::HttpBasicAuthSender(sender) =&gt; {
+                            <span class="kw">let </span>canceled_auth = PromptCredentialsInput {
+                                username: <span class="prelude-val">None</span>,
+                                password: <span class="prelude-val">None</span>,
+                            };
+
+                            <span class="kw">if let </span><span class="prelude-val">Ok</span>(HttpBasicAuthInputResult { action, auth }) =
+                                serde_json::from_str::&lt;HttpBasicAuthInputResult&gt;(<span class="kw-2">&amp;</span>msg)
+                            {
+                                <span class="kw">match </span>action.as_str() {
+                                    <span class="string">"signin" </span>=&gt; {
+                                        <span class="kw">let _ </span>= sender.send(auth);
+                                    }
+                                    <span class="string">"cancel" </span>=&gt; {
+                                        <span class="kw">let _ </span>= sender.send(canceled_auth);
+                                    }
+                                    <span class="kw">_ </span>=&gt; {
+                                        <span class="kw">let _ </span>= sender.send(canceled_auth);
+                                    }
+                                };
+                            } <span class="kw">else </span>{
+                                <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
+                                <span class="kw">let _ </span>= sender.send(canceled_auth);
+                            }
                         }
                     }
 

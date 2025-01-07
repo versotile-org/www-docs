@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PromptSender"],"struct":["PromptDialog","PromptInputResult"]};
+window.SIDEBAR_ITEMS = {"enum":["PromptSender"],"struct":["HttpBasicAuthInputResult","PromptDialog","PromptInputResult"]};

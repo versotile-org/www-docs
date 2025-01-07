@@ -1026,12 +1026,22 @@
 <a href="#1025" id="1025">1025</a>
 <a href="#1026" id="1026">1026</a>
 <a href="#1027" id="1027">1027</a>
-<a href="#1028" id="1028">1028</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
+<a href="#1028" id="1028">1028</a>
+<a href="#1029" id="1029">1029</a>
+<a href="#1030" id="1030">1030</a>
+<a href="#1031" id="1031">1031</a>
+<a href="#1032" id="1032">1032</a>
+<a href="#1033" id="1033">1033</a>
+<a href="#1034" id="1034">1034</a>
+<a href="#1035" id="1035">1035</a>
+<a href="#1036" id="1036">1036</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
-<span class="kw">use </span>embedder_traits::{Cursor, EmbedderMsg, PermissionRequest, PromptResult};
+<span class="kw">use </span>embedder_traits::{
+    Cursor, EmbedderMsg, PermissionRequest, PromptCredentialsInput, PromptResult,
+};
 <span class="kw">use </span>euclid::{Point2D, Size2D};
 <span class="kw">use </span>glutin::{
     config::{ConfigTemplateBuilder, GlConfig},
@@ -1931,6 +1941,12 @@
                 }
                 PromptSender::PermissionSender(sender) =&gt; {
                     <span class="kw">let _ </span>= sender.send(PermissionRequest::Denied);
+                }
+                PromptSender::HttpBasicAuthSender(sender) =&gt; {
+                    <span class="kw">let _ </span>= sender.send(PromptCredentialsInput {
+                        username: <span class="prelude-val">None</span>,
+                        password: <span class="prelude-val">None</span>,
+                    });
                 }
             }
         }
