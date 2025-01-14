@@ -727,9 +727,7 @@
 <a href="#726" id="726">726</a>
 <a href="#727" id="727">727</a>
 <a href="#728" id="728">728</a>
-<a href="#729" id="729">729</a>
-<a href="#730" id="730">730</a>
-<a href="#731" id="731">731</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#729" id="729">729</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -1070,20 +1068,18 @@
         };
 
         <span class="comment">// Create constellation thread
-        </span><span class="kw">let </span>constellation_sender = Constellation::&lt;
-            script::script_thread::ScriptThread,
-            script::serviceworker_manager::ServiceWorkerManager,
-        &gt;::start(
-            initial_state,
-            layout_factory,
-            window_size,
-            opts.random_pipeline_closure_probability,
-            opts.random_pipeline_closure_seed,
-            opts.hard_fail,
-            !opts.debug.disable_canvas_antialiasing,
-            canvas_create_sender,
-            canvas_ipc_sender,
-        );
+        </span><span class="kw">let </span>constellation_sender =
+            Constellation::&lt;script::ScriptThread, script::ServiceWorkerManager&gt;::start(
+                initial_state,
+                layout_factory,
+                window_size,
+                opts.random_pipeline_closure_probability,
+                opts.random_pipeline_closure_seed,
+                opts.hard_fail,
+                !opts.debug.disable_canvas_antialiasing,
+                canvas_create_sender,
+                canvas_ipc_sender,
+            );
 
         <span class="comment">// Create webdriver thread
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(port) = opts.webdriver_port {
