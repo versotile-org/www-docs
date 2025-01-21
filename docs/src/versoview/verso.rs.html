@@ -725,9 +725,7 @@
 <a href="#724" id="724">724</a>
 <a href="#725" id="725">725</a>
 <a href="#726" id="726">726</a>
-<a href="#727" id="727">727</a>
-<a href="#728" id="728">728</a>
-<a href="#729" id="729">729</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#727" id="727">727</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -797,7 +795,7 @@
     /// Following threads will be created while initializing Verso based on configurations:
     /// - Time Profiler: Enabled
     /// - Memory Profiler: Enabled
-    /// - DevTools: `Opts::devtools_server_enabled`
+    /// - DevTools: `pref!(devtools_server_enabled)`
     /// - Webrender: Enabled
     /// - WebGL: Disabled
     /// - WebXR: Disabled
@@ -912,9 +910,9 @@
         };
 
         <span class="comment">// Create dev tools thread
-        </span><span class="kw">let </span>devtools_sender = <span class="kw">if </span>opts.devtools_server_enabled {
+        </span><span class="kw">let </span>devtools_sender = <span class="kw">if </span><span class="macro">pref!</span>(devtools_server_enabled) {
             <span class="prelude-val">Some</span>(devtools::start_server(
-                opts.devtools_port,
+                <span class="macro">pref!</span>(devtools_server_port) <span class="kw">as </span>u16,
                 embedder_sender.clone(),
             ))
         } <span class="kw">else </span>{
@@ -938,16 +936,15 @@
                     // See: https://github.com/servo/servo/issues/31726
                     </span>use_optimized_shaders: <span class="bool-val">true</span>,
                     resource_override_path: opts.shaders_dir.clone(),
-                    enable_aa: !opts.debug.disable_text_antialiasing,
                     debug_flags,
-                    precache_flags: <span class="kw">if </span>opts.debug.precache_shaders {
+                    precache_flags: <span class="kw">if </span><span class="macro">pref!</span>(gfx_precache_shaders) {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } <span class="kw">else </span>{
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: <span class="macro">pref!</span>(gfx.subpixel_text_antialiasing.enabled)
-                        &amp;&amp; !opts.debug.disable_subpixel_text_antialiasing,
-                    allow_texture_swizzling: <span class="macro">pref!</span>(gfx.texture_swizzling.enabled),
+                    enable_aa: <span class="macro">pref!</span>(gfx_text_antialiasing_enabled),
+                    enable_subpixel_aa: <span class="macro">pref!</span>(gfx_subpixel_text_antialiasing_enabled),
+                    allow_texture_swizzling: <span class="macro">pref!</span>(gfx_texture_swizzling_enabled),
                     clear_color,
                     ..Default::default()
                 },
@@ -1076,7 +1073,6 @@
                 opts.random_pipeline_closure_probability,
                 opts.random_pipeline_closure_seed,
                 opts.hard_fail,
-                !opts.debug.disable_canvas_antialiasing,
                 canvas_create_sender,
                 canvas_ipc_sender,
             );
