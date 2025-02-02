@@ -1034,7 +1034,11 @@
 <a href="#1033" id="1033">1033</a>
 <a href="#1034" id="1034">1034</a>
 <a href="#1035" id="1035">1035</a>
-<a href="#1036" id="1036">1036</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
+<a href="#1036" id="1036">1036</a>
+<a href="#1037" id="1037">1037</a>
+<a href="#1038" id="1038">1038</a>
+<a href="#1039" id="1039">1039</a>
+<a href="#1040" id="1040">1040</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -1274,20 +1278,22 @@
         <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(webview_id, rect);
         webview.set_size(content_size);
 
-        <span class="kw">let </span>(tx, rx) = ipc::channel::&lt;WebDriverJSResult&gt;().unwrap();
-        <span class="kw">let </span>cmd: String = <span class="macro">format!</span>(
-            <span class="string">"window.navbar.addTab('{}', {})"</span>,
-            serde_json::to_string(<span class="kw-2">&amp;</span>webview.webview_id).unwrap(),
-            <span class="bool-val">true</span>,
-        );
-        send_to_constellation(
-            constellation_sender,
-            ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
-                <span class="self">self</span>.panel.as_ref().unwrap().webview.webview_id.into(),
-                WebDriverScriptCommand::ExecuteScript(cmd, tx),
-            )),
-        );
-        <span class="kw">let _ </span>= rx.recv();
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
+            <span class="kw">let </span>(tx, rx) = ipc::channel::&lt;WebDriverJSResult&gt;().unwrap();
+            <span class="kw">let </span>cmd: String = <span class="macro">format!</span>(
+                <span class="string">"window.navbar.addTab('{}', {})"</span>,
+                serde_json::to_string(<span class="kw-2">&amp;</span>webview.webview_id).unwrap(),
+                <span class="bool-val">true</span>,
+            );
+            send_to_constellation(
+                constellation_sender,
+                ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
+                    panel.webview.webview_id.into(),
+                    WebDriverScriptCommand::ExecuteScript(cmd, tx),
+                )),
+            );
+            <span class="kw">let _ </span>= rx.recv();
+        }
 
         <span class="self">self</span>.tab_manager.append_tab(webview, <span class="bool-val">true</span>);
 
@@ -1303,26 +1309,28 @@
         <span class="kw">let </span>sender = compositor.constellation_chan.clone();
         <span class="comment">// if there are more than 2 tabs, we need to ask for the new active tab after tab is closed
         </span><span class="kw">if </span><span class="self">self</span>.tab_manager.count() &gt; <span class="number">1 </span>{
-            <span class="kw">let </span>(tx, rx) = ipc::channel::&lt;WebDriverJSResult&gt;().unwrap();
-            <span class="kw">let </span>cmd: String = <span class="macro">format!</span>(
-                <span class="string">"window.navbar.closeTab('{}')"</span>,
-                serde_json::to_string(<span class="kw-2">&amp;</span>tab_id).unwrap()
-            );
-            send_to_constellation(
-                <span class="kw-2">&amp;</span>sender,
-                ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
-                    <span class="self">self</span>.panel.as_ref().unwrap().webview.webview_id.into(),
-                    WebDriverScriptCommand::ExecuteScript(cmd, tx),
-                )),
-            );
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
+                <span class="kw">let </span>(tx, rx) = ipc::channel::&lt;WebDriverJSResult&gt;().unwrap();
+                <span class="kw">let </span>cmd: String = <span class="macro">format!</span>(
+                    <span class="string">"window.navbar.closeTab('{}')"</span>,
+                    serde_json::to_string(<span class="kw-2">&amp;</span>tab_id).unwrap()
+                );
+                send_to_constellation(
+                    <span class="kw-2">&amp;</span>sender,
+                    ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
+                        panel.webview.webview_id.into(),
+                        WebDriverScriptCommand::ExecuteScript(cmd, tx),
+                    )),
+                );
 
-            <span class="kw">let </span>active_tab_id = rx.recv().unwrap().unwrap();
-            <span class="kw">match </span>active_tab_id {
-                WebDriverJSValue::String(resp) =&gt; {
-                    <span class="kw">let </span>active_id: WebViewId = serde_json::from_str(<span class="kw-2">&amp;</span>resp).unwrap();
-                    <span class="self">self</span>.activate_tab(compositor, active_id, <span class="self">self</span>.tab_manager.count() &gt; <span class="number">2</span>);
+                <span class="kw">let </span>active_tab_id = rx.recv().unwrap().unwrap();
+                <span class="kw">match </span>active_tab_id {
+                    WebDriverJSValue::String(resp) =&gt; {
+                        <span class="kw">let </span>active_id: WebViewId = serde_json::from_str(<span class="kw-2">&amp;</span>resp).unwrap();
+                        <span class="self">self</span>.activate_tab(compositor, active_id, <span class="self">self</span>.tab_manager.count() &gt; <span class="number">2</span>);
+                    }
+                    <span class="kw">_ </span>=&gt; {}
                 }
-                <span class="kw">_ </span>=&gt; {}
             }
         }
         send_to_constellation(<span class="kw-2">&amp;</span>sender, ConstellationMsg::CloseWebView(tab_id));
