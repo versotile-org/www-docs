@@ -394,7 +394,7 @@
     ResourceFetchTiming,
 };
 <span class="kw">use </span>servo_config::{
-    opts::{default_opts, set_options, Opts, OutputOptions},
+    opts::{set_options, Opts, OutputOptions},
     prefs::Preferences,
 };
 <span class="kw">use </span>winit::{dpi, window::WindowAttributes};
@@ -537,7 +537,7 @@
                 <span class="prelude-val">None
             </span>}
         });
-    <span class="kw">let </span>resource_dir = matches.opt_str(<span class="string">"resources"</span>).map(|r| PathBuf::from(r));
+    <span class="kw">let </span>resource_dir = matches.opt_str(<span class="string">"resources"</span>).map(PathBuf::from);
     <span class="kw">let </span>ipc_channel = matches.opt_str(<span class="string">"ipc-channel"</span>);
     <span class="kw">let </span>no_panel = matches.opt_present(<span class="string">"no-panel"</span>);
     <span class="kw">let </span>devtools_port = matches.opt_get::&lt;u16&gt;(<span class="string">"devtools-port"</span>).unwrap_or_else(|e| {
@@ -637,7 +637,7 @@
 <span class="kw">impl </span>Config {
     <span class="doccomment">/// Create a new configuration for creating Verso instance.
     </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span><span class="kw-2">mut </span>opts = default_opts();
+        <span class="kw">let </span><span class="kw-2">mut </span>opts = Opts::default();
         <span class="kw">let </span>args = parse_cli_args().unwrap_or_default();
 
         <span class="kw">let </span>(devtools_server_enabled, devtools_port) =

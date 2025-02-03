@@ -600,18 +600,38 @@
 <a href="#599" id="599">599</a>
 <a href="#600" id="600">600</a>
 <a href="#601" id="601">601</a>
-<a href="#602" id="602">602</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::{BrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
     CompositorEventVariant, EmbedderMsg, PermissionPrompt, PermissionRequest,
-    PromptCredentialsInput, PromptDefinition, PromptResult,
+    PromptCredentialsInput, PromptDefinition, PromptResult, TraversalDirection,
 };
 <span class="kw">use </span>ipc_channel::ipc;
 <span class="kw">use </span>script_traits::{
     webdriver_msg::{WebDriverJSResult, WebDriverScriptCommand},
-    TraversalDirection, WebDriverCommandMsg,
+    WebDriverCommandMsg,
 };
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>url::Url;
@@ -679,14 +699,18 @@
     ) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::LoadStart
-            | EmbedderMsg::HeadParsed
+            EmbedderMsg::LoadStart(<span class="kw">_</span>)
+            | EmbedderMsg::HeadParsed(<span class="kw">_</span>)
             | EmbedderMsg::WebViewOpened(<span class="kw">_</span>)
             | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
                 <span class="comment">// Most WebView messages are ignored because it's done by compositor.
                 </span><span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} ignores this message: {message:?}"</span>)
             }
+            EmbedderMsg::WebViewBlurred =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
+            }
             EmbedderMsg::WebViewFocused(w) =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
                 <span class="self">self</span>.close_context_menu(sender);
                 <span class="macro">log::debug!</span>(
                     <span class="string">"Verso Window {:?}'s webview {} has loaded completely."</span>,
@@ -694,11 +718,11 @@
                     w
                 );
             }
-            EmbedderMsg::LoadComplete =&gt; {
+            EmbedderMsg::LoadComplete(_webview_id) =&gt; {
                 <span class="self">self</span>.window.request_redraw();
                 send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
             }
-            EmbedderMsg::ChangePageTitle(title) =&gt; {
+            EmbedderMsg::ChangePageTitle(_webview_id, title) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="self">self</span>.panel.as_ref() {
                     <span class="kw">let </span>title = <span class="kw">if let </span><span class="prelude-val">Some</span>(title) = title {
                         <span class="macro">format!</span>(<span class="string">"'{title}'"</span>)
@@ -723,11 +747,11 @@
                     <span class="kw">let _ </span>= rx.recv();
                 }
             }
-            EmbedderMsg::AllowNavigationRequest(id, _url) =&gt; {
+            EmbedderMsg::AllowNavigationRequest(_webview_id, id, _url) =&gt; {
                 <span class="comment">// TODO should provide a API for users to check url
                 </span>send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">true</span>));
             }
-            EmbedderMsg::GetClipboardContents(sender) =&gt; {
+            EmbedderMsg::GetClipboardContents(_webview_id, sender) =&gt; {
                 <span class="kw">let </span>contents = clipboard
                     .map(|c| {
                         c.get_text().unwrap_or_else(|e| {
@@ -746,7 +770,7 @@
                     );
                 }
             }
-            EmbedderMsg::SetClipboardContents(text) =&gt; {
+            EmbedderMsg::SetClipboardContents(_webview_id, text) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(c) = clipboard {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = c.set_text(text) {
                         <span class="macro">log::warn!</span>(
@@ -756,7 +780,7 @@
                     }
                 }
             }
-            EmbedderMsg::HistoryChanged(list, index) =&gt; {
+            EmbedderMsg::HistoryChanged(_webview_id, list, index) =&gt; {
                 <span class="self">self</span>.close_prompt_dialog(webview_id);
                 compositor.send_root_pipeline_display_list(<span class="self">self</span>);
 
@@ -778,15 +802,15 @@
                     <span class="kw">let _ </span>= rx.recv();
                 }
             }
-            EmbedderMsg::EventDelivered(event) =&gt; {
+            EmbedderMsg::EventDelivered(_webview_id, event) =&gt; {
                 <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
                     send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
                 }
             }
-            EmbedderMsg::ShowContextMenu(_sender, _title, _options) =&gt; {
+            EmbedderMsg::ShowContextMenu(_webview_id, _sender, _title, _options) =&gt; {
                 <span class="comment">// TODO: Implement context menu
             </span>}
-            EmbedderMsg::Prompt(prompt_type, _origin) =&gt; {
+            EmbedderMsg::Prompt(_webview_id, prompt_type, _origin) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.tab(webview_id) {
                     <span class="kw">let </span><span class="kw-2">mut </span>prompt = PromptDialog::new();
                     <span class="kw">let </span>rect = tab.webview().rect;
@@ -820,7 +844,7 @@
                     <span class="macro">log::error!</span>(<span class="string">"Failed to get WebView {webview_id:?} in this window."</span>);
                 }
             }
-            EmbedderMsg::PromptPermission(prompt, prompt_sender) =&gt; {
+            EmbedderMsg::PromptPermission(_webview_id, prompt, prompt_sender) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.tab(webview_id) {
                     <span class="kw">let </span>message = <span class="kw">match </span>prompt {
                         PermissionPrompt::Request(permission_name) =&gt; {
@@ -866,35 +890,39 @@
     ) -&gt; bool {
         <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {panel_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::LoadStart
-            | EmbedderMsg::HeadParsed
+            EmbedderMsg::LoadStart(<span class="kw">_</span>)
+            | EmbedderMsg::HeadParsed(<span class="kw">_</span>)
             | EmbedderMsg::WebViewOpened(<span class="kw">_</span>)
             | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
                 <span class="comment">// Most WebView messages are ignored because it's done by compositor.
                 </span><span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
             }
-            EmbedderMsg::WebViewFocused(w) =&gt; {
+            EmbedderMsg::WebViewBlurred =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
+            }
+            EmbedderMsg::WebViewFocused(webview_id) =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
                 <span class="self">self</span>.close_context_menu(sender);
                 <span class="macro">log::debug!</span>(
                     <span class="string">"Verso Window {:?}'s panel {} has loaded completely."</span>,
                     <span class="self">self</span>.id(),
-                    w
+                    webview_id
                 );
             }
-            EmbedderMsg::LoadComplete =&gt; {
+            EmbedderMsg::LoadComplete(_webview_id) =&gt; {
                 <span class="self">self</span>.window.request_redraw();
                 send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
 
                 <span class="self">self</span>.create_tab(sender, <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone());
             }
-            EmbedderMsg::AllowNavigationRequest(id, _url) =&gt; {
+            EmbedderMsg::AllowNavigationRequest(_webview_id, id, _url) =&gt; {
                 <span class="comment">// The panel shouldn't navigate to other pages.
                 </span>send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">false</span>));
             }
             EmbedderMsg::HistoryChanged(..) | EmbedderMsg::ChangePageTitle(..) =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
             }
-            EmbedderMsg::Prompt(definition, _origin) =&gt; {
+            EmbedderMsg::Prompt(_webview_id, definition, _origin) =&gt; {
                 <span class="kw">match </span>definition {
                     PromptDefinition::Input(msg, <span class="kw">_</span>, prompt_sender) =&gt; {
                         <span class="comment">/* Tab */
@@ -904,7 +932,7 @@
                                 .expect(<span class="string">"Failed to parse TabCloseRequest"</span>);
 
                             <span class="comment">// close the tab
-                            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw">_</span>) = <span class="self">self</span>.tab_manager.tab(request.id) {
+                            </span><span class="kw">if </span><span class="self">self</span>.tab_manager.tab(request.id).is_some() {
                                 send_to_constellation(
                                     sender,
                                     ConstellationMsg::CloseWebView(request.id),
@@ -1030,7 +1058,7 @@
                     <span class="kw">_ </span>=&gt; <span class="macro">log::trace!</span>(<span class="string">"Verso Panel isn't supporting this prompt yet"</span>),
                 }
             }
-            EmbedderMsg::GetClipboardContents(sender) =&gt; {
+            EmbedderMsg::GetClipboardContents(_webview_id, sender) =&gt; {
                 <span class="kw">let </span>contents = clipboard
                     .map(|c| {
                         c.get_text().unwrap_or_else(|e| {
@@ -1043,14 +1071,14 @@
                     <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to send clipboard content: {}"</span>, e);
                 }
             }
-            EmbedderMsg::SetClipboardContents(text) =&gt; {
+            EmbedderMsg::SetClipboardContents(_webview_id, text) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(c) = clipboard {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = c.set_text(text) {
                         <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to set clipboard contents: {}"</span>, e);
                     }
                 }
             }
-            EmbedderMsg::EventDelivered(event) =&gt; {
+            EmbedderMsg::EventDelivered(_webview_id, event) =&gt; {
                 <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
                     send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
                 }
@@ -1074,7 +1102,13 @@
     ) -&gt; bool {
         <span class="macro">log::trace!</span>(<span class="string">"Verso Context Menu {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::Prompt(definition, _origin) =&gt; <span class="kw">match </span>definition {
+            EmbedderMsg::WebViewBlurred =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
+            }
+            EmbedderMsg::WebViewFocused(webview_id) =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
+            }
+            EmbedderMsg::Prompt(_webview_id, definition, _origin) =&gt; <span class="kw">match </span>definition {
                 PromptDefinition::Input(msg, <span class="kw">_</span>, prompt_sender) =&gt; {
                     <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
                     <span class="kw">if </span>msg.starts_with(<span class="string">"CONTEXT_MENU:"</span>) {
@@ -1105,7 +1139,13 @@
     ) -&gt; bool {
         <span class="macro">log::trace!</span>(<span class="string">"Verso Prompt {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::Prompt(prompt, _origin) =&gt; <span class="kw">match </span>prompt {
+            EmbedderMsg::WebViewBlurred =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
+            }
+            EmbedderMsg::WebViewFocused(webview_id) =&gt; {
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
+            }
+            EmbedderMsg::Prompt(_webview_id, prompt, _origin) =&gt; <span class="kw">match </span>prompt {
                 PromptDefinition::Alert(msg, ignored_prompt_sender) =&gt; {
                     <span class="kw">let </span>prompt = <span class="self">self</span>.tab_manager.prompt_by_prompt_id(webview_id);
                     <span class="kw">if </span>prompt.is_none() {

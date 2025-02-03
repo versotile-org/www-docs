@@ -318,7 +318,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         surface: <span class="kw-2">&amp;</span>Surface&lt;<span class="kw">impl </span>SurfaceTypeTrait&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::errors::Error&gt; {
-        <span class="self">self</span>.context.make_current(<span class="kw-2">&amp;</span>surface)<span class="question-mark">?</span>;
+        <span class="self">self</span>.context.make_current(surface)<span class="question-mark">?</span>;
         surface.swap_buffers(<span class="kw-2">&amp;</span><span class="self">self</span>.context)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
