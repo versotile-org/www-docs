@@ -15,7 +15,10 @@
 <a href="#14" id="14">14</a>
 <a href="#15" id="15">15</a>
 <a href="#16" id="16">16</a>
-<a href="#17" id="17">17</a></pre></div><pre class="rust"><code><span class="doccomment">/// Convenient type alias of Result type for Verso.
+<a href="#17" id="17">17</a>
+<a href="#18" id="18">18</a>
+<a href="#19" id="19">19</a>
+<a href="#20" id="20">20</a></pre></div><pre class="rust"><code><span class="doccomment">/// Convenient type alias of Result type for Verso.
 </span><span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
 <span class="doccomment">/// Errors returned by Verso.
@@ -31,5 +34,8 @@
     <span class="doccomment">/// Glutin errors.
     </span><span class="attr">#[error(transparent)]
     </span>GlutinError(<span class="attr">#[from] </span>glutin::error::Error),
+    <span class="doccomment">/// IPC errors.
+    </span><span class="attr">#[error(transparent)]
+    </span>IpcError(<span class="attr">#[from] </span>ipc_channel::ipc::IpcError),
 }
 </code></pre></div></section></main></body></html>

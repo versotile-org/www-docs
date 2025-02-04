@@ -1062,7 +1062,25 @@
 <a href="#1061" id="1061">1061</a>
 <a href="#1062" id="1062">1062</a>
 <a href="#1063" id="1063">1063</a>
-<a href="#1064" id="1064">1064</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
+<a href="#1064" id="1064">1064</a>
+<a href="#1065" id="1065">1065</a>
+<a href="#1066" id="1066">1066</a>
+<a href="#1067" id="1067">1067</a>
+<a href="#1068" id="1068">1068</a>
+<a href="#1069" id="1069">1069</a>
+<a href="#1070" id="1070">1070</a>
+<a href="#1071" id="1071">1071</a>
+<a href="#1072" id="1072">1072</a>
+<a href="#1073" id="1073">1073</a>
+<a href="#1074" id="1074">1074</a>
+<a href="#1075" id="1075">1075</a>
+<a href="#1076" id="1076">1076</a>
+<a href="#1077" id="1077">1077</a>
+<a href="#1078" id="1078">1078</a>
+<a href="#1079" id="1079">1079</a>
+<a href="#1080" id="1080">1080</a>
+<a href="#1081" id="1081">1081</a>
+<a href="#1082" id="1082">1082</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -1088,6 +1106,7 @@
     WebDriverCommandMsg,
 };
 <span class="kw">use </span>servo_url::ServoUrl;
+<span class="kw">use </span>versoview_messages::ToControllerMessage;
 <span class="kw">use </span>webrender_api::{
     units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutVector2D},
     ScrollLocation,
@@ -1121,6 +1140,11 @@
 <span class="kw">const </span>TAB_HEIGHT: f64 = <span class="number">30.0</span>;
 <span class="kw">const </span>PANEL_PADDING: f64 = <span class="number">4.0</span>;
 
+<span class="attr">#[derive(Default)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>EventListeners {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) on_navigation_starting: bool,
+}
+
 <span class="doccomment">/// A Verso window is a Winit window containing several web views.
 </span><span class="kw">pub struct </span>Window {
     <span class="doccomment">/// Access to Winit window
@@ -1131,7 +1155,9 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) panel: <span class="prelude-ty">Option</span>&lt;Panel&gt;,
     <span class="doccomment">/// The WebView of this window.
     </span><span class="comment">// pub(crate) webview: Option&lt;WebView&gt;,
-    </span><span class="doccomment">/// The mouse physical position in the web view.
+    </span><span class="doccomment">/// Event listeners registered from the webview controller
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) event_listeners: EventListeners,
+    <span class="doccomment">/// The mouse physical position in the web view.
     </span>mouse_position: Cell&lt;<span class="prelude-ty">Option</span>&lt;PhysicalPosition&lt;f64&gt;&gt;&gt;,
     <span class="doccomment">/// Modifiers state of the keyboard.
     </span>modifiers_state: Cell&lt;ModifiersState&gt;,
@@ -1191,6 +1217,7 @@
                 window,
                 surface,
                 panel: <span class="prelude-val">None</span>,
+                event_listeners: Default::default(),
                 mouse_position: Default::default(),
                 modifiers_state: Cell::new(ModifiersState::default()),
                 resizing: <span class="bool-val">false</span>,
@@ -1234,7 +1261,8 @@
             surface,
             panel: <span class="prelude-val">None</span>,
             <span class="comment">// webview: None,
-            </span>mouse_position: Default::default(),
+            </span>event_listeners: Default::default(),
+            mouse_position: Default::default(),
             modifiers_state: Cell::new(ModifiersState::default()),
             resizing: <span class="bool-val">false</span>,
             <span class="attr">#[cfg(linux)]
@@ -1658,6 +1686,7 @@
         webview_id: WebViewId,
         message: EmbedderMsg,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        to_controller_sender: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;ipc::IpcSender&lt;ToControllerMessage&gt;&gt;,
         clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) -&gt; bool {
@@ -1686,7 +1715,14 @@
         }
 
         <span class="comment">// Handle message in Verso WebView
-        </span><span class="self">self</span>.handle_servo_messages_with_webview(webview_id, message, sender, clipboard, compositor);
+        </span><span class="self">self</span>.handle_servo_messages_with_webview(
+            webview_id,
+            message,
+            sender,
+            to_controller_sender,
+            clipboard,
+            compositor,
+        );
         <span class="bool-val">false
     </span>}
 

@@ -770,7 +770,28 @@
 <a href="#769" id="769">769</a>
 <a href="#770" id="770">770</a>
 <a href="#771" id="771">771</a>
-<a href="#772" id="772">772</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+<a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -800,7 +821,7 @@
 <span class="kw">use </span>servo_config::{opts, pref};
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>style;
-<span class="kw">use </span>versoview_messages::ControllerMessage;
+<span class="kw">use </span>versoview_messages::{ToControllerMessage, ToVersoMessage};
 <span class="kw">use </span>webgpu;
 <span class="kw">use </span>webrender::{create_webrender_instance, ShaderPrecacheFlags, WebRenderOptions};
 <span class="kw">use </span>webrender_api::<span class="kw-2">*</span>;
@@ -822,6 +843,7 @@
     windows: HashMap&lt;WindowId, (Window, DocumentId)&gt;,
     compositor: <span class="prelude-ty">Option</span>&lt;IOCompositor&gt;,
     constellation_sender: Sender&lt;ConstellationMsg&gt;,
+    to_controller_sender: <span class="prelude-ty">Option</span>&lt;IpcSender&lt;ToControllerMessage&gt;&gt;,
     embedder_receiver: Receiver&lt;EmbedderMsg&gt;,
     <span class="doccomment">/// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
@@ -850,12 +872,13 @@
     /// - Image Cache: Enabled
     </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop, proxy: EventLoopProxy&lt;EventLoopProxyMessage&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>config = Config::new();
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(ipc_channel) = <span class="kw-2">&amp;</span>config.args.ipc_channel {
+        <span class="kw">let </span>to_controller_sender = <span class="kw">if let </span><span class="prelude-val">Some</span>(ipc_channel) = <span class="kw-2">&amp;</span>config.args.ipc_channel {
             <span class="kw">let </span>sender =
-                IpcSender::&lt;IpcSender&lt;ControllerMessage&gt;&gt;::connect(ipc_channel.to_string())
-                    .unwrap();
-            <span class="kw">let </span>(controller_sender, receiver) = ipc::channel::&lt;ControllerMessage&gt;().unwrap();
-            sender.send(controller_sender).unwrap();
+                IpcSender::&lt;ToControllerMessage&gt;::connect(ipc_channel.to_string()).unwrap();
+            <span class="kw">let </span>(to_verso_sender, receiver) = ipc::channel::&lt;ToVersoMessage&gt;().unwrap();
+            sender
+                .send(ToControllerMessage::SetToVersoSender(to_verso_sender))
+                .unwrap();
             <span class="kw">let </span>proxy_clone = proxy.clone();
             ROUTER.add_typed_route(
                 receiver,
@@ -870,7 +893,10 @@
                     <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">log::error!</span>(<span class="string">"Failed to receive controller message: {e}"</span>),
                 }),
             );
-        };
+            <span class="prelude-val">Some</span>(sender)
+        } <span class="kw">else </span>{
+            <span class="prelude-val">None
+        </span>};
 
         <span class="comment">// Initialize configurations and Verso window
         </span><span class="kw">let </span>protocols = config.create_protocols();
@@ -1164,6 +1190,7 @@
             windows,
             compositor: <span class="prelude-val">Some</span>(compositor),
             constellation_sender,
+            to_controller_sender,
             embedder_receiver,
             _js_engine_setup: js_engine_setup,
             clipboard: Clipboard::new().ok(),
@@ -1260,6 +1287,7 @@
                                     <span class="kw-2">*</span>webview_id,
                                     msg,
                                     <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                                    <span class="kw-2">&amp;</span><span class="self">self</span>.to_controller_sender,
                                     <span class="self">self</span>.clipboard.as_mut(),
                                     compositor,
                                 ) {
@@ -1397,9 +1425,9 @@
     }
 
     <span class="doccomment">/// Handle message came from webview controller.
-    </span><span class="kw">pub fn </span>handle_incoming_webview_message(<span class="kw-2">&amp;</span><span class="self">self</span>, message: ControllerMessage) {
+    </span><span class="kw">pub fn </span>handle_incoming_webview_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: ToVersoMessage) {
         <span class="kw">match </span>message {
-            ControllerMessage::NavigateTo(to_url) =&gt; {
+            ToVersoMessage::NavigateTo(to_url) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(webview_id) =
                     <span class="self">self</span>.windows.values().next().and_then(|(window, <span class="kw">_</span>)| {
                         window.tab_manager.current_tab().map(|tab| tab.id())
@@ -1410,6 +1438,20 @@
                         ConstellationMsg::LoadUrl(webview_id, ServoUrl::from_url(to_url)),
                     );
                 }
+            }
+            ToVersoMessage::ListenToOnNavigationStarting =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>((window, <span class="kw">_</span>)) = <span class="self">self</span>.windows.values_mut().next() {
+                    window.event_listeners.on_navigation_starting = <span class="bool-val">true</span>;
+                }
+            }
+            ToVersoMessage::OnNavigationStartingResponse(id, allow) =&gt; {
+                send_to_constellation(
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                    ConstellationMsg::AllowNavigationResponse(
+                        bincode::deserialize(<span class="kw-2">&amp;</span>id).unwrap(),
+                        allow,
+                    ),
+                );
             }
             <span class="kw">_ </span>=&gt; {}
         }
@@ -1443,7 +1485,7 @@
     <span class="doccomment">/// Wake
     </span>Wake,
     <span class="doccomment">/// Message coming from the webview controller
-    </span>IpcMessage(ControllerMessage),
+    </span>IpcMessage(ToVersoMessage),
 }
 
 <span class="attr">#[derive(Debug, Clone)]
