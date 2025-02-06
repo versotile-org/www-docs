@@ -383,7 +383,31 @@
 <a href="#382" id="382">382</a>
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
 
 <span class="kw">use </span>embedder_traits::resources::{<span class="self">self</span>, Resource, ResourceReaderMethods};
 <span class="kw">use </span>headers::{ContentType, HeaderMapExt};
@@ -429,6 +453,10 @@
     </span><span class="kw">pub </span>resource_dir: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
     <span class="doccomment">/// Override the user agent
     </span><span class="kw">pub </span>user_agent: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Script to run on document started to load
+    </span><span class="kw">pub </span>init_script: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// The directory to load userscripts from
+    </span><span class="kw">pub </span>userscripts_directory: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="doccomment">/// Initial window's zoom level
     </span><span class="kw">pub </span>zoom_level: <span class="prelude-ty">Option</span>&lt;f32&gt;,
 }
@@ -488,6 +516,18 @@
         <span class="string">"user-agent"</span>,
         <span class="string">"Override the user agent"</span>,
         <span class="string">"'VersoView/1.0'"</span>,
+    );
+    opts.optopt(
+        <span class="string">""</span>,
+        <span class="string">"init-script"</span>,
+        <span class="string">"Script to run on document started to load"</span>,
+        <span class="string">"console.log('hello world')"</span>,
+    );
+    opts.optopt(
+        <span class="string">""</span>,
+        <span class="string">"userscripts-directory"</span>,
+        <span class="string">"The directory to load userscripts from"</span>,
+        <span class="string">"resources/user-agent-js/"</span>,
     );
 
     opts.optopt(
@@ -561,6 +601,8 @@
     </span>};
 
     <span class="kw">let </span>user_agent = matches.opt_str(<span class="string">"user-agent"</span>);
+    <span class="kw">let </span>init_script = matches.opt_str(<span class="string">"init-script"</span>);
+    <span class="kw">let </span>userscripts_directory = matches.opt_str(<span class="string">"userscripts-directory"</span>);
 
     <span class="kw">let </span><span class="kw-2">mut </span>window_attributes = winit::window::Window::default_attributes();
 
@@ -630,6 +672,8 @@
         devtools_port,
         profiler_settings,
         user_agent,
+        init_script,
+        userscripts_directory,
         zoom_level,
     })
 }
@@ -656,6 +700,10 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>profiler_settings) = args.profiler_settings {
             opts.time_profiling = <span class="prelude-val">Some</span>(profiler_settings.output_options.clone());
             opts.time_profiler_trace_path = profiler_settings.trace_path.clone();
+        }
+
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>userscripts_directory) = args.userscripts_directory {
+            opts.userscripts = <span class="prelude-val">Some</span>(userscripts_directory.clone());
         }
 
         <span class="kw">let </span>resource_dir = args.resource_dir.clone().unwrap_or(resources_dir_path());
