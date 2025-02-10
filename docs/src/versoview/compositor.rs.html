@@ -3069,7 +3069,7 @@
     <span class="doccomment">/// Queue a new frame in the transaction and increase the pending frames count.
     </span><span class="kw">fn </span>generate_frame(<span class="kw-2">&amp;mut </span><span class="self">self</span>, transaction: <span class="kw-2">&amp;mut </span>Transaction, reason: RenderReasons) {
         <span class="self">self</span>.pending_frames += <span class="number">1</span>;
-        transaction.generate_frame(<span class="number">0</span>, reason);
+        transaction.generate_frame(<span class="number">0</span>, <span class="bool-val">true </span><span class="comment">/* present */</span>, reason);
     }
 
     <span class="doccomment">/// Sets or unsets the animations-running flag for the given pipeline, and schedules a

@@ -1079,7 +1079,10 @@
 <a href="#1078" id="1078">1078</a>
 <a href="#1079" id="1079">1079</a>
 <a href="#1080" id="1080">1080</a>
-<a href="#1081" id="1081">1081</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
+<a href="#1081" id="1081">1081</a>
+<a href="#1082" id="1082">1082</a>
+<a href="#1083" id="1083">1083</a>
+<a href="#1084" id="1084">1084</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -1399,9 +1402,10 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = tab_id {
             compositor.on_resize_webview_event(tab_id, content_size);
 
+            <span class="kw">let </span>old_tab_id = <span class="self">self</span>.tab_manager.current_tab_id();
             <span class="kw">if </span><span class="self">self</span>.tab_manager.activate_tab(tab_id).is_some() {
                 <span class="comment">// throttle the old tab to avoid unnecessary animation caclulations
-                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(old_tab_id) = <span class="self">self</span>.tab_manager.current_tab_id() {
+                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(old_tab_id) = old_tab_id {
                     <span class="kw">let _ </span>= compositor
                         .constellation_chan
                         .send(ConstellationMsg::SetWebViewThrottled(old_tab_id, <span class="bool-val">true</span>));
@@ -1409,6 +1413,8 @@
                 <span class="kw">let _ </span>= compositor
                     .constellation_chan
                     .send(ConstellationMsg::SetWebViewThrottled(tab_id, <span class="bool-val">false</span>));
+
+                <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(tab_id);
 
                 <span class="comment">// update painting order immediately to draw the active tab
                 </span>compositor.send_root_pipeline_display_list(<span class="self">self</span>);

@@ -791,10 +791,7 @@
 <a href="#790" id="790">790</a>
 <a href="#791" id="791">791</a>
 <a href="#792" id="792">792</a>
-<a href="#793" id="793">793</a>
-<a href="#794" id="794">794</a>
-<a href="#795" id="795">795</a>
-<a href="#796" id="796">796</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#793" id="793">793</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -1316,7 +1313,7 @@
                             //         window.0.set_cursor_icon(cursor);
                             //     }
                             // }
-                            </span>EmbedderMsg::Shutdown | EmbedderMsg::ReadyToPresent(<span class="kw">_</span>) =&gt; {}
+                            </span>EmbedderMsg::ReadyToPresent(<span class="kw">_</span>) =&gt; {}
                             <span class="comment">// TODO: Check devtools' prompt has WebViewId?
                             // EmbedderMsg::Prompt(_, definition, origin) =&gt; match origin {
                             //     // TODO: actually prompt the user with a dialog
@@ -1389,16 +1386,14 @@
             EmbedderMsg::WebViewBlurred =&gt; <span class="prelude-val">None</span>,
             EmbedderMsg::AllowUnload(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::Keyboard(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::ClearClipboardContents(webview_id) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::GetClipboardContents(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::SetClipboardContents(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
+            EmbedderMsg::ClearClipboard(webview_id) =&gt; <span class="prelude-val">Some</span>(webview_id),
+            EmbedderMsg::GetClipboardText(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
+            EmbedderMsg::SetClipboardText(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::SetCursor(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::NewFavicon(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::HeadParsed(webview_id) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::HistoryChanged(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::SetFullscreenState(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::LoadStart(webview_id) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::LoadComplete(webview_id) =&gt; <span class="prelude-val">Some</span>(webview_id),
+            EmbedderMsg::NotifyLoadStatusChanged(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::WebResourceRequested(opt_webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; opt_webview_id.as_ref(),
             EmbedderMsg::Panic(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::GetSelectedBluetoothDevice(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
@@ -1406,7 +1401,6 @@
             EmbedderMsg::PromptPermission(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::ShowIME(webview_id, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::HideIME(webview_id) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::Shutdown =&gt; <span class="prelude-val">None</span>,
             EmbedderMsg::ReportProfile(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
             EmbedderMsg::MediaSessionEvent(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::OnDevtoolsStarted(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,

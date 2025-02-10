@@ -637,14 +637,12 @@
 <a href="#636" id="636">636</a>
 <a href="#637" id="637">637</a>
 <a href="#638" id="638">638</a>
-<a href="#639" id="639">639</a>
-<a href="#640" id="640">640</a>
-<a href="#641" id="641">641</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#639" id="639">639</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
-    CompositorEventVariant, EmbedderMsg, PermissionPrompt, PermissionRequest,
+    CompositorEventVariant, EmbedderMsg, LoadStatus, PermissionPrompt, PermissionRequest,
     PromptCredentialsInput, PromptDefinition, PromptResult, TraversalDirection,
 };
 <span class="kw">use </span>ipc_channel::ipc;
@@ -717,9 +715,7 @@
     ) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::HeadParsed(<span class="kw">_</span>)
-            | EmbedderMsg::WebViewOpened(<span class="kw">_</span>)
-            | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
+            EmbedderMsg::WebViewOpened(<span class="kw">_</span>) | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
                 <span class="comment">// Most WebView messages are ignored because it's done by compositor.
                 </span><span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} ignores this message: {message:?}"</span>)
             }
@@ -735,15 +731,22 @@
                     w
                 );
             }
-            EmbedderMsg::LoadStart(<span class="kw">_</span>) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(init_script) = <span class="kw-2">&amp;</span><span class="self">self</span>.init_script {
-                    <span class="kw">let _ </span>= execute_script(sender, <span class="kw-2">&amp;</span>webview_id, init_script);
+            EmbedderMsg::NotifyLoadStatusChanged(_webview_id, status) =&gt; <span class="kw">match </span>status {
+                LoadStatus::Started =&gt; {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(init_script) = <span class="kw-2">&amp;</span><span class="self">self</span>.init_script {
+                        <span class="kw">let _ </span>= execute_script(sender, <span class="kw-2">&amp;</span>webview_id, init_script);
+                    }
                 }
-            }
-            EmbedderMsg::LoadComplete(_webview_id) =&gt; {
-                <span class="self">self</span>.window.request_redraw();
-                send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
-            }
+                LoadStatus::Complete =&gt; {
+                    <span class="self">self</span>.window.request_redraw();
+                    send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
+                }
+                <span class="kw">_ </span>=&gt; {
+                    <span class="macro">log::trace!</span>(
+                            <span class="string">"Verso WebView {webview_id:?} ignores NotifyLoadStatusChanged status: {status:?}"
+                        </span>);
+                }
+            },
             EmbedderMsg::ChangePageTitle(_webview_id, title) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="self">self</span>.panel.as_ref() {
                     <span class="kw">let </span>title = <span class="kw">if let </span><span class="prelude-val">Some</span>(title) = title {
@@ -779,30 +782,30 @@
                 }
                 send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">true</span>));
             }
-            EmbedderMsg::GetClipboardContents(_webview_id, sender) =&gt; {
-                <span class="kw">let </span>contents = clipboard
+            EmbedderMsg::GetClipboardText(_webview_id, sender) =&gt; {
+                <span class="kw">let </span>text = clipboard
                     .map(|c| {
                         c.get_text().unwrap_or_else(|e| {
                             <span class="macro">log::warn!</span>(
-                                <span class="string">"Verso WebView {webview_id:?} failed to get clipboard content: {}"</span>,
+                                <span class="string">"Verso WebView {webview_id:?} failed to get clipboard text: {}"</span>,
                                 e
                             );
                             String::new()
                         })
                     })
                     .unwrap_or_default();
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(contents) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(<span class="prelude-val">Ok</span>(text)) {
                     <span class="macro">log::warn!</span>(
-                        <span class="string">"Verso WebView {webview_id:?} failed to send clipboard content: {}"</span>,
+                        <span class="string">"Verso WebView {webview_id:?} failed to send clipboard text: {}"</span>,
                         e
                     );
                 }
             }
-            EmbedderMsg::SetClipboardContents(_webview_id, text) =&gt; {
+            EmbedderMsg::SetClipboardText(_webview_id, text) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(c) = clipboard {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = c.set_text(text) {
                         <span class="macro">log::warn!</span>(
-                            <span class="string">"Verso WebView {webview_id:?} failed to set clipboard contents: {}"</span>,
+                            <span class="string">"Verso WebView {webview_id:?} failed to set clipboard text: {}"</span>,
                             e
                         );
                     }
@@ -841,14 +844,6 @@
                         }
                         PromptDefinition::OkCancel(message, prompt_sender) =&gt; {
                             prompt.ok_cancel(sender, rect, message, prompt_sender);
-                        }
-                        PromptDefinition::YesNo(message, prompt_sender) =&gt; {
-                            prompt.yes_no(
-                                sender,
-                                rect,
-                                message,
-                                PromptSender::ConfirmSender(prompt_sender),
-                            );
                         }
                         PromptDefinition::Input(message, default_value, prompt_sender) =&gt; {
                             prompt.input(sender, rect, message, <span class="prelude-val">Some</span>(default_value), prompt_sender);
@@ -911,10 +906,7 @@
     ) -&gt; bool {
         <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {panel_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::LoadStart(<span class="kw">_</span>)
-            | EmbedderMsg::HeadParsed(<span class="kw">_</span>)
-            | EmbedderMsg::WebViewOpened(<span class="kw">_</span>)
-            | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
+            EmbedderMsg::WebViewOpened(<span class="kw">_</span>) | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
                 <span class="comment">// Most WebView messages are ignored because it's done by compositor.
                 </span><span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
             }
@@ -930,11 +922,15 @@
                     webview_id
                 );
             }
-            EmbedderMsg::LoadComplete(_webview_id) =&gt; {
-                <span class="self">self</span>.window.request_redraw();
-                send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
+            EmbedderMsg::NotifyLoadStatusChanged(_webview_id, status) =&gt; {
+                <span class="kw">if </span>status == LoadStatus::Complete {
+                    <span class="self">self</span>.window.request_redraw();
+                    send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
 
-                <span class="self">self</span>.create_tab(sender, <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone());
+                    <span class="self">self</span>.create_tab(sender, <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone());
+                } <span class="kw">else </span>{
+                    <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores NotifyLoadStatusChanged status: {status:?}"</span>);
+                }
             }
             EmbedderMsg::AllowNavigationRequest(_webview_id, id, _url) =&gt; {
                 <span class="comment">// The panel shouldn't navigate to other pages.
@@ -1079,23 +1075,23 @@
                     <span class="kw">_ </span>=&gt; <span class="macro">log::trace!</span>(<span class="string">"Verso Panel isn't supporting this prompt yet"</span>),
                 }
             }
-            EmbedderMsg::GetClipboardContents(_webview_id, sender) =&gt; {
-                <span class="kw">let </span>contents = clipboard
+            EmbedderMsg::GetClipboardText(_webview_id, sender) =&gt; {
+                <span class="kw">let </span>text = clipboard
                     .map(|c| {
                         c.get_text().unwrap_or_else(|e| {
-                            <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to get clipboard content: {}"</span>, e);
+                            <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to get clipboard text: {}"</span>, e);
                             String::new()
                         })
                     })
                     .unwrap_or_default();
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(contents) {
-                    <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to send clipboard content: {}"</span>, e);
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = sender.send(<span class="prelude-val">Ok</span>(text)) {
+                    <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to send clipboard text: {}"</span>, e);
                 }
             }
-            EmbedderMsg::SetClipboardContents(_webview_id, text) =&gt; {
+            EmbedderMsg::SetClipboardText(_webview_id, text) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(c) = clipboard {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = c.set_text(text) {
-                        <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to set clipboard contents: {}"</span>, e);
+                        <span class="macro">log::warn!</span>(<span class="string">"Verso Panel failed to set clipboard text: {}"</span>, e);
                     }
                 }
             }
