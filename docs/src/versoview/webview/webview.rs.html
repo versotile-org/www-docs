@@ -620,30 +620,12 @@
 <a href="#619" id="619">619</a>
 <a href="#620" id="620">620</a>
 <a href="#621" id="621">621</a>
-<a href="#622" id="622">622</a>
-<a href="#623" id="623">623</a>
-<a href="#624" id="624">624</a>
-<a href="#625" id="625">625</a>
-<a href="#626" id="626">626</a>
-<a href="#627" id="627">627</a>
-<a href="#628" id="628">628</a>
-<a href="#629" id="629">629</a>
-<a href="#630" id="630">630</a>
-<a href="#631" id="631">631</a>
-<a href="#632" id="632">632</a>
-<a href="#633" id="633">633</a>
-<a href="#634" id="634">634</a>
-<a href="#635" id="635">635</a>
-<a href="#636" id="636">636</a>
-<a href="#637" id="637">637</a>
-<a href="#638" id="638">638</a>
-<a href="#639" id="639">639</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#622" id="622">622</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
-    CompositorEventVariant, EmbedderMsg, LoadStatus, PermissionPrompt, PermissionRequest,
-    PromptCredentialsInput, PromptDefinition, PromptResult, TraversalDirection,
+    AllowOrDeny, EmbedderMsg, LoadStatus, PromptDefinition, PromptResult, TraversalDirection,
 };
 <span class="kw">use </span>ipc_channel::ipc;
 <span class="kw">use </span>script_traits::webdriver_msg::{WebDriverJSResult, WebDriverScriptCommand};
@@ -721,6 +703,7 @@
             }
             EmbedderMsg::WebViewBlurred =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
+                <span class="self">self</span>.close_context_menu(sender);
             }
             EmbedderMsg::WebViewFocused(w) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
@@ -826,11 +809,6 @@
                     );
                 }
             }
-            EmbedderMsg::EventDelivered(_webview_id, event) =&gt; {
-                <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
-                    send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
-                }
-            }
             EmbedderMsg::ShowContextMenu(_webview_id, _sender, _title, _options) =&gt; {
                 <span class="comment">// TODO: Implement context menu
             </span>}
@@ -848,9 +826,6 @@
                         PromptDefinition::Input(message, default_value, prompt_sender) =&gt; {
                             prompt.input(sender, rect, message, <span class="prelude-val">Some</span>(default_value), prompt_sender);
                         }
-                        PromptDefinition::Credentials(prompt_sender) =&gt; {
-                            prompt.http_basic_auth(sender, rect, prompt_sender);
-                        }
                     }
 
                     <span class="comment">// save prompt in window to keep prompt_sender alive
@@ -860,30 +835,30 @@
                     <span class="macro">log::error!</span>(<span class="string">"Failed to get WebView {webview_id:?} in this window."</span>);
                 }
             }
-            EmbedderMsg::PromptPermission(_webview_id, prompt, prompt_sender) =&gt; {
+            EmbedderMsg::PromptPermission(_webview_id, feature, prompt_sender) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.tab(webview_id) {
-                    <span class="kw">let </span>message = <span class="kw">match </span>prompt {
-                        PermissionPrompt::Request(permission_name) =&gt; {
-                            <span class="macro">format!</span>(
-                                <span class="string">"This website would like to request permission for {:?}."</span>,
-                                permission_name
-                            )
-                        }
-                        PermissionPrompt::Insecure(permission_name) =&gt; {
-                            <span class="macro">format!</span>(
-                                <span class="string">"This website would like to request permission for {:?}. However current connection is not secure. Do you want to proceed?"</span>,
-                                permission_name
-                            )
-                        }
-                    };
+                    <span class="kw">let </span>message = <span class="macro">format!</span>(
+                        <span class="string">"This website would like to request permission for {:?}."</span>,
+                        feature
+                    );
 
                     <span class="kw">let </span><span class="kw-2">mut </span>prompt = PromptDialog::new();
-                    prompt.yes_no(
+                    prompt.allow_deny(
                         sender,
                         tab.webview().rect,
                         message,
-                        PromptSender::PermissionSender(prompt_sender),
+                        PromptSender::AllowDenySender(prompt_sender),
                     );
+                    <span class="self">self</span>.tab_manager.set_prompt(webview_id, prompt);
+                } <span class="kw">else </span>{
+                    <span class="macro">log::error!</span>(<span class="string">"Failed to get WebView {webview_id:?} in this window."</span>);
+                }
+            }
+            EmbedderMsg::RequestAuthentication(_webview_id, _url, _proxy, response_sender) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.tab(webview_id) {
+                    <span class="kw">let </span><span class="kw-2">mut </span>prompt = PromptDialog::new();
+                    <span class="kw">let </span>rect = tab.webview().rect;
+                    prompt.http_basic_auth(sender, rect, response_sender);
                     <span class="self">self</span>.tab_manager.set_prompt(webview_id, prompt);
                 } <span class="kw">else </span>{
                     <span class="macro">log::error!</span>(<span class="string">"Failed to get WebView {webview_id:?} in this window."</span>);
@@ -912,6 +887,7 @@
             }
             EmbedderMsg::WebViewBlurred =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
+                <span class="self">self</span>.close_context_menu(sender);
             }
             EmbedderMsg::WebViewFocused(webview_id) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
@@ -1095,11 +1071,6 @@
                     }
                 }
             }
-            EmbedderMsg::EventDelivered(_webview_id, event) =&gt; {
-                <span class="kw">if let </span>CompositorEventVariant::MouseButtonEvent = event {
-                    send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
-                }
-            }
             e =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Panel isn't supporting this message yet: {e:?}"</span>)
             }
@@ -1208,40 +1179,35 @@
                                 <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                             }
                         }
-                        PromptSender::PermissionSender(sender) =&gt; {
-                            <span class="kw">let </span>result: PermissionRequest = <span class="kw">match </span>msg.as_str() {
-                                <span class="string">"ok" </span>| <span class="string">"yes" </span>=&gt; PermissionRequest::Granted,
-                                <span class="string">"cancel" </span>| <span class="string">"no" </span>=&gt; PermissionRequest::Denied,
+                        PromptSender::AllowDenySender(sender) =&gt; {
+                            <span class="kw">let </span>result: AllowOrDeny = <span class="kw">match </span>msg.as_str() {
+                                <span class="string">"ok" </span>| <span class="string">"yes" </span>=&gt; AllowOrDeny::Allow,
+                                <span class="string">"cancel" </span>| <span class="string">"no" </span>=&gt; AllowOrDeny::Deny,
                                 <span class="kw">_ </span>=&gt; {
                                     <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
-                                    PermissionRequest::Denied
+                                    AllowOrDeny::Deny
                                 }
                             };
                             <span class="kw">let _ </span>= sender.send(result);
                         }
                         PromptSender::HttpBasicAuthSender(sender) =&gt; {
-                            <span class="kw">let </span>canceled_auth = PromptCredentialsInput {
-                                username: <span class="prelude-val">None</span>,
-                                password: <span class="prelude-val">None</span>,
-                            };
-
                             <span class="kw">if let </span><span class="prelude-val">Ok</span>(HttpBasicAuthInputResult { action, auth }) =
                                 serde_json::from_str::&lt;HttpBasicAuthInputResult&gt;(<span class="kw-2">&amp;</span>msg)
                             {
                                 <span class="kw">match </span>action.as_str() {
                                     <span class="string">"signin" </span>=&gt; {
-                                        <span class="kw">let _ </span>= sender.send(auth);
+                                        <span class="kw">let _ </span>= sender.send(<span class="prelude-val">Some</span>(auth));
                                     }
                                     <span class="string">"cancel" </span>=&gt; {
-                                        <span class="kw">let _ </span>= sender.send(canceled_auth);
+                                        <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                                     }
                                     <span class="kw">_ </span>=&gt; {
-                                        <span class="kw">let _ </span>= sender.send(canceled_auth);
+                                        <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                                     }
                                 };
                             } <span class="kw">else </span>{
                                 <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
-                                <span class="kw">let _ </span>= sender.send(canceled_auth);
+                                <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                             }
                         }
                     }

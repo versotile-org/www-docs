@@ -465,6 +465,9 @@
         "overflow-block": {
             "pref": null
         },
+        "overflow-clip-margin": {
+            "pref": null
+        },
         "overflow-inline": {
             "pref": null
         },

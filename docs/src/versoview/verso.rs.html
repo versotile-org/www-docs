@@ -789,9 +789,7 @@
 <a href="#788" id="788">788</a>
 <a href="#789" id="789">789</a>
 <a href="#790" id="790">790</a>
-<a href="#791" id="791">791</a>
-<a href="#792" id="792">792</a>
-<a href="#793" id="793">793</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#791" id="791">791</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -1313,8 +1311,7 @@
                             //         window.0.set_cursor_icon(cursor);
                             //     }
                             // }
-                            </span>EmbedderMsg::ReadyToPresent(<span class="kw">_</span>) =&gt; {}
-                            <span class="comment">// TODO: Check devtools' prompt has WebViewId?
+                            // TODO: Check devtools' prompt has WebViewId?
                             // EmbedderMsg::Prompt(_, definition, origin) =&gt; match origin {
                             //     // TODO: actually prompt the user with a dialog
                             //     PromptOrigin::Trusted =&gt; match definition {
@@ -1377,6 +1374,7 @@
             EmbedderMsg::MoveTo(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::ResizeTo(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::Prompt(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
+            EmbedderMsg::RequestAuthentication(webview_id, ..) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::ShowContextMenu(webview_id, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::AllowNavigationRequest(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::AllowOpeningWebView(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
@@ -1405,8 +1403,6 @@
             EmbedderMsg::MediaSessionEvent(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::OnDevtoolsStarted(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
             EmbedderMsg::RequestDevtoolsConnection(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
-            EmbedderMsg::ReadyToPresent(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>, <span class="comment">// TODO: check if we need dispatch this message to each window
-            </span>EmbedderMsg::EventDelivered(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::PlayGamepadHapticEffect(webview_id, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::StopGamepadHapticEffect(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
         }

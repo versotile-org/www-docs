@@ -2164,42 +2164,7 @@
 <a href="#2163" id="2163">2163</a>
 <a href="#2164" id="2164">2164</a>
 <a href="#2165" id="2165">2165</a>
-<a href="#2166" id="2166">2166</a>
-<a href="#2167" id="2167">2167</a>
-<a href="#2168" id="2168">2168</a>
-<a href="#2169" id="2169">2169</a>
-<a href="#2170" id="2170">2170</a>
-<a href="#2171" id="2171">2171</a>
-<a href="#2172" id="2172">2172</a>
-<a href="#2173" id="2173">2173</a>
-<a href="#2174" id="2174">2174</a>
-<a href="#2175" id="2175">2175</a>
-<a href="#2176" id="2176">2176</a>
-<a href="#2177" id="2177">2177</a>
-<a href="#2178" id="2178">2178</a>
-<a href="#2179" id="2179">2179</a>
-<a href="#2180" id="2180">2180</a>
-<a href="#2181" id="2181">2181</a>
-<a href="#2182" id="2182">2182</a>
-<a href="#2183" id="2183">2183</a>
-<a href="#2184" id="2184">2184</a>
-<a href="#2185" id="2185">2185</a>
-<a href="#2186" id="2186">2186</a>
-<a href="#2187" id="2187">2187</a>
-<a href="#2188" id="2188">2188</a>
-<a href="#2189" id="2189">2189</a>
-<a href="#2190" id="2190">2190</a>
-<a href="#2191" id="2191">2191</a>
-<a href="#2192" id="2192">2192</a>
-<a href="#2193" id="2193">2193</a>
-<a href="#2194" id="2194">2194</a>
-<a href="#2195" id="2195">2195</a>
-<a href="#2196" id="2196">2196</a>
-<a href="#2197" id="2197">2197</a>
-<a href="#2198" id="2198">2198</a>
-<a href="#2199" id="2199">2199</a>
-<a href="#2200" id="2200">2200</a>
-<a href="#2201" id="2201">2201</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2166" id="2166">2166</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -2213,14 +2178,16 @@
     SendableFrameTree,
 };
 <span class="kw">use </span>crossbeam_channel::Sender;
-<span class="kw">use </span>embedder_traits::{Cursor, MouseButton, MouseEventType, TouchEventType, TouchId, WheelDelta};
+<span class="kw">use </span>embedder_traits::{
+    Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    TouchEvent, TouchEventAction, TouchId,
+};
 <span class="kw">use </span>euclid::{vec2, Point2D, Scale, Size2D, Transform3D, Vector2D};
 <span class="kw">use </span>gleam::gl;
 <span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSharedMemory};
 <span class="kw">use </span>log::{debug, error, trace, warn};
 <span class="kw">use </span>profile_traits::time::{<span class="self">self </span><span class="kw">as </span>profile_time, ProfilerCategory};
 <span class="kw">use </span>profile_traits::{mem, time, time_profile};
-<span class="kw">use </span>script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 <span class="kw">use </span>script_traits::{
     AnimationState, AnimationTickType, ScriptThreadMessage, ScrollState, WindowSizeData,
     WindowSizeType,
@@ -2595,7 +2562,7 @@
         }
     }
 
-    <span class="kw">fn </span>update_cursor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, result: CompositorHitTestResult) {
+    <span class="kw">fn </span>update_cursor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, result: <span class="kw-2">&amp;</span>CompositorHitTestResult) {
         <span class="kw">let </span>cursor = <span class="kw">match </span>result.cursor {
             <span class="prelude-val">Some</span>(cursor) <span class="kw">if </span>cursor != <span class="self">self</span>.cursor =&gt; cursor,
             <span class="kw">_ </span>=&gt; <span class="kw">return</span>,
@@ -2730,7 +2697,7 @@
 
                 <span class="kw">if </span>recomposite_needed {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(<span class="self">self</span>.cursor_pos) {
-                        <span class="self">self</span>.update_cursor(result);
+                        <span class="self">self</span>.update_cursor(<span class="kw-2">&amp;</span>result);
                     }
                 }
 
@@ -2746,20 +2713,20 @@
                 }
             }
 
-            CompositorMsg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y) =&gt; {
+            CompositorMsg::WebDriverMouseButtonEvent(action, button, x, y) =&gt; {
                 <span class="kw">let </span>dppx = <span class="self">self</span>.device_pixels_per_page_pixel();
                 <span class="kw">let </span>point = dppx.transform_point(Point2D::new(x, y));
-                <span class="self">self</span>.on_mouse_window_event_class(<span class="kw">match </span>mouse_event_type {
-                    MouseEventType::Click =&gt; MouseWindowEvent::Click(mouse_button, point),
-                    MouseEventType::MouseDown =&gt; MouseWindowEvent::MouseDown(mouse_button, point),
-                    MouseEventType::MouseUp =&gt; MouseWindowEvent::MouseUp(mouse_button, point),
-                });
+                <span class="self">self</span>.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                    point,
+                    action,
+                    button,
+                }));
             }
 
             CompositorMsg::WebDriverMouseMoveEvent(x, y) =&gt; {
                 <span class="kw">let </span>dppx = <span class="self">self</span>.device_pixels_per_page_pixel();
                 <span class="kw">let </span>point = dppx.transform_point(Point2D::new(x, y));
-                <span class="self">self</span>.on_mouse_window_move_event_class(DevicePoint::new(point.x, point.y));
+                <span class="self">self</span>.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             }
 
             CompositorMsg::PendingPaintMetric(pipeline_id, epoch) =&gt; {
@@ -3470,56 +3437,52 @@
         <span class="bool-val">true
     </span>}
 
-    <span class="doccomment">/// Handle the mouse event in the window.
-    </span><span class="kw">pub fn </span>on_mouse_window_event_class(<span class="kw-2">&amp;mut </span><span class="self">self</span>, mouse_window_event: MouseWindowEvent) {
+    <span class="doccomment">/// Dispatch input event to constellation.
+    </span><span class="kw">fn </span>dispatch_input_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: InputEvent) {
+        <span class="comment">// Events that do not need to do hit testing are sent directly to the
+        // constellation to filter down.
+        </span><span class="kw">let </span><span class="prelude-val">Some</span>(point) = event.point() <span class="kw">else </span>{
+            <span class="kw">return</span>;
+        };
+
+        <span class="comment">// If we can't find a pipeline to send this event to, we cannot continue.
+        </span><span class="kw">let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(point) <span class="kw">else </span>{
+            <span class="kw">return</span>;
+        };
+
+        <span class="self">self</span>.update_cursor(<span class="kw-2">&amp;</span>result);
+
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self
+            </span>.constellation_chan
+            .send(ConstellationMsg::ForwardInputEvent(event, <span class="prelude-val">Some</span>(result)))
+        {
+            <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({error:?})."</span>);
+        }
+    }
+
+    <span class="doccomment">/// Handle the input event in the window.
+    </span><span class="kw">pub fn </span>on_input_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: InputEvent) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
-
         <span class="kw">if </span><span class="self">self</span>.convert_mouse_to_touch {
-            <span class="kw">match </span>mouse_window_event {
-                MouseWindowEvent::Click(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {}
-                MouseWindowEvent::MouseDown(<span class="kw">_</span>, p) =&gt; <span class="self">self</span>.on_touch_down(TouchId(<span class="number">0</span>), p),
-                MouseWindowEvent::MouseUp(<span class="kw">_</span>, p) =&gt; <span class="self">self</span>.on_touch_up(TouchId(<span class="number">0</span>), p),
+            <span class="kw">match </span>event {
+                InputEvent::MouseButton(event) =&gt; {
+                    <span class="kw">match </span>event.action {
+                        MouseButtonAction::Click =&gt; {}
+                        MouseButtonAction::Down =&gt; <span class="self">self</span>.on_touch_down(TouchId(<span class="number">0</span>), event.point),
+                        MouseButtonAction::Up =&gt; <span class="self">self</span>.on_touch_up(TouchId(<span class="number">0</span>), event.point),
+                    }
+                    <span class="kw">return</span>;
+                }
+                InputEvent::MouseMove(event) =&gt; {
+                    <span class="self">self</span>.on_touch_move(TouchId(<span class="number">0</span>), event.point);
+                    <span class="kw">return</span>;
+                }
+                <span class="kw">_ </span>=&gt; {}
             }
-            <span class="kw">return</span>;
         }
-
-        <span class="self">self</span>.dispatch_mouse_window_event_class(mouse_window_event);
-    }
-
-    <span class="kw">fn </span>dispatch_mouse_window_event_class(<span class="kw-2">&amp;mut </span><span class="self">self</span>, mouse_window_event: MouseWindowEvent) {
-        <span class="kw">let </span>point = <span class="kw">match </span>mouse_window_event {
-            MouseWindowEvent::Click(<span class="kw">_</span>, p) =&gt; p,
-            MouseWindowEvent::MouseDown(<span class="kw">_</span>, p) =&gt; p,
-            MouseWindowEvent::MouseUp(<span class="kw">_</span>, p) =&gt; p,
-        };
-
-        <span class="kw">let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(point) <span class="kw">else </span>{
-            <span class="comment">// TODO: Notify embedder that the event failed to hit test to any webview.
-            // TODO: Also notify embedder if an event hits a webview but isn’t consumed?
-            </span><span class="kw">return</span>;
-        };
-
-        <span class="kw">let </span>(button, event_type) = <span class="kw">match </span>mouse_window_event {
-            MouseWindowEvent::Click(button, <span class="kw">_</span>) =&gt; (button, MouseEventType::Click),
-            MouseWindowEvent::MouseDown(button, <span class="kw">_</span>) =&gt; (button, MouseEventType::MouseDown),
-            MouseWindowEvent::MouseUp(button, <span class="kw">_</span>) =&gt; (button, MouseEventType::MouseUp),
-        };
-
-        <span class="kw">let </span>event_to_send = MouseButtonEvent(
-            event_type,
-            button,
-            result.point_in_viewport.to_untyped(),
-            <span class="prelude-val">Some</span>(result.node.into()),
-            <span class="prelude-val">Some</span>(result.point_relative_to_item),
-            button <span class="kw">as </span>u16,
-        );
-
-        <span class="kw">let </span>msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event_to_send);
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
-            <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({:?})."</span>, e);
-        }
+        <span class="self">self</span>.dispatch_input_event(event);
     }
 
     <span class="kw">fn </span>hit_test_at_point(<span class="kw-2">&amp;</span><span class="self">self</span>, point: DevicePoint) -&gt; <span class="prelude-ty">Option</span>&lt;CompositorHitTestResult&gt; {
@@ -3571,91 +3534,45 @@
             .collect()
     }
 
-    <span class="doccomment">/// Handle mouse move event in the window.
-    </span><span class="kw">pub fn </span>on_mouse_window_move_event_class(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cursor: DevicePoint) {
-        <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
+    <span class="kw">fn </span>send_touch_event(<span class="kw-2">&amp;</span><span class="self">self</span>, event: TouchEvent) {
+        <span class="kw">let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(event.point) <span class="kw">else </span>{
             <span class="kw">return</span>;
-        }
-
-        <span class="kw">if </span><span class="self">self</span>.convert_mouse_to_touch {
-            <span class="self">self</span>.on_touch_move(TouchId(<span class="number">0</span>), cursor);
-            <span class="kw">return</span>;
-        }
-
-        <span class="self">self</span>.dispatch_mouse_window_move_event_class(cursor);
-    }
-
-    <span class="kw">fn </span>dispatch_mouse_window_move_event_class(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cursor: DevicePoint) {
-        <span class="kw">let </span>result = <span class="kw">match </span><span class="self">self</span>.hit_test_at_point(cursor) {
-            <span class="prelude-val">Some</span>(result) =&gt; result,
-            <span class="prelude-val">None </span>=&gt; <span class="kw">return</span>,
         };
 
-        <span class="self">self</span>.cursor_pos = cursor;
-        <span class="kw">let </span>event = MouseMoveEvent(result.point_in_viewport, <span class="prelude-val">Some</span>(result.node.into()), <span class="number">0</span>);
-        <span class="kw">let </span>msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
+        <span class="kw">let </span>event = InputEvent::Touch(event);
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self
+            </span>.constellation_chan
+            .send(ConstellationMsg::ForwardInputEvent(event, <span class="prelude-val">Some</span>(result)))
+        {
             <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({:?})."</span>, e);
-        }
-        <span class="self">self</span>.update_cursor(result);
-    }
-
-    <span class="kw">fn </span>send_touch_event(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        point: DevicePoint,
-    ) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(point) {
-            <span class="kw">let </span>event = TouchEvent(
-                event_type,
-                identifier,
-                result.point_in_viewport,
-                <span class="prelude-val">Some</span>(result.node.into()),
-            );
-            <span class="kw">let </span>msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
-                <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({:?})."</span>, e);
-            }
-        }
-    }
-
-    <span class="kw">fn </span>send_wheel_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, delta: WheelDelta, point: DevicePoint) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(point) {
-            <span class="kw">let </span>event = WheelEvent(delta, result.point_in_viewport, <span class="prelude-val">Some</span>(result.node.into()));
-            <span class="kw">let </span>msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
-                <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({:?})."</span>, e);
-            }
         }
     }
 
     <span class="doccomment">/// Handle touch event.
-    </span><span class="kw">pub fn </span>on_touch_event(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        location: DevicePoint,
-    ) {
+    </span><span class="kw">pub fn </span>on_touch_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: TouchEvent) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
 
-        <span class="kw">match </span>event_type {
-            TouchEventType::Down =&gt; <span class="self">self</span>.on_touch_down(identifier, location),
-            TouchEventType::Move =&gt; <span class="self">self</span>.on_touch_move(identifier, location),
-            TouchEventType::Up =&gt; <span class="self">self</span>.on_touch_up(identifier, location),
-            TouchEventType::Cancel =&gt; <span class="self">self</span>.on_touch_cancel(identifier, location),
+        <span class="kw">match </span>event.action {
+            TouchEventAction::Down =&gt; <span class="self">self</span>.on_touch_down(event.id, event.point),
+            TouchEventAction::Move =&gt; <span class="self">self</span>.on_touch_move(event.id, event.point),
+            TouchEventAction::Up =&gt; <span class="self">self</span>.on_touch_up(event.id, event.point),
+            TouchEventAction::Cancel =&gt; <span class="self">self</span>.on_touch_cancel(event.id, event.point),
         }
     }
 
-    <span class="kw">fn </span>on_touch_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, identifier: TouchId, point: DevicePoint) {
-        <span class="self">self</span>.touch_handler.on_touch_down(identifier, point);
-        <span class="self">self</span>.send_touch_event(TouchEventType::Down, identifier, point);
+    <span class="kw">fn </span>on_touch_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
+        <span class="self">self</span>.touch_handler.on_touch_down(id, point);
+        <span class="self">self</span>.send_touch_event(TouchEvent {
+            action: TouchEventAction::Down,
+            id,
+            point,
+        })
     }
 
-    <span class="kw">fn </span>on_touch_move(<span class="kw-2">&amp;mut </span><span class="self">self</span>, identifier: TouchId, point: DevicePoint) {
-        <span class="kw">match </span><span class="self">self</span>.touch_handler.on_touch_move(identifier, point) {
+    <span class="kw">fn </span>on_touch_move(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
+        <span class="kw">match </span><span class="self">self</span>.touch_handler.on_touch_move(id, point) {
             TouchAction::Scroll(delta) =&gt; <span class="self">self</span>.on_scroll_window_event(
                 ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
                 point.cast(),
@@ -3677,43 +3594,56 @@
                         event_count: <span class="number">1</span>,
                     }));
             }
-            TouchAction::DispatchEvent =&gt; {
-                <span class="self">self</span>.send_touch_event(TouchEventType::Move, identifier, point);
-            }
+            TouchAction::DispatchEvent =&gt; <span class="self">self</span>.send_touch_event(TouchEvent {
+                action: TouchEventAction::Move,
+                id,
+                point,
+            }),
             <span class="kw">_ </span>=&gt; {}
         }
     }
 
-    <span class="kw">fn </span>on_touch_up(<span class="kw-2">&amp;mut </span><span class="self">self</span>, identifier: TouchId, point: DevicePoint) {
-        <span class="self">self</span>.send_touch_event(TouchEventType::Up, identifier, point);
+    <span class="kw">fn </span>on_touch_up(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
+        <span class="self">self</span>.send_touch_event(TouchEvent {
+            action: TouchEventAction::Up,
+            id,
+            point,
+        });
 
-        <span class="kw">if let </span>TouchAction::Click = <span class="self">self</span>.touch_handler.on_touch_up(identifier, point) {
+        <span class="kw">if let </span>TouchAction::Click = <span class="self">self</span>.touch_handler.on_touch_up(id, point) {
             <span class="self">self</span>.simulate_mouse_click(point);
         }
     }
 
-    <span class="kw">fn </span>on_touch_cancel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, identifier: TouchId, point: DevicePoint) {
+    <span class="kw">fn </span>on_touch_cancel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
         <span class="comment">// Send the event to script.
-        </span><span class="self">self</span>.touch_handler.on_touch_cancel(identifier, point);
-        <span class="self">self</span>.send_touch_event(TouchEventType::Cancel, identifier, point);
+        </span><span class="self">self</span>.touch_handler.on_touch_cancel(id, point);
+        <span class="self">self</span>.send_touch_event(TouchEvent {
+            action: TouchEventAction::Cancel,
+            id,
+            point,
+        })
     }
 
     <span class="doccomment">/// &lt;http://w3c.github.io/touch-events/#mouse-events&gt;
-    </span><span class="kw">fn </span>simulate_mouse_click(<span class="kw-2">&amp;mut </span><span class="self">self</span>, p: DevicePoint) {
+    </span><span class="kw">fn </span>simulate_mouse_click(<span class="kw-2">&amp;mut </span><span class="self">self</span>, point: DevicePoint) {
         <span class="kw">let </span>button = MouseButton::Left;
-        <span class="self">self</span>.dispatch_mouse_window_move_event_class(p);
-        <span class="self">self</span>.dispatch_mouse_window_event_class(MouseWindowEvent::MouseDown(button, p));
-        <span class="self">self</span>.dispatch_mouse_window_event_class(MouseWindowEvent::MouseUp(button, p));
-        <span class="self">self</span>.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
-    }
-
-    <span class="doccomment">/// Hit test and forward the wheel event to constellation.
-    </span><span class="kw">pub fn </span>on_wheel_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, delta: WheelDelta, p: DevicePoint) {
-        <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
-            <span class="kw">return</span>;
-        }
-
-        <span class="self">self</span>.send_wheel_event(delta, p);
+        <span class="self">self</span>.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+        <span class="self">self</span>.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Down,
+            point,
+        }));
+        <span class="self">self</span>.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Up,
+            point,
+        }));
+        <span class="self">self</span>.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Click,
+            point,
+        }));
     }
 
     <span class="doccomment">/// Handle scroll event.
@@ -3721,18 +3651,18 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        phase: TouchEventType,
+        action: TouchEventAction,
     ) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
 
-        <span class="kw">match </span>phase {
-            TouchEventType::Move =&gt; <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor),
-            TouchEventType::Up | TouchEventType::Cancel =&gt; {
+        <span class="kw">match </span>action {
+            TouchEventAction::Move =&gt; <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor),
+            TouchEventAction::Up | TouchEventAction::Cancel =&gt; {
                 <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor);
             }
-            TouchEventType::Down =&gt; {
+            TouchEventAction::Down =&gt; {
                 <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor);
             }
         }

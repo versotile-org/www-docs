@@ -283,7 +283,7 @@
 <a href="#282" id="282">282</a></pre></div><pre class="rust"><code><span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
-<span class="kw">use </span>embedder_traits::{PermissionRequest, PromptCredentialsInput, PromptResult};
+<span class="kw">use </span>embedder_traits::{AllowOrDeny, AuthenticationResponse, PromptResult};
 <span class="kw">use </span>ipc_channel::ipc::IpcSender;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>servo_url::ServoUrl;
@@ -302,10 +302,10 @@
     ///
     /// &lt;https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm&gt;
     </span>OkCancel(String),
-    <span class="doccomment">/// Confirm dialog, Yes/No
+    <span class="doccomment">/// Confirm dialog, Allow/Deny
     ///
     /// &lt;https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm&gt;
-    </span>YesNo(String),
+    </span>AllowDeny(String),
     <span class="doccomment">/// Input dialog
     ///
     /// &lt;https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt&gt;
@@ -325,10 +325,10 @@
     </span>ConfirmSender(IpcSender&lt;PromptResult&gt;),
     <span class="doccomment">/// Input sender
     </span>InputSender(IpcSender&lt;<span class="prelude-ty">Option</span>&lt;String&gt;&gt;),
-    <span class="doccomment">/// Yes/No Permission sender
-    </span>PermissionSender(IpcSender&lt;PermissionRequest&gt;),
+    <span class="doccomment">/// Allow/Deny Permission sender
+    </span>AllowDenySender(IpcSender&lt;AllowOrDeny&gt;),
     <span class="doccomment">/// HTTP basic authentication sender
-    </span>HttpBasicAuthSender(IpcSender&lt;PromptCredentialsInput&gt;),
+    </span>HttpBasicAuthSender(IpcSender&lt;<span class="prelude-ty">Option</span>&lt;AuthenticationResponse&gt;&gt;),
 }
 
 <span class="doccomment">/// Prompt input result send from prompt dialog to backend
@@ -360,7 +360,7 @@
     <span class="doccomment">/// User action: "signin" / "cancel"
     </span><span class="kw">pub </span>action: String,
     <span class="doccomment">/// User input value
-    </span><span class="kw">pub </span>auth: PromptCredentialsInput,
+    </span><span class="kw">pub </span>auth: AuthenticationResponse,
 }
 
 <span class="doccomment">/// Prompt Dialog
@@ -459,12 +459,12 @@
     ///
     /// ```rust
     /// let mut prompt = PromptDialog::new();
-    /// prompt.yes_no(sender, rect, message, prompt_sender);
-    /// if let Some(PromptSender::PermissionSender(sender)) = prompt.sender() {
-    ///     let _ = sender.send(PermissionRequest::Granted);
+    /// prompt.allow_deny(sender, rect, message, prompt_sender);
+    /// if let Some(PromptSender::AllowDenySender(sender)) = prompt.sender() {
+    ///     let _ = sender.send(AllowOrDeny::Allow);
     /// }
     /// ```
-    </span><span class="kw">pub fn </span>yes_no(
+    </span><span class="kw">pub fn </span>allow_deny(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
         rect: DeviceIntRect,
@@ -472,7 +472,7 @@
         prompt_sender: PromptSender,
     ) {
         <span class="self">self</span>.prompt_sender = <span class="prelude-val">Some</span>(prompt_sender);
-        <span class="self">self</span>.show(sender, rect, PromptType::YesNo(message));
+        <span class="self">self</span>.show(sender, rect, PromptType::AllowDeny(message));
     }
 
     <span class="doccomment">/// Show input prompt
@@ -508,7 +508,7 @@
     ///
     /// ```rust
     /// if let Some(PromptSender::HttpBasicAuthSender(sender)) = prompt.sender() {
-    ///     let _ = sender.send(PromptCredentialsInput {
+    ///     let _ = sender.send(AuthenticationResponse {
     ///         username: "user".to_string(),
     ///         password: "password".to_string(),
     ///     });
@@ -518,7 +518,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
         rect: DeviceIntRect,
-        prompt_sender: IpcSender&lt;PromptCredentialsInput&gt;,
+        prompt_sender: IpcSender&lt;<span class="prelude-ty">Option</span>&lt;AuthenticationResponse&gt;&gt;,
     ) {
         <span class="self">self</span>.prompt_sender = <span class="prelude-val">Some</span>(PromptSender::HttpBasicAuthSender(prompt_sender));
         <span class="self">self</span>.show(sender, rect, PromptType::HttpBasicAuth);
@@ -545,7 +545,7 @@
             PromptType::OkCancel(msg) =&gt; {
                 <span class="macro">format!</span>(<span class="string">"verso://resources/components/prompt/ok_cancel.html?msg={msg}"</span>)
             }
-            PromptType::YesNo(msg) =&gt; {
+            PromptType::AllowDeny(msg) =&gt; {
                 <span class="macro">format!</span>(<span class="string">"verso://resources/components/prompt/yes_no.html?msg={msg}"</span>)
             }
             PromptType::Input(msg, default_value) =&gt; {
