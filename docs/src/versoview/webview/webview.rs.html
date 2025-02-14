@@ -620,7 +620,10 @@
 <a href="#619" id="619">619</a>
 <a href="#620" id="620">620</a>
 <a href="#621" id="621">621</a>
-<a href="#622" id="622">622</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -811,7 +814,8 @@
             }
             EmbedderMsg::ShowContextMenu(_webview_id, _sender, _title, _options) =&gt; {
                 <span class="comment">// TODO: Implement context menu
-            </span>}
+                </span><span class="kw">let _ </span>= _sender.send(embedder_traits::ContextMenuResult::Dismissed);
+            }
             EmbedderMsg::Prompt(_webview_id, prompt_type, _origin) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.tab(webview_id) {
                     <span class="kw">let </span><span class="kw-2">mut </span>prompt = PromptDialog::new();
@@ -887,7 +891,6 @@
             }
             EmbedderMsg::WebViewBlurred =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
-                <span class="self">self</span>.close_context_menu(sender);
             }
             EmbedderMsg::WebViewFocused(webview_id) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
@@ -951,8 +954,7 @@
                             <span class="kw">let </span>size = <span class="self">self</span>.size();
                             <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
                             <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, <span class="bool-val">true</span>);
-                            <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(webview_id, rect);
-                            webview.set_size(content_size);
+                            <span class="kw">let </span>webview = WebView::new(webview_id, content_size);
 
                             <span class="self">self</span>.tab_manager.append_tab(webview, <span class="bool-val">true</span>);
 
@@ -1109,6 +1111,10 @@
                 }
                 <span class="kw">_ </span>=&gt; <span class="macro">log::trace!</span>(<span class="string">"Verso context menu isn't supporting this prompt yet"</span>),
             },
+            EmbedderMsg::ShowContextMenu(_webview_id, _sender, _title, _options) =&gt; {
+                <span class="comment">// TODO: Implement context menu
+                </span><span class="kw">let _ </span>= _sender.send(embedder_traits::ContextMenuResult::Dismissed);
+            }
             e =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso context menu isn't supporting this message yet: {e:?}"</span>)
             }

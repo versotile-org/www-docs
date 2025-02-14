@@ -2164,7 +2164,13 @@
 <a href="#2163" id="2163">2163</a>
 <a href="#2164" id="2164">2164</a>
 <a href="#2165" id="2165">2165</a>
-<a href="#2166" id="2166">2166</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2166" id="2166">2166</a>
+<a href="#2167" id="2167">2167</a>
+<a href="#2168" id="2168">2168</a>
+<a href="#2169" id="2169">2169</a>
+<a href="#2170" id="2170">2170</a>
+<a href="#2171" id="2171">2171</a>
+<a href="#2172" id="2172">2172</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -3403,6 +3409,12 @@
             <span class="kw">if let </span><span class="prelude-val">Some</span>(prompt_id) = prompt_id {
                 <span class="self">self</span>.on_resize_webview_event(prompt_id, content_size);
             }
+        }
+        <span class="attr">#[cfg(linux)]
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(context_menu) = <span class="kw-2">&amp;mut </span>window.context_menu {
+            <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+            context_menu.webview.rect = rect;
+            <span class="self">self</span>.on_resize_webview_event(context_menu.webview.webview_id, rect);
         }
 
         <span class="self">self</span>.send_root_pipeline_display_list(window);

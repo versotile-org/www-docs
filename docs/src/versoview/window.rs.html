@@ -1105,7 +1105,21 @@
 <a href="#1104" id="1104">1104</a>
 <a href="#1105" id="1105">1105</a>
 <a href="#1106" id="1106">1106</a>
-<a href="#1107" id="1107">1107</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -1438,6 +1452,9 @@
                     .send(ConstellationMsg::SetWebViewThrottled(tab_id, <span class="bool-val">false</span>));
 
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(tab_id);
+                <span class="kw">let _ </span>= compositor
+                    .constellation_chan
+                    .send(ConstellationMsg::FocusWebView(tab_id));
 
                 <span class="comment">// update painting order immediately to draw the active tab
                 </span>compositor.send_root_pipeline_display_list(<span class="self">self</span>);
@@ -1773,6 +1790,12 @@
         Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32)
     }
 
+    <span class="doccomment">/// Size of the window, including the window decorations.
+    </span><span class="kw">pub fn </span>outer_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceIntSize {
+        <span class="kw">let </span>size = <span class="self">self</span>.window.outer_size();
+        Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32)
+    }
+
     <span class="doccomment">/// Get Winit window ID of the window.
     </span><span class="kw">pub fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WindowId {
         <span class="self">self</span>.window.id()
@@ -1976,11 +1999,11 @@
     }
 
     <span class="doccomment">/// Close window's context menu
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>close_context_menu(<span class="kw-2">&amp;</span><span class="self">self</span>, _sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;) {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>close_context_menu(<span class="kw-2">&amp;</span><span class="self">self</span>, sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;) {
         <span class="attr">#[cfg(linux)]
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(context_menu) = <span class="kw-2">&amp;</span><span class="self">self</span>.context_menu {
             send_to_constellation(
-                _sender,
+                sender,
                 ConstellationMsg::CloseWebView(context_menu.webview().webview_id),
             );
         }
@@ -2023,28 +2046,33 @@
         event: <span class="kw">crate</span>::webview::context_menu::ContextMenuResult,
     ) {
         <span class="self">self</span>.close_context_menu(sender);
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = <span class="self">self</span>.tab_manager.current_tab_id() {
-            <span class="kw">match </span>event.id.as_str() {
-                <span class="string">"back" </span>=&gt; {
-                    send_to_constellation(
-                        sender,
-                        ConstellationMsg::TraverseHistory(tab_id, TraversalDirection::Back(<span class="number">1</span>)),
-                    );
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(id) = event.id {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = <span class="self">self</span>.tab_manager.current_tab_id() {
+                <span class="kw">match </span>id.as_str() {
+                    <span class="string">"back" </span>=&gt; {
+                        send_to_constellation(
+                            sender,
+                            ConstellationMsg::TraverseHistory(tab_id, TraversalDirection::Back(<span class="number">1</span>)),
+                        );
+                    }
+                    <span class="string">"forward" </span>=&gt; {
+                        send_to_constellation(
+                            sender,
+                            ConstellationMsg::TraverseHistory(
+                                tab_id,
+                                TraversalDirection::Forward(<span class="number">1</span>),
+                            ),
+                        );
+                    }
+                    <span class="string">"reload" </span>=&gt; {
+                        send_to_constellation(sender, ConstellationMsg::Reload(tab_id));
+                    }
+                    <span class="kw">_ </span>=&gt; {}
                 }
-                <span class="string">"forward" </span>=&gt; {
-                    send_to_constellation(
-                        sender,
-                        ConstellationMsg::TraverseHistory(tab_id, TraversalDirection::Forward(<span class="number">1</span>)),
-                    );
-                }
-                <span class="string">"reload" </span>=&gt; {
-                    send_to_constellation(sender, ConstellationMsg::Reload(tab_id));
-                }
-                <span class="kw">_ </span>=&gt; {}
+            } <span class="kw">else </span>{
+                <span class="macro">log::error!</span>(<span class="string">"No active webview to handle context menu event"</span>);
             }
-        } <span class="kw">else </span>{
-            <span class="macro">log::error!</span>(<span class="string">"No active webview to handle context menu event"</span>);
-        }
+        };
     }
 }
 

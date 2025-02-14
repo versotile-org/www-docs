@@ -184,54 +184,7 @@
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
 <a href="#185" id="185">185</a>
-<a href="#186" id="186">186</a>
-<a href="#187" id="187">187</a>
-<a href="#188" id="188">188</a>
-<a href="#189" id="189">189</a>
-<a href="#190" id="190">190</a>
-<a href="#191" id="191">191</a>
-<a href="#192" id="192">192</a>
-<a href="#193" id="193">193</a>
-<a href="#194" id="194">194</a>
-<a href="#195" id="195">195</a>
-<a href="#196" id="196">196</a>
-<a href="#197" id="197">197</a>
-<a href="#198" id="198">198</a>
-<a href="#199" id="199">199</a>
-<a href="#200" id="200">200</a>
-<a href="#201" id="201">201</a>
-<a href="#202" id="202">202</a>
-<a href="#203" id="203">203</a>
-<a href="#204" id="204">204</a>
-<a href="#205" id="205">205</a>
-<a href="#206" id="206">206</a>
-<a href="#207" id="207">207</a>
-<a href="#208" id="208">208</a>
-<a href="#209" id="209">209</a>
-<a href="#210" id="210">210</a>
-<a href="#211" id="211">211</a>
-<a href="#212" id="212">212</a>
-<a href="#213" id="213">213</a>
-<a href="#214" id="214">214</a>
-<a href="#215" id="215">215</a>
-<a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a></pre></div><pre class="rust"><code><span class="comment">/* macOS, Windows Native Implementation */
+<a href="#186" id="186">186</a></pre></div><pre class="rust"><code><span class="comment">/* macOS, Windows Native Implementation */
 </span><span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
 </span><span class="kw">use </span>muda::{ContextMenu <span class="kw">as </span>MudaContextMenu, Menu <span class="kw">as </span>MudaMenu};
 <span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
@@ -247,15 +200,13 @@
 <span class="attr">#[cfg(linux)]
 </span><span class="kw">use </span>crossbeam_channel::Sender;
 <span class="attr">#[cfg(linux)]
-</span><span class="kw">use </span>euclid::{Point2D, Size2D};
-<span class="attr">#[cfg(linux)]
 </span><span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="attr">#[cfg(linux)]
 </span><span class="kw">use </span>servo_url::ServoUrl;
 <span class="attr">#[cfg(linux)]
 </span><span class="kw">use </span>webrender_api::units::DeviceIntRect;
 <span class="attr">#[cfg(linux)]
-</span><span class="kw">use </span>winit::dpi::PhysicalPosition;
+</span><span class="kw">use </span>winit::dpi::{LogicalPosition, PhysicalPosition};
 
 <span class="doccomment">/// Basic menu type building block
 </span><span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
@@ -280,7 +231,10 @@
     </span>menu_items: Vec&lt;MenuItem&gt;,
     <span class="doccomment">/// The webview that the context menu is attached to
     </span><span class="attr">#[cfg(linux)]
-    </span>webview: WebView,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) webview: WebView,
+    <span class="doccomment">/// Menu position, used for positioning the context menu by CSS
+    </span><span class="attr">#[cfg(linux)]
+    </span>position: LogicalPosition&lt;f64&gt;,
 }
 
 <span class="kw">impl </span>ContextMenu {
@@ -302,6 +256,7 @@
             <span class="self">Self </span>{
                 menu_items: menu.<span class="number">0</span>,
                 webview,
+                position: LogicalPosition::new(<span class="number">0.0</span>, <span class="number">0.0</span>),
             }
         }
     }
@@ -347,8 +302,8 @@
         window: <span class="kw-2">&amp;mut </span>Window,
         position: PhysicalPosition&lt;f64&gt;,
     ) {
-        <span class="kw">let </span>scale_factor = window.scale_factor();
-        <span class="self">self</span>.set_position(window, position, scale_factor);
+        <span class="self">self</span>.position = position.to_logical(window.scale_factor());
+        <span class="self">self</span>.webview.rect = DeviceIntRect::from_size(window.outer_size());
 
         send_to_constellation(
             sender,
@@ -365,59 +320,10 @@
     </span><span class="kw">fn </span>resource_url(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ServoUrl {
         <span class="kw">let </span>items_json: String = <span class="self">self</span>.to_items_json();
         <span class="kw">let </span>url_str = <span class="macro">format!</span>(
-            <span class="string">"verso://resources/components/context_menu.html?items={}"</span>,
-            items_json
+            <span class="string">"verso://resources/components/context_menu.html?items={}&amp;pos_x={}&amp;pos_y={}"</span>,
+            items_json, <span class="self">self</span>.position.x, <span class="self">self</span>.position.y
         );
         ServoUrl::parse(<span class="kw-2">&amp;</span>url_str).unwrap()
-    }
-
-    <span class="doccomment">/// Set the position of the context menu
-    </span><span class="kw">fn </span>set_position(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        window: <span class="kw-2">&amp;</span>Window,
-        position: PhysicalPosition&lt;f64&gt;,
-        scale_factor: f64,
-    ) {
-        <span class="comment">// Calculate menu size
-        // Each menu item is 30px height
-        // Menu has 10px padding top and bottom
-        </span><span class="kw">let </span>height = (<span class="self">self</span>.menu_items.len() * <span class="number">30 </span>+ <span class="number">20</span>) <span class="kw">as </span>f64 * scale_factor;
-        <span class="kw">let </span>width = <span class="number">200.0 </span>* scale_factor;
-        <span class="kw">let </span>menu_size = Size2D::new(width <span class="kw">as </span>i32, height <span class="kw">as </span>i32);
-
-        <span class="comment">// Translate position to origin
-        </span><span class="kw">let </span><span class="kw-2">mut </span>origin = Point2D::new(position.x <span class="kw">as </span>i32, position.y <span class="kw">as </span>i32);
-
-        <span class="comment">// Avoid overflow to the window, adjust position if necessary
-        </span><span class="kw">let </span>window_size = window.size();
-        <span class="kw">let </span>x_overflow: i32 = origin.x + menu_size.width - window_size.width;
-        <span class="kw">let </span>y_overflow: i32 = origin.y + menu_size.height - window_size.height;
-
-        <span class="kw">if </span>x_overflow &gt;= <span class="number">0 </span>{
-            <span class="comment">// check if the menu can be shown on left side of the cursor
-            </span><span class="kw">if </span>(origin.x - menu_size.width) &gt;= <span class="number">0 </span>{
-                origin.x = i32::max(<span class="number">0</span>, origin.x - menu_size.width);
-            } <span class="kw">else </span>{
-                <span class="comment">// if menu can't fit to left side of the cursor,
-                // shift left the menu, but not less than zero.
-                // TODO: if still smaller than screen, should show scroller
-                </span>origin.x = i32::max(<span class="number">0</span>, origin.x - x_overflow);
-            }
-        }
-        <span class="kw">if </span>y_overflow &gt;= <span class="number">0 </span>{
-            <span class="comment">// check if the menu can be shown above the cursor
-            </span><span class="kw">if </span>(origin.y - menu_size.height) &gt;= <span class="number">0 </span>{
-                origin.y = i32::max(<span class="number">0</span>, origin.y - menu_size.height);
-            } <span class="kw">else </span>{
-                <span class="comment">// if menu can't fit to top of the cursor
-                // shift up the menu, but not less than zero.
-                // TODO: if still smaller than screen, should show scroller
-                </span>origin.y = i32::max(<span class="number">0</span>, origin.y - y_overflow);
-            }
-        }
-
-        <span class="self">self</span>.webview
-            .set_size(DeviceIntRect::from_origin_and_size(origin, menu_size));
     }
 
     <span class="doccomment">/// get item json
@@ -460,7 +366,7 @@
 
 </span><span class="kw">pub struct </span>ContextMenuResult {
     <span class="doccomment">/// The id of the menu item
-    </span><span class="kw">pub </span>id: String,
+    </span><span class="kw">pub </span>id: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="doccomment">/// Close the context menu
     </span><span class="kw">pub </span>close: bool,
 }
