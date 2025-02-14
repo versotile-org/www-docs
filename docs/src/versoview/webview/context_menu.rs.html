@@ -184,7 +184,30 @@
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
 <a href="#185" id="185">185</a>
-<a href="#186" id="186">186</a></pre></div><pre class="rust"><code><span class="comment">/* macOS, Windows Native Implementation */
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a></pre></div><pre class="rust"><code><span class="kw">use </span>embedder_traits::ContextMenuResult;
+<span class="kw">use </span>ipc_channel::ipc::IpcSender;
+<span class="comment">/* macOS, Windows Native Implementation */
 </span><span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
 </span><span class="kw">use </span>muda::{ContextMenu <span class="kw">as </span>MudaContextMenu, Menu <span class="kw">as </span>MudaMenu};
 <span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
@@ -225,7 +248,9 @@
 ///   webview implementation.
 </span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>ContextMenu {
-    <span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
+    <span class="doccomment">/// IpcSender to send the context menu result to the Servo
+    </span>servo_result_sender: <span class="prelude-ty">Option</span>&lt;IpcSender&lt;ContextMenuResult&gt;&gt;, <span class="comment">// None if sender already sent
+    </span><span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
     </span>menu: MudaMenu,
     <span class="attr">#[cfg(linux)]
     </span>menu_items: Vec&lt;MenuItem&gt;,
@@ -243,10 +268,13 @@
     /// **Platform Specific**
     /// - macOS / Windows: Creates a context menu by muda crate with natvie OS support
     /// - Wayland: Creates a context menu with webview implementation
-    </span><span class="kw">pub fn </span>new_with_menu(menu: Menu) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new_with_menu(servo_result_sender: IpcSender&lt;ContextMenuResult&gt;, menu: Menu) -&gt; <span class="self">Self </span>{
         <span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
         </span>{
-            <span class="self">Self </span>{ menu: menu.<span class="number">0 </span>}
+            <span class="self">Self </span>{
+                servo_result_sender: <span class="prelude-val">Some</span>(servo_result_sender),
+                menu: menu.<span class="number">0</span>,
+            }
         }
         <span class="attr">#[cfg(linux)]
         </span>{
@@ -254,11 +282,25 @@
             <span class="kw">let </span>webview = WebView::new(webview_id, DeviceIntRect::zero());
 
             <span class="self">Self </span>{
+                servo_result_sender: <span class="prelude-val">Some</span>(servo_result_sender),
                 menu_items: menu.<span class="number">0</span>,
                 webview,
                 position: LogicalPosition::new(<span class="number">0.0</span>, <span class="number">0.0</span>),
             }
         }
+    }
+
+    <span class="doccomment">/// Send the context menu result back to the Servo. Can only be sent once.
+    </span><span class="kw">pub fn </span>send_result_to_servo(<span class="kw-2">&amp;mut </span><span class="self">self</span>, result: ContextMenuResult) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(sender) = <span class="self">self</span>.servo_result_sender.take() {
+            <span class="kw">let _ </span>= sender.send(result);
+        }
+    }
+}
+
+<span class="kw">impl </span>Drop <span class="kw">for </span>ContextMenu {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="self">self</span>.send_result_to_servo(ContextMenuResult::Dismissed);
     }
 }
 
@@ -364,7 +406,7 @@
 </span><span class="attr">#[cfg(linux)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
-</span><span class="kw">pub struct </span>ContextMenuResult {
+</span><span class="kw">pub struct </span>ContextMenuUIResponse {
     <span class="doccomment">/// The id of the menu item
     </span><span class="kw">pub </span>id: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="doccomment">/// Close the context menu

@@ -1110,23 +1110,15 @@
 <a href="#1109" id="1109">1109</a>
 <a href="#1110" id="1110">1110</a>
 <a href="#1111" id="1111">1111</a>
-<a href="#1112" id="1112">1112</a>
-<a href="#1113" id="1113">1113</a>
-<a href="#1114" id="1114">1114</a>
-<a href="#1115" id="1115">1115</a>
-<a href="#1116" id="1116">1116</a>
-<a href="#1117" id="1117">1117</a>
-<a href="#1118" id="1118">1118</a>
-<a href="#1119" id="1119">1119</a>
-<a href="#1120" id="1120">1120</a>
-<a href="#1121" id="1121">1121</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
+<a href="#1112" id="1112">1112</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
-    AllowOrDeny, Cursor, EmbedderMsg, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseMoveEvent, PromptResult, TouchEventAction, TraversalDirection, WheelMode,
+    AllowOrDeny, ContextMenuResult, Cursor, EmbedderMsg, InputEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PromptResult, TouchEventAction,
+    TraversalDirection, WheelMode,
 };
 <span class="kw">use </span>euclid::{Point2D, Size2D};
 <span class="kw">use </span>glutin::{
@@ -1208,7 +1200,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) context_menu: <span class="prelude-ty">Option</span>&lt;ContextMenu&gt;,
     <span class="doccomment">/// Global menu event receiver for muda crate
     </span><span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
-    </span>menu_event_receiver: MenuEventReceiver,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) menu_event_receiver: MenuEventReceiver,
     <span class="doccomment">/// Window tabs manager
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) tab_manager: TabManager,
     <span class="kw">pub</span>(<span class="kw">crate</span>) focused_webview_id: <span class="prelude-ty">Option</span>&lt;WebViewId&gt;,
@@ -1533,38 +1525,11 @@
                 };
 
                 <span class="comment">/* handle context menu */
-                // TODO(context-menu): should create on ShowContextMenu event
-                </span><span class="kw">let </span>prompt = <span class="self">self</span>.tab_manager.current_prompt();
-                <span class="kw">match </span>(state, button) {
-                    <span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
-                    </span>(ElementState::Pressed, winit::event::MouseButton::Right) =&gt; {
-                        <span class="kw">if </span>prompt.is_some() {
-                            <span class="kw">return</span>;
-                        }
-                        <span class="self">self</span>.show_context_menu();
-                        <span class="comment">// FIXME: there's chance to lose the event since the channel is async.
-                        </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(event) = <span class="self">self</span>.menu_event_receiver.try_recv() {
-                            <span class="self">self</span>.handle_context_menu_event(sender, event);
-                        }
+                </span><span class="kw">if let </span>(ElementState::Pressed, winit::event::MouseButton::Right) = (state, button) {
+                    <span class="kw">let </span>prompt = <span class="self">self</span>.tab_manager.current_prompt();
+                    <span class="kw">if </span>prompt.is_some() {
+                        <span class="kw">return</span>;
                     }
-                    <span class="attr">#[cfg(linux)]
-                    </span>(ElementState::Pressed, winit::event::MouseButton::Right) =&gt; {
-                        <span class="kw">if </span>prompt.is_some() {
-                            <span class="kw">return</span>;
-                        }
-                        <span class="kw">if </span><span class="self">self</span>.context_menu.is_none() {
-                            <span class="self">self</span>.context_menu = <span class="prelude-val">Some</span>(<span class="self">self</span>.show_context_menu(sender));
-                            <span class="kw">return</span>;
-                        }
-                    }
-                    <span class="attr">#[cfg(linux)]
-                    </span><span class="comment">// TODO(context-menu): ignore first release event after context menu open or close to prevent click on background element
-                    </span>(ElementState::Released, winit::event::MouseButton::Right) =&gt; {
-                        <span class="kw">if </span><span class="self">self</span>.context_menu.is_some() {
-                            <span class="kw">return</span>;
-                        }
-                    }
-                    <span class="kw">_ </span>=&gt; {}
                 }
 
                 <span class="comment">/* handle Windows and Linux non-decoration window resize */
@@ -1951,7 +1916,10 @@
 <span class="comment">// Context Menu methods
 </span><span class="kw">impl </span>Window {
     <span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>show_context_menu(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>show_context_menu(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        servo_sender: IpcSender&lt;ContextMenuResult&gt;,
+    ) -&gt; ContextMenu {
         <span class="kw">let </span>tab = <span class="self">self</span>.tab_manager.current_tab().unwrap();
         <span class="kw">let </span>history = tab.history();
         <span class="kw">let </span>history_len = history.list.len();
@@ -1969,12 +1937,18 @@
         <span class="kw">let </span>menu = MudaMenu::new();
         <span class="kw">let _ </span>= menu.append_items(<span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>back, <span class="kw-2">&amp;</span>forward, <span class="kw-2">&amp;</span>reload]);
 
-        <span class="kw">let </span>context_menu = ContextMenu::new_with_menu(Menu(menu));
+        <span class="kw">let </span>context_menu = ContextMenu::new_with_menu(servo_sender, Menu(menu));
         context_menu.show(<span class="self">self</span>.window.window_handle().unwrap());
+
+        context_menu
     }
 
     <span class="attr">#[cfg(linux)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>show_context_menu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;) -&gt; ContextMenu {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>show_context_menu(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        servo_sender: IpcSender&lt;ContextMenuResult&gt;,
+    ) -&gt; ContextMenu {
         <span class="kw">use </span><span class="kw">crate</span>::webview::context_menu::MenuItem;
 
         <span class="kw">let </span>tab = <span class="self">self</span>.tab_manager.current_tab().unwrap();
@@ -1990,7 +1964,8 @@
         );
         <span class="kw">let </span>reload = MenuItem::new(<span class="prelude-val">Some</span>(<span class="string">"reload"</span>), <span class="string">"Reload"</span>, <span class="bool-val">true</span>);
 
-        <span class="kw">let </span><span class="kw-2">mut </span>context_menu = ContextMenu::new_with_menu(Menu(<span class="macro">vec!</span>[back, forward, reload]));
+        <span class="kw">let </span><span class="kw-2">mut </span>context_menu =
+            ContextMenu::new_with_menu(servo_sender, Menu(<span class="macro">vec!</span>[back, forward, reload]));
 
         <span class="kw">let </span>position = <span class="self">self</span>.mouse_position.get().unwrap();
         context_menu.show(sender, <span class="self">self</span>, position);
@@ -1998,19 +1973,14 @@
         context_menu
     }
 
-    <span class="doccomment">/// Close window's context menu
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>close_context_menu(<span class="kw-2">&amp;</span><span class="self">self</span>, sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;) {
-        <span class="attr">#[cfg(linux)]
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(context_menu) = <span class="kw-2">&amp;</span><span class="self">self</span>.context_menu {
-            send_to_constellation(
-                sender,
-                ConstellationMsg::CloseWebView(context_menu.webview().webview_id),
-            );
-        }
-    }
-
     <span class="attr">#[cfg(any(target_os = <span class="string">"macos"</span>, target_os = <span class="string">"windows"</span>))]
-    </span><span class="kw">fn </span>handle_context_menu_event(<span class="kw-2">&amp;</span><span class="self">self</span>, sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;, event: MenuEvent) {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>handle_context_menu_event(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        <span class="kw-2">mut </span>context_menu: ContextMenu,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        event: MenuEvent,
+    ) {
+        context_menu.send_result_to_servo(ContextMenuResult::Dismissed);
         <span class="comment">// TODO: should be more flexible to handle different menu items
         </span><span class="kw">let </span>active_tab = <span class="self">self</span>.tab_manager.current_tab().unwrap();
         <span class="kw">match </span>event.id().<span class="number">0</span>.as_str() {
@@ -2043,7 +2013,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>handle_context_menu_event(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
-        event: <span class="kw">crate</span>::webview::context_menu::ContextMenuResult,
+        event: <span class="kw">crate</span>::webview::context_menu::ContextMenuUIResponse,
     ) {
         <span class="self">self</span>.close_context_menu(sender);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(id) = event.id {
@@ -2073,6 +2043,18 @@
                 <span class="macro">log::error!</span>(<span class="string">"No active webview to handle context menu event"</span>);
             }
         };
+    }
+
+    <span class="doccomment">/// Close window's context menu
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>close_context_menu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;) {
+        <span class="attr">#[cfg(linux)]
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(context_menu) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.context_menu {
+            context_menu.send_result_to_servo(ContextMenuResult::Dismissed);
+            send_to_constellation(
+                _sender,
+                ConstellationMsg::CloseWebView(context_menu.webview().webview_id),
+            );
+        }
     }
 }
 
