@@ -1390,7 +1390,7 @@
             EmbedderMsg::SetCursor(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::NewFavicon(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::HistoryChanged(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
-            EmbedderMsg::SetFullscreenState(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
+            EmbedderMsg::NotifyFullscreenStateChanged(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::NotifyLoadStatusChanged(webview_id, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::WebResourceRequested(opt_webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; opt_webview_id.as_ref(),
             EmbedderMsg::Panic(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
