@@ -41,7 +41,7 @@ then send user interaction result back to caller.</p>
     message: <a class="struct" href="https://doc.rust-lang.org/1.83.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,
     prompt_sender: <a class="enum" href="enum.PromptSender.html" title="enum versoview::webview::prompt::PromptSender">PromptSender</a>,
 )</h4></section></summary><div class="docblock"><p>Show Yes/No confirm prompt</p>
-<p>After you call <code>yes_no(..)</code>, you must call <code>sender()</code> to get prompt sender,
+<p>After you call <code>allow_deny(..)</code>, you must call <code>sender()</code> to get prompt sender,
 then send user interaction result back to caller.</p>
 <h6 id="example-3"><a class="doc-anchor" href="#example-3">§</a>Example</h6>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span><span class="kw-2">mut </span>prompt = PromptDialog::new();

@@ -452,7 +452,7 @@
 
     <span class="doccomment">/// Show Yes/No confirm prompt
     ///
-    /// After you call `yes_no(..)`, you must call `sender()` to get prompt sender,
+    /// After you call `allow_deny(..)`, you must call `sender()` to get prompt sender,
     /// then send user interaction result back to caller.
     ///
     /// ## Example
@@ -546,7 +546,7 @@
                 <span class="macro">format!</span>(<span class="string">"verso://resources/components/prompt/ok_cancel.html?msg={msg}"</span>)
             }
             PromptType::AllowDeny(msg) =&gt; {
-                <span class="macro">format!</span>(<span class="string">"verso://resources/components/prompt/yes_no.html?msg={msg}"</span>)
+                <span class="macro">format!</span>(<span class="string">"verso://resources/components/prompt/allow_deny.html?msg={msg}"</span>)
             }
             PromptType::Input(msg, default_value) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>url = <span class="macro">format!</span>(<span class="string">"verso://resources/components/prompt/prompt.html?msg={msg}"</span>);

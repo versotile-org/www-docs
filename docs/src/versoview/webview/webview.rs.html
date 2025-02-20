@@ -656,13 +656,13 @@
 <a href="#655" id="655">655</a>
 <a href="#656" id="656">656</a>
 <a href="#657" id="657">657</a>
-<a href="#658" id="658">658</a>
-<a href="#659" id="659">659</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#658" id="658">658</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
-    AllowOrDeny, EmbedderMsg, LoadStatus, PromptDefinition, PromptResult, TraversalDirection,
+    AllowOrDeny, ContextMenuResult, EmbedderMsg, LoadStatus, PromptDefinition, PromptResult,
+    TraversalDirection,
 };
 <span class="kw">use </span>ipc_channel::ipc;
 <span class="kw">use </span>script_traits::webdriver_msg::{WebDriverJSResult, WebDriverScriptCommand};
@@ -851,7 +851,7 @@
                 </span><span class="kw">if </span><span class="self">self</span>.context_menu.is_none() {
                     <span class="self">self</span>.context_menu = <span class="prelude-val">Some</span>(<span class="self">self</span>.show_context_menu(sender, servo_sender));
                 } <span class="kw">else </span>{
-                    <span class="kw">let _ </span>= servo_sender.send(embedder_traits::ContextMenuResult::Ignored);
+                    <span class="kw">let _ </span>= servo_sender.send(ContextMenuResult::Ignored);
                 }
                 <span class="attr">#[cfg(any(target_os = <span class="string">"windows"</span>, target_os = <span class="string">"macos"</span>))]
                 </span>{
@@ -1124,7 +1124,7 @@
                 </span><span class="kw">if </span><span class="self">self</span>.context_menu.is_none() {
                     <span class="self">self</span>.context_menu = <span class="prelude-val">Some</span>(<span class="self">self</span>.show_context_menu(sender, servo_sender));
                 } <span class="kw">else </span>{
-                    <span class="kw">let _ </span>= servo_sender.send(embedder_traits::ContextMenuResult::Ignored);
+                    <span class="kw">let _ </span>= servo_sender.send(ContextMenuResult::Ignored);
                 }
                 <span class="attr">#[cfg(any(target_os = <span class="string">"windows"</span>, target_os = <span class="string">"macos"</span>))]
                 </span>{
@@ -1177,7 +1177,7 @@
                 <span class="kw">if </span><span class="self">self</span>.context_menu.is_none() {
                     <span class="self">self</span>.context_menu = <span class="prelude-val">Some</span>(<span class="self">self</span>.show_context_menu(sender, servo_sender));
                 } <span class="kw">else </span>{
-                    <span class="kw">let _ </span>= servo_sender.send(embedder_traits::ContextMenuResult::Ignored);
+                    <span class="kw">let _ </span>= servo_sender.send(ContextMenuResult::Ignored);
                 }
             }
             e =&gt; {
@@ -1205,25 +1205,25 @@
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
             }
             EmbedderMsg::Prompt(_webview_id, prompt, _origin) =&gt; <span class="kw">match </span>prompt {
-                PromptDefinition::Alert(msg, ignored_prompt_sender) =&gt; {
-                    <span class="kw">let </span>prompt = <span class="self">self</span>.tab_manager.prompt_by_prompt_id(webview_id);
-                    <span class="kw">if </span>prompt.is_none() {
-                        <span class="macro">log::error!</span>(<span class="string">"Prompt not found for WebView {webview_id:?}"</span>);
-                        <span class="kw">return </span><span class="bool-val">false</span>;
-                    }
-                    <span class="kw">let </span>prompt = prompt.unwrap();
-                    <span class="kw">let </span>prompt_sender = prompt.sender().unwrap();
+                PromptDefinition::Alert(msg, dummy_sender) =&gt; {
+                    <span class="kw">let _ </span>= dummy_sender.send(());
 
-                    <span class="kw">match </span>prompt_sender {
+                    <span class="kw">let </span><span class="prelude-val">Some</span>(prompt) = <span class="self">self</span>.tab_manager.prompt_by_prompt_id(webview_id) <span class="kw">else </span>{
+                        <span class="macro">log::error!</span>(<span class="string">"Prompt not found. WebView: {webview_id:?}"</span>);
+                        <span class="kw">return </span><span class="bool-val">false</span>;
+                    };
+
+                    <span class="kw">let </span>servo_sender = prompt.sender().unwrap();
+                    <span class="kw">match </span>servo_sender {
                         PromptSender::AlertSender(sender) =&gt; {
                             <span class="kw">let _ </span>= sender.send(());
                         }
                         PromptSender::ConfirmSender(sender) =&gt; {
                             <span class="kw">let </span>result: PromptResult = <span class="kw">match </span>msg.as_str() {
-                                <span class="string">"ok" </span>| <span class="string">"yes" </span>=&gt; PromptResult::Primary,
-                                <span class="string">"cancel" </span>| <span class="string">"no" </span>=&gt; PromptResult::Secondary,
+                                <span class="string">"ok" </span>=&gt; PromptResult::Primary,
+                                <span class="string">"cancel" </span>=&gt; PromptResult::Secondary,
                                 <span class="kw">_ </span>=&gt; {
-                                    <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
+                                    <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
                                     PromptResult::Dismissed
                                 }
                             };
@@ -1241,21 +1241,21 @@
                                         <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                                     }
                                     <span class="kw">_ </span>=&gt; {
-                                        <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
+                                        <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
                                         <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                                     }
                                 }
                             } <span class="kw">else </span>{
-                                <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
+                                <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
                                 <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                             }
                         }
                         PromptSender::AllowDenySender(sender) =&gt; {
                             <span class="kw">let </span>result: AllowOrDeny = <span class="kw">match </span>msg.as_str() {
-                                <span class="string">"ok" </span>| <span class="string">"yes" </span>=&gt; AllowOrDeny::Allow,
-                                <span class="string">"cancel" </span>| <span class="string">"no" </span>=&gt; AllowOrDeny::Deny,
+                                <span class="string">"allow" </span>=&gt; AllowOrDeny::Allow,
+                                <span class="string">"deny" </span>=&gt; AllowOrDeny::Deny,
                                 <span class="kw">_ </span>=&gt; {
-                                    <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
+                                    <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
                                     AllowOrDeny::Deny
                                 }
                             };
@@ -1277,20 +1277,18 @@
                                     }
                                 };
                             } <span class="kw">else </span>{
-                                <span class="macro">log::error!</span>(<span class="string">"prompt result message invalid: {msg}"</span>);
+                                <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
                                 <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                             }
                         }
                     }
-
-                    <span class="kw">let _ </span>= ignored_prompt_sender.send(());
                 }
                 <span class="kw">_ </span>=&gt; {
-                    <span class="macro">log::trace!</span>(<span class="string">"Verso WebView isn't supporting this prompt yet"</span>)
+                    <span class="macro">log::trace!</span>(<span class="string">"Unsupported prompt type"</span>);
                 }
             },
             EmbedderMsg::ShowContextMenu(<span class="kw">_</span>, sender, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
-                <span class="kw">let _ </span>= sender.send(embedder_traits::ContextMenuResult::Ignored);
+                <span class="kw">let _ </span>= sender.send(ContextMenuResult::Ignored);
             }
             e =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Dialog isn't supporting this message yet: {e:?}"</span>)
