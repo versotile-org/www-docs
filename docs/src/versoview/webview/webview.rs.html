@@ -656,7 +656,39 @@
 <a href="#655" id="655">655</a>
 <a href="#656" id="656">656</a>
 <a href="#657" id="657">657</a>
-<a href="#658" id="658">658</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -794,13 +826,45 @@
                         {
                             <span class="macro">log::error!</span>(<span class="string">"Verso failed to send AllowNavigationRequest to controller: {error}"</span>)
                         } <span class="kw">else </span>{
-                            <span class="comment">// We will handle a ControllerMessage::OnNavigationStartingResponse
+                            <span class="comment">// We will handle a ToVersoMessage::OnNavigationStartingResponse
                             // and send ConstellationMsg::AllowNavigationResponse there if the call succeed
                             </span><span class="kw">return</span>;
                         }
                     }
                 }
                 send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">true</span>));
+            }
+            EmbedderMsg::WebResourceRequested(_webview_id, request, sender) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(to_controller_sender) = to_controller_sender {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(request_map) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.event_listeners.on_web_resource_requested {
+                        <span class="kw">let </span>id = uuid::Uuid::new_v4();
+                        <span class="kw">let </span><span class="kw-2">mut </span>builder = http::request::Builder::new()
+                            .uri(request.url.as_str())
+                            .method(request.method);
+                        <span class="kw">for </span>(key, value) <span class="kw">in </span>request.headers.iter() {
+                            builder = builder.header(key, value);
+                        }
+                        <span class="kw">match </span>to_controller_sender.send(
+                            ToControllerMessage::OnWebResourceRequested(
+                                versoview_messages::WebResourceRequest {
+                                    id,
+                                    <span class="comment">// TODO: Actually send the body
+                                    </span>request: builder.body(Vec::new()).unwrap(),
+                                },
+                            ),
+                        ) {
+                            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
+                                request_map.insert(id, (request.url, sender));
+                                <span class="comment">// We will handle a ToVersoMessage::WebResourceRequestResponse
+                                // and send the response through this sender there if the call succeed
+                                </span><span class="kw">return</span>;
+                            }
+                            <span class="prelude-val">Err</span>(error) =&gt; {
+                                <span class="macro">log::error!</span>(<span class="string">"Verso failed to send WebResourceRequested to controller: {error}"</span>)
+                            }
+                        }
+                    }
+                }
             }
             EmbedderMsg::GetClipboardText(_webview_id, sender) =&gt; {
                 <span class="kw">let </span>text = clipboard

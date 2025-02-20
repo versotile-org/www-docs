@@ -407,7 +407,9 @@
 <a href="#406" id="406">406</a>
 <a href="#407" id="407">407</a>
 <a href="#408" id="408">408</a>
-<a href="#409" id="409">409</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
 
 <span class="kw">use </span>embedder_traits::resources::{<span class="self">self</span>, Resource, ResourceReaderMethods};
 <span class="kw">use </span>headers::{ContentType, HeaderMapExt};
@@ -609,7 +611,9 @@
     <span class="comment">// set min inner size
     // should be at least able to show the whole control panel
     // FIXME: url input has weird behavior that will expand lager when having long text
-    </span>window_attributes = window_attributes.with_min_inner_size(dpi::LogicalSize::new(<span class="number">480</span>, <span class="number">72</span>));
+    </span><span class="kw">if </span>!no_panel {
+        window_attributes = window_attributes.with_min_inner_size(dpi::LogicalSize::new(<span class="number">480</span>, <span class="number">72</span>));
+    }
 
     <span class="kw">let </span>width = matches.opt_get::&lt;u32&gt;(<span class="string">"width"</span>).unwrap_or_else(|e| {
         <span class="macro">log::error!</span>(<span class="string">"Failed to parse width command line argument: {e}"</span>);

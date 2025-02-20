@@ -1110,7 +1110,13 @@
 <a href="#1109" id="1109">1109</a>
 <a href="#1110" id="1110">1110</a>
 <a href="#1111" id="1111">1111</a>
-<a href="#1112" id="1112">1112</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::cell::Cell;
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -1118,7 +1124,7 @@
 <span class="kw">use </span>embedder_traits::{
     AllowOrDeny, ContextMenuResult, Cursor, EmbedderMsg, InputEvent, MouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PromptResult, TouchEventAction,
-    TraversalDirection, WheelMode,
+    TraversalDirection, WebResourceResponseMsg, WheelMode,
 };
 <span class="kw">use </span>euclid::{Point2D, Size2D};
 <span class="kw">use </span>glutin::{
@@ -1171,7 +1177,13 @@
 
 <span class="attr">#[derive(Default)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>EventListeners {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) on_navigation_starting: bool,
+    <span class="doccomment">/// This is `true` if the controller wants to get and handle OnNavigationStarting/AllowNavigationRequest
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) on_navigation_starting: bool,
+    <span class="doccomment">/// A id to request response sender map if the controller wants to get and handle web resource requests
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) on_web_resource_requested:
+        <span class="prelude-ty">Option</span>&lt;HashMap&lt;uuid::Uuid, (ServoUrl, IpcSender&lt;WebResourceResponseMsg&gt;)&gt;&gt;,
+    <span class="doccomment">/// This is `true` if the controller wants to get and handle WindowEvent::CloseRequested
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) on_close_requested: bool,
 }
 
 <span class="doccomment">/// A Verso window is a Winit window containing several web views.

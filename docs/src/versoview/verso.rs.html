@@ -789,14 +789,225 @@
 <a href="#788" id="788">788</a>
 <a href="#789" id="789">789</a>
 <a href="#790" id="790">790</a>
-<a href="#791" id="791">791</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
+<a href="#829" id="829">829</a>
+<a href="#830" id="830">830</a>
+<a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
+<a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
+<a href="#848" id="848">848</a>
+<a href="#849" id="849">849</a>
+<a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
+<a href="#852" id="852">852</a>
+<a href="#853" id="853">853</a>
+<a href="#854" id="854">854</a>
+<a href="#855" id="855">855</a>
+<a href="#856" id="856">856</a>
+<a href="#857" id="857">857</a>
+<a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
+<a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
+<a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
+<a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
+<a href="#881" id="881">881</a>
+<a href="#882" id="882">882</a>
+<a href="#883" id="883">883</a>
+<a href="#884" id="884">884</a>
+<a href="#885" id="885">885</a>
+<a href="#886" id="886">886</a>
+<a href="#887" id="887">887</a>
+<a href="#888" id="888">888</a>
+<a href="#889" id="889">889</a>
+<a href="#890" id="890">890</a>
+<a href="#891" id="891">891</a>
+<a href="#892" id="892">892</a>
+<a href="#893" id="893">893</a>
+<a href="#894" id="894">894</a>
+<a href="#895" id="895">895</a>
+<a href="#896" id="896">896</a>
+<a href="#897" id="897">897</a>
+<a href="#898" id="898">898</a>
+<a href="#899" id="899">899</a>
+<a href="#900" id="900">900</a>
+<a href="#901" id="901">901</a>
+<a href="#902" id="902">902</a>
+<a href="#903" id="903">903</a>
+<a href="#904" id="904">904</a>
+<a href="#905" id="905">905</a>
+<a href="#906" id="906">906</a>
+<a href="#907" id="907">907</a>
+<a href="#908" id="908">908</a>
+<a href="#909" id="909">909</a>
+<a href="#910" id="910">910</a>
+<a href="#911" id="911">911</a>
+<a href="#912" id="912">912</a>
+<a href="#913" id="913">913</a>
+<a href="#914" id="914">914</a>
+<a href="#915" id="915">915</a>
+<a href="#916" id="916">916</a>
+<a href="#917" id="917">917</a>
+<a href="#918" id="918">918</a>
+<a href="#919" id="919">919</a>
+<a href="#920" id="920">920</a>
+<a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
+<a href="#940" id="940">940</a>
+<a href="#941" id="941">941</a>
+<a href="#942" id="942">942</a>
+<a href="#943" id="943">943</a>
+<a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
+<a href="#946" id="946">946</a>
+<a href="#947" id="947">947</a>
+<a href="#948" id="948">948</a>
+<a href="#949" id="949">949</a>
+<a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
+<a href="#970" id="970">970</a>
+<a href="#971" id="971">971</a>
+<a href="#972" id="972">972</a>
+<a href="#973" id="973">973</a>
+<a href="#974" id="974">974</a>
+<a href="#975" id="975">975</a>
+<a href="#976" id="976">976</a>
+<a href="#977" id="977">977</a>
+<a href="#978" id="978">978</a>
+<a href="#979" id="979">979</a>
+<a href="#980" id="980">980</a>
+<a href="#981" id="981">981</a>
+<a href="#982" id="982">982</a>
+<a href="#983" id="983">983</a>
+<a href="#984" id="984">984</a>
+<a href="#985" id="985">985</a>
+<a href="#986" id="986">986</a>
+<a href="#987" id="987">987</a>
+<a href="#988" id="988">988</a>
+<a href="#989" id="989">989</a>
+<a href="#990" id="990">990</a>
+<a href="#991" id="991">991</a>
+<a href="#992" id="992">992</a>
+<a href="#993" id="993">993</a>
+<a href="#994" id="994">994</a>
+<a href="#995" id="995">995</a>
+<a href="#996" id="996">996</a>
+<a href="#997" id="997">997</a>
+<a href="#998" id="998">998</a>
+<a href="#999" id="999">999</a>
+<a href="#1000" id="1000">1000</a>
+<a href="#1001" id="1001">1001</a>
+<a href="#1002" id="1002">1002</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
 };
 
 <span class="kw">use </span>arboard::Clipboard;
-<span class="kw">use </span>base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
+<span class="kw">use </span>base::id::{PipelineNamespace, PipelineNamespaceId, TopLevelBrowsingContextId, WebViewId};
 <span class="kw">use </span>bluetooth::BluetoothThreadFactory;
 <span class="kw">use </span>bluetooth_traits::BluetoothRequest;
 <span class="kw">use </span>canvas::canvas_paint_thread::CanvasPaintThread;
@@ -804,7 +1015,10 @@
 <span class="kw">use </span>constellation::{Constellation, FromCompositorLogger, InitialConstellationState};
 <span class="kw">use </span>crossbeam_channel::{unbounded, Receiver, Sender};
 <span class="kw">use </span>devtools;
-<span class="kw">use </span>embedder_traits::{EmbedderMsg, EmbedderProxy, EventLoopWaker};
+<span class="kw">use </span>embedder_traits::{
+    AllowOrDeny, EmbedderMsg, EmbedderProxy, EventLoopWaker, HttpBodyData, WebResourceResponse,
+    WebResourceResponseMsg,
+};
 <span class="kw">use </span>euclid::Scale;
 <span class="kw">use </span>fonts::SystemFontService;
 <span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSender};
@@ -833,6 +1047,7 @@
 <span class="kw">use crate</span>::{
     compositor::{IOCompositor, InitialCompositorState, ShutdownState},
     config::Config,
+    webview::execute_script,
     window::Window,
 };
 
@@ -1238,16 +1453,33 @@
     <span class="doccomment">/// Handle Winit window events
     </span><span class="kw">fn </span>handle_winit_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window_id: WindowId, event: WindowEvent) -&gt; bool {
         <span class="macro">log::trace!</span>(<span class="string">"Verso is handling Winit event: {event:?}"</span>);
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
-            <span class="kw">if let </span>WindowEvent::CloseRequested = event {
-                <span class="comment">// self.windows.remove(&amp;window_id);
-                </span>compositor.maybe_start_shutting_down();
-            } <span class="kw">else if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.windows.get_mut(<span class="kw-2">&amp;</span>window_id) {
-                window
-                    .<span class="number">0
-                    </span>.handle_winit_window_event(<span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender, compositor, <span class="kw-2">&amp;</span>event);
-                <span class="kw">return </span>window.<span class="number">0</span>.resizing;
+
+        <span class="kw">let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor <span class="kw">else </span>{
+            <span class="kw">return </span><span class="bool-val">false</span>;
+        };
+        <span class="kw">let </span><span class="prelude-val">Some</span>((window, <span class="kw">_</span>)) = <span class="self">self</span>.windows.get_mut(<span class="kw-2">&amp;</span>window_id) <span class="kw">else </span>{
+            <span class="kw">return </span><span class="bool-val">false</span>;
+        };
+
+        <span class="kw">if let </span>WindowEvent::CloseRequested = event {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(to_controller_sender) = <span class="kw-2">&amp;</span><span class="self">self</span>.to_controller_sender {
+                <span class="kw">if </span>window.event_listeners.on_close_requested {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+                        to_controller_sender.send(ToControllerMessage::OnCloseRequested)
+                    {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send WebResourceRequested to controller: {error}"
+                        </span>)
+                    } <span class="kw">else </span>{
+                        <span class="kw">return </span><span class="bool-val">false</span>;
+                    }
+                }
             }
+            <span class="comment">// self.windows.remove(&amp;window_id);
+            </span>compositor.maybe_start_shutting_down();
+        } <span class="kw">else </span>{
+            window.handle_winit_window_event(<span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender, compositor, <span class="kw-2">&amp;</span>event);
+            <span class="kw">return </span>window.resizing;
         }
 
         <span class="bool-val">false
@@ -1311,22 +1543,12 @@
                             //         window.0.set_cursor_icon(cursor);
                             //     }
                             // }
-                            // TODO: Check devtools' prompt has WebViewId?
-                            // EmbedderMsg::Prompt(_, definition, origin) =&gt; match origin {
-                            //     // TODO: actually prompt the user with a dialog
-                            //     PromptOrigin::Trusted =&gt; match definition {
-                            //         PromptDefinition::YesNo(question, ipc_sender) =&gt; {
-                            //             if question == "Accept incoming devtools connection?" {
-                            //                 if let Err(err) = ipc_sender.send(PromptResult::Primary) {
-                            //                     log::error!("Failed to send prompt result back: {err}");
-                            //                 }
-                            //             }
-                            //         }
-                            //         _ =&gt; {}
-                            //     },
-                            //     _ =&gt; {}
-                            // },
-                            </span>e =&gt; {
+                            </span>EmbedderMsg::RequestDevtoolsConnection(sender) =&gt; {
+                                <span class="kw">if let </span><span class="prelude-val">Err</span>(err) = sender.send(AllowOrDeny::Allow) {
+                                    <span class="macro">log::error!</span>(<span class="string">"Failed to send RequestDevtoolsConnection response back: {err}"</span>);
+                                }
+                            }
+                            e =&gt; {
                                 <span class="macro">log::trace!</span>(<span class="string">"Verso Window isn't supporting handling this message yet: {e:?}"</span>)
                             }
                         }
@@ -1423,12 +1645,18 @@
     <span class="doccomment">/// Handle message came from webview controller.
     </span><span class="kw">pub fn </span>handle_incoming_webview_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: ToVersoMessage) {
         <span class="kw">match </span>message {
+            ToVersoMessage::Exit =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(compositor) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.compositor {
+                    compositor.maybe_start_shutting_down();
+                }
+            }
+            ToVersoMessage::ListenToOnCloseRequested =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window_mut() {
+                    window.event_listeners.on_close_requested = <span class="bool-val">true</span>;
+                }
+            }
             ToVersoMessage::NavigateTo(to_url) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(webview_id) =
-                    <span class="self">self</span>.windows.values().next().and_then(|(window, <span class="kw">_</span>)| {
-                        window.tab_manager.current_tab().map(|tab| tab.id())
-                    })
-                {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(webview_id) = <span class="self">self</span>.first_webview_id() {
                     send_to_constellation(
                         <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
                         ConstellationMsg::LoadUrl(webview_id, ServoUrl::from_url(to_url)),
@@ -1436,7 +1664,7 @@
                 }
             }
             ToVersoMessage::ListenToOnNavigationStarting =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>((window, <span class="kw">_</span>)) = <span class="self">self</span>.windows.values_mut().next() {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window_mut() {
                     window.event_listeners.on_navigation_starting = <span class="bool-val">true</span>;
                 }
             }
@@ -1449,8 +1677,202 @@
                     ),
                 );
             }
+            ToVersoMessage::ExecuteScript(js) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(webview_id) = <span class="self">self</span>.first_webview_id() {
+                    <span class="kw">let _ </span>= execute_script(<span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender, <span class="kw-2">&amp;</span>webview_id, js);
+                }
+            }
+            ToVersoMessage::ListenToWebResourceRequests =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window_mut() {
+                    window
+                        .event_listeners
+                        .on_web_resource_requested
+                        .replace(HashMap::new());
+                }
+            }
+            ToVersoMessage::WebResourceRequestResponse(response) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window_mut() {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>((url, sender)) = window
+                        .event_listeners
+                        .on_web_resource_requested
+                        .as_mut()
+                        .and_then(|senders| senders.remove(<span class="kw-2">&amp;</span>response.id))
+                    {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(response) = response.response {
+                            <span class="kw">let _ </span>= sender
+                                .send(WebResourceResponseMsg::Start(
+                                    WebResourceResponse::new(url)
+                                        .headers(response.headers().clone())
+                                        .status_code(response.status()),
+                                ))
+                                .and_then(|<span class="kw">_</span>| {
+                                    sender.send(WebResourceResponseMsg::Body(HttpBodyData::Chunk(
+                                        response.body().to_vec(),
+                                    )))
+                                })
+                                .and_then(|<span class="kw">_</span>| {
+                                    sender.send(WebResourceResponseMsg::Body(HttpBodyData::Done))
+                                });
+                        } <span class="kw">else </span>{
+                            <span class="kw">let _ </span>= sender.send(WebResourceResponseMsg::None);
+                        }
+                    }
+                }
+            }
+            ToVersoMessage::SetSize(size) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">let _ </span>= window.window.request_inner_size(size);
+                }
+            }
+            ToVersoMessage::SetPosition(position) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    window.window.set_outer_position(position);
+                }
+            }
+            ToVersoMessage::SetMaximized(maximized) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    window.window.set_maximized(maximized);
+                }
+            }
+            ToVersoMessage::SetMinimized(minimized) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    window.window.set_minimized(minimized);
+                }
+            }
+            ToVersoMessage::SetFullscreen(fullscreen) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    window.window.set_fullscreen(<span class="kw">if </span>fullscreen {
+                        <span class="prelude-val">Some</span>(winit::window::Fullscreen::Borderless(<span class="prelude-val">None</span>))
+                    } <span class="kw">else </span>{
+                        <span class="prelude-val">None
+                    </span>});
+                }
+            }
+            ToVersoMessage::SetVisible(visible) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    window.window.set_visible(visible);
+                }
+            }
+            ToVersoMessage::StartDragging =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">let _ </span>= window.window.drag_window();
+                }
+            }
+            ToVersoMessage::GetSize =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetSizeResponse(window.window.inner_size()),
+                    ) {
+                        <span class="macro">log::error!</span>(<span class="string">"Verso failed to send GetSizeReponse to controller: {error}"</span>)
+                    }
+                }
+            }
+            ToVersoMessage::GetPosition =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetPositionResponse(
+                            window.window.inner_position().ok(),
+                        ),
+                    ) {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send GetPositionResponse to controller: {error}"
+                        </span>)
+                    }
+                }
+            }
+            ToVersoMessage::GetMinimized =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetMinimizedResponse(
+                            window.window.is_minimized().unwrap_or_default(),
+                        ),
+                    ) {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send GetMinimizedResponse to controller: {error}"
+                        </span>)
+                    }
+                }
+            }
+            ToVersoMessage::GetMaximized =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetMaximizedResponse(window.window.is_maximized()),
+                    ) {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send GetMaximizedResponse to controller: {error}"
+                        </span>)
+                    }
+                }
+            }
+            ToVersoMessage::GetFullscreen =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetFullscreenResponse(
+                            window.window.fullscreen().is_some(),
+                        ),
+                    ) {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send GetFullscreenResponse to controller: {error}"
+                        </span>)
+                    }
+                }
+            }
+            ToVersoMessage::GetVisible =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetVisibleResponse(
+                            window.window.is_visible().unwrap_or(<span class="bool-val">true</span>),
+                        ),
+                    ) {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send GetVisibleResponse to controller: {error}"
+                        </span>)
+                    }
+                }
+            }
+            ToVersoMessage::GetScaleFactor =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetScaleFactorResponse(window.window.scale_factor()),
+                    ) {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send GetScaleFactorResponse to controller: {error}"
+                        </span>)
+                    }
+                }
+            }
+            ToVersoMessage::GetCurrentUrl =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    <span class="kw">let </span>tab = window.tab_manager.current_tab().unwrap();
+                    <span class="kw">let </span>history = tab.history();
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
+                        ToControllerMessage::GetCurrentUrlResponse(
+                            history.list[history.current_idx].as_url().clone(),
+                        ),
+                    ) {
+                        <span class="macro">log::error!</span>(
+                            <span class="string">"Verso failed to send GetScaleFactorResponse to controller: {error}"
+                        </span>)
+                    }
+                }
+            }
             <span class="kw">_ </span>=&gt; {}
         }
+    }
+
+    <span class="kw">fn </span>first_window(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Window&gt; {
+        <span class="self">self</span>.windows.values().next().map(|(window, <span class="kw">_</span>)| window)
+    }
+
+    <span class="kw">fn </span>first_window_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Window&gt; {
+        <span class="self">self</span>.windows.values_mut().next().map(|(window, <span class="kw">_</span>)| window)
+    }
+
+    <span class="kw">fn </span>first_webview_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;TopLevelBrowsingContextId&gt; {
+        <span class="self">self</span>.windows
+            .values()
+            .next()
+            .and_then(|(window, <span class="kw">_</span>)| window.tab_manager.current_tab().map(|tab| tab.id()))
     }
 
     <span class="doccomment">/// Return true if one of the Verso windows is animating.
