@@ -1123,7 +1123,7 @@
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
     AllowOrDeny, ContextMenuResult, Cursor, EmbedderMsg, InputEvent, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PromptResult, TouchEventAction,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PromptResult, TouchEventType,
     TraversalDirection, WebResourceResponseMsg, WheelMode,
 };
 <span class="kw">use </span>euclid::{Point2D, Size2D};
@@ -1629,11 +1629,11 @@
                     y = <span class="number">0.0</span>;
                 }
 
-                <span class="kw">let </span>phase: TouchEventAction = <span class="kw">match </span>phase {
-                    TouchPhase::Started =&gt; TouchEventAction::Down,
-                    TouchPhase::Moved =&gt; TouchEventAction::Move,
-                    TouchPhase::Ended =&gt; TouchEventAction::Up,
-                    TouchPhase::Cancelled =&gt; TouchEventAction::Cancel,
+                <span class="kw">let </span>phase: TouchEventType = <span class="kw">match </span>phase {
+                    TouchPhase::Started =&gt; TouchEventType::Down,
+                    TouchPhase::Moved =&gt; TouchEventType::Move,
+                    TouchPhase::Ended =&gt; TouchEventType::Up,
+                    TouchPhase::Cancelled =&gt; TouchEventType::Cancel,
                 };
 
                 compositor.on_scroll_event(

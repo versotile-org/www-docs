@@ -2160,17 +2160,7 @@
 <a href="#2159" id="2159">2159</a>
 <a href="#2160" id="2160">2160</a>
 <a href="#2161" id="2161">2161</a>
-<a href="#2162" id="2162">2162</a>
-<a href="#2163" id="2163">2163</a>
-<a href="#2164" id="2164">2164</a>
-<a href="#2165" id="2165">2165</a>
-<a href="#2166" id="2166">2166</a>
-<a href="#2167" id="2167">2167</a>
-<a href="#2168" id="2168">2168</a>
-<a href="#2169" id="2169">2169</a>
-<a href="#2170" id="2170">2170</a>
-<a href="#2171" id="2171">2171</a>
-<a href="#2172" id="2172">2172</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2162" id="2162">2162</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -2186,7 +2176,7 @@
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    TouchEvent, TouchEventAction, TouchId,
+    TouchEvent, TouchEventType, TouchId,
 };
 <span class="kw">use </span>euclid::{vec2, Point2D, Scale, Size2D, Transform3D, Vector2D};
 <span class="kw">use </span>gleam::gl;
@@ -2370,7 +2360,7 @@
     </span>cursor_pos: DevicePoint,
 
     <span class="doccomment">/// True to exit after page load ('-x').
-    </span>exit_after_load: bool,
+    </span>wait_for_stable_image: bool,
 
     <span class="doccomment">/// True to translate mouse input into touch events.
     </span>convert_mouse_to_touch: bool,
@@ -2516,7 +2506,7 @@
         viewport: DeviceIntSize,
         scale_factor: Scale&lt;f32, DeviceIndependentPixel, DevicePixel&gt;,
         state: InitialCompositorState,
-        exit_after_load: bool,
+        wait_for_stable_image: bool,
         convert_mouse_to_touch: bool,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>compositor = IOCompositor {
@@ -2548,7 +2538,7 @@
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
             cursor_pos: DevicePoint::new(<span class="number">0.0</span>, <span class="number">0.0</span>),
-            exit_after_load,
+            wait_for_stable_image,
             convert_mouse_to_touch,
             pending_frames: <span class="number">0</span>,
             last_animation_tick: Instant::now(),
@@ -2608,6 +2598,7 @@
         }
 
         <span class="self">self</span>.shutdown_state = ShutdownState::ShuttingDown;
+        <span class="self">self</span>.finish_shutting_down();
     }
 
     <span class="kw">fn </span>finish_shutting_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
@@ -2644,12 +2635,6 @@
         }
 
         <span class="kw">match </span>msg {
-            CompositorMsg::ShutdownComplete =&gt; {
-                <span class="macro">warn!</span>(<span class="string">"Received `ShutdownComplete` while not shutting down."</span>);
-                <span class="self">self</span>.finish_shutting_down();
-                <span class="kw">return </span><span class="bool-val">false</span>;
-            }
-
             CompositorMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) =&gt; {
                 <span class="self">self</span>.change_running_animations_state(pipeline_id, animation_state);
             }
@@ -2714,7 +2699,7 @@
 
             CompositorMsg::LoadComplete(<span class="kw">_</span>) =&gt; {
                 <span class="comment">// If we're painting in headless mode, schedule a recomposite.
-                </span><span class="kw">if </span><span class="self">self</span>.exit_after_load {
+                </span><span class="kw">if </span><span class="self">self</span>.wait_for_stable_image {
                     <span class="self">self</span>.composite_if_necessary(CompositingReason::Headless);
                 }
             }
@@ -2979,10 +2964,6 @@
     /// compositor no longer does any WebRender frame generation.
     </span><span class="kw">fn </span>handle_browser_message_while_shutting_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, msg: CompositorMsg) -&gt; bool {
         <span class="kw">match </span>msg {
-            CompositorMsg::ShutdownComplete =&gt; {
-                <span class="self">self</span>.finish_shutting_down();
-                <span class="kw">return </span><span class="bool-val">false</span>;
-            }
             CompositorMsg::PipelineExited(pipeline_id, sender) =&gt; {
                 <span class="macro">debug!</span>(<span class="string">"Compositor got pipeline exited: {:?}"</span>, pipeline_id);
                 <span class="self">self</span>.remove_pipeline_root_layer(pipeline_id);
@@ -3482,13 +3463,28 @@
                 InputEvent::MouseButton(event) =&gt; {
                     <span class="kw">match </span>event.action {
                         MouseButtonAction::Click =&gt; {}
-                        MouseButtonAction::Down =&gt; <span class="self">self</span>.on_touch_down(TouchId(<span class="number">0</span>), event.point),
-                        MouseButtonAction::Up =&gt; <span class="self">self</span>.on_touch_up(TouchId(<span class="number">0</span>), event.point),
+                        MouseButtonAction::Down =&gt; <span class="self">self</span>.on_touch_down(TouchEvent {
+                            event_type: TouchEventType::Down,
+                            id: TouchId(<span class="number">0</span>),
+                            point: event.point,
+                            action: embedder_traits::TouchAction::NoAction,
+                        }),
+                        MouseButtonAction::Up =&gt; <span class="self">self</span>.on_touch_up(TouchEvent {
+                            event_type: TouchEventType::Up,
+                            id: TouchId(<span class="number">0</span>),
+                            point: event.point,
+                            action: embedder_traits::TouchAction::NoAction,
+                        }),
                     }
                     <span class="kw">return</span>;
                 }
                 InputEvent::MouseMove(event) =&gt; {
-                    <span class="self">self</span>.on_touch_move(TouchId(<span class="number">0</span>), event.point);
+                    <span class="self">self</span>.on_touch_move(TouchEvent {
+                        event_type: TouchEventType::Move,
+                        id: TouchId(<span class="number">0</span>),
+                        point: event.point,
+                        action: embedder_traits::TouchAction::NoAction,
+                    });
                     <span class="kw">return</span>;
                 }
                 <span class="kw">_ </span>=&gt; {}
@@ -3566,28 +3562,24 @@
             <span class="kw">return</span>;
         }
 
-        <span class="kw">match </span>event.action {
-            TouchEventAction::Down =&gt; <span class="self">self</span>.on_touch_down(event.id, event.point),
-            TouchEventAction::Move =&gt; <span class="self">self</span>.on_touch_move(event.id, event.point),
-            TouchEventAction::Up =&gt; <span class="self">self</span>.on_touch_up(event.id, event.point),
-            TouchEventAction::Cancel =&gt; <span class="self">self</span>.on_touch_cancel(event.id, event.point),
+        <span class="kw">match </span>event.event_type {
+            TouchEventType::Down =&gt; <span class="self">self</span>.on_touch_down(event),
+            TouchEventType::Move =&gt; <span class="self">self</span>.on_touch_move(event),
+            TouchEventType::Up =&gt; <span class="self">self</span>.on_touch_up(event),
+            TouchEventType::Cancel =&gt; <span class="self">self</span>.on_touch_cancel(event),
         }
     }
 
-    <span class="kw">fn </span>on_touch_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
-        <span class="self">self</span>.touch_handler.on_touch_down(id, point);
-        <span class="self">self</span>.send_touch_event(TouchEvent {
-            action: TouchEventAction::Down,
-            id,
-            point,
-        })
+    <span class="kw">fn </span>on_touch_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: TouchEvent) {
+        <span class="self">self</span>.touch_handler.on_touch_down(event.id, event.point);
+        <span class="self">self</span>.send_touch_event(event);
     }
 
-    <span class="kw">fn </span>on_touch_move(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
-        <span class="kw">match </span><span class="self">self</span>.touch_handler.on_touch_move(id, point) {
+    <span class="kw">fn </span>on_touch_move(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: TouchEvent) {
+        <span class="kw">match </span><span class="self">self</span>.touch_handler.on_touch_move(event.id, event.point) {
             TouchAction::Scroll(delta) =&gt; <span class="self">self</span>.on_scroll_window_event(
                 ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
-                point.cast(),
+                event.point.cast(),
             ),
             TouchAction::Zoom(magnification, scroll_delta) =&gt; {
                 <span class="kw">let </span>cursor = Point2D::new(-<span class="number">1</span>, -<span class="number">1</span>); <span class="comment">// Make sure this hits the base layer.
@@ -3606,35 +3598,23 @@
                         event_count: <span class="number">1</span>,
                     }));
             }
-            TouchAction::DispatchEvent =&gt; <span class="self">self</span>.send_touch_event(TouchEvent {
-                action: TouchEventAction::Move,
-                id,
-                point,
-            }),
+            TouchAction::DispatchEvent =&gt; <span class="self">self</span>.send_touch_event(event),
             <span class="kw">_ </span>=&gt; {}
         }
     }
 
-    <span class="kw">fn </span>on_touch_up(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
-        <span class="self">self</span>.send_touch_event(TouchEvent {
-            action: TouchEventAction::Up,
-            id,
-            point,
-        });
+    <span class="kw">fn </span>on_touch_up(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: TouchEvent) {
+        <span class="self">self</span>.send_touch_event(event);
 
-        <span class="kw">if let </span>TouchAction::Click = <span class="self">self</span>.touch_handler.on_touch_up(id, point) {
-            <span class="self">self</span>.simulate_mouse_click(point);
+        <span class="kw">if let </span>TouchAction::Click = <span class="self">self</span>.touch_handler.on_touch_up(event.id, event.point) {
+            <span class="self">self</span>.simulate_mouse_click(event.point);
         }
     }
 
-    <span class="kw">fn </span>on_touch_cancel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TouchId, point: DevicePoint) {
+    <span class="kw">fn </span>on_touch_cancel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, event: TouchEvent) {
         <span class="comment">// Send the event to script.
-        </span><span class="self">self</span>.touch_handler.on_touch_cancel(id, point);
-        <span class="self">self</span>.send_touch_event(TouchEvent {
-            action: TouchEventAction::Cancel,
-            id,
-            point,
-        })
+        </span><span class="self">self</span>.touch_handler.on_touch_cancel(event.id, event.point);
+        <span class="self">self</span>.send_touch_event(event);
     }
 
     <span class="doccomment">/// &lt;http://w3c.github.io/touch-events/#mouse-events&gt;
@@ -3663,18 +3643,18 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        action: TouchEventAction,
+        action: TouchEventType,
     ) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
 
         <span class="kw">match </span>action {
-            TouchEventAction::Move =&gt; <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor),
-            TouchEventAction::Up | TouchEventAction::Cancel =&gt; {
+            TouchEventType::Move =&gt; <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor),
+            TouchEventType::Up | TouchEventType::Cancel =&gt; {
                 <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor);
             }
-            TouchEventAction::Down =&gt; {
+            TouchEventType::Down =&gt; {
                 <span class="self">self</span>.on_scroll_window_event(scroll_location, cursor);
             }
         }
@@ -4028,7 +4008,7 @@
     </span><span class="kw">pub fn </span>composite(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;</span>Window) {
         <span class="kw">match </span><span class="self">self</span>.composite_specific_target(window) {
             <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
-                <span class="kw">if </span><span class="self">self</span>.exit_after_load {
+                <span class="kw">if </span><span class="self">self</span>.wait_for_stable_image {
                     <span class="macro">println!</span>(<span class="string">"Shutting down the Constellation after generating an output file or exit flag specified"</span>);
                     <span class="self">self</span>.start_shutting_down();
                 }
@@ -4053,7 +4033,7 @@
             webrender.update();
         }
 
-        <span class="kw">let </span>wait_for_stable_image = <span class="self">self</span>.exit_after_load;
+        <span class="kw">let </span>wait_for_stable_image = <span class="self">self</span>.wait_for_stable_image;
 
         <span class="kw">if </span>wait_for_stable_image {
             <span class="comment">// The current image may be ready to output. However, if there are animations active,

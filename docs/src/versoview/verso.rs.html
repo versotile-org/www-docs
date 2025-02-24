@@ -991,16 +991,7 @@
 <a href="#990" id="990">990</a>
 <a href="#991" id="991">991</a>
 <a href="#992" id="992">992</a>
-<a href="#993" id="993">993</a>
-<a href="#994" id="994">994</a>
-<a href="#995" id="995">995</a>
-<a href="#996" id="996">996</a>
-<a href="#997" id="997">997</a>
-<a href="#998" id="998">998</a>
-<a href="#999" id="999">999</a>
-<a href="#1000" id="1000">1000</a>
-<a href="#1001" id="1001">1001</a>
-<a href="#1002" id="1002">1002</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#993" id="993">993</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -1016,7 +1007,7 @@
 <span class="kw">use </span>crossbeam_channel::{unbounded, Receiver, Sender};
 <span class="kw">use </span>devtools;
 <span class="kw">use </span>embedder_traits::{
-    AllowOrDeny, EmbedderMsg, EmbedderProxy, EventLoopWaker, HttpBodyData, WebResourceResponse,
+    AllowOrDeny, EmbedderMsg, EmbedderProxy, EventLoopWaker, WebResourceResponse,
     WebResourceResponseMsg,
 };
 <span class="kw">use </span>euclid::Scale;
@@ -1275,14 +1266,6 @@
             WebrenderImageHandlerType::WebGPU,
         );
 
-        <span class="comment">// TODO enable gl media player
-        </span><span class="kw">let </span>glplayer_context = WindowGLContext {
-            gl_context: GlContext::Unknown,
-            gl_api: GlApi::None,
-            native_display: NativeDisplay::Unknown,
-            glplayer_chan: <span class="prelude-val">None</span>,
-        };
-
         webrender.set_external_image_handler(external_image_handlers);
 
         <span class="comment">// Create bluetooth thread
@@ -1332,8 +1315,6 @@
             webrender_api_sender,
             webxr_registry: <span class="prelude-val">None</span>,
             webgl_threads: <span class="prelude-val">None</span>,
-            glplayer_threads: <span class="prelude-val">None</span>,
-            player_context: glplayer_context,
             user_agent,
             webrender_external_images: external_images,
             wgpu_image_map,
@@ -1382,7 +1363,7 @@
                 rendering_context,
                 webrender_gl,
             },
-            opts.exit_after_load,
+            opts.wait_for_stable_image,
             opts.debug.convert_mouse_to_touch,
         );
 
@@ -1627,6 +1608,7 @@
             EmbedderMsg::RequestDevtoolsConnection(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
             EmbedderMsg::PlayGamepadHapticEffect(webview_id, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
             EmbedderMsg::StopGamepadHapticEffect(webview_id, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(webview_id),
+            EmbedderMsg::ShutdownComplete =&gt; <span class="prelude-val">None</span>,
         }
     }
 
@@ -1701,20 +1683,20 @@
                         <span class="kw">if let </span><span class="prelude-val">Some</span>(response) = response.response {
                             <span class="kw">let _ </span>= sender
                                 .send(WebResourceResponseMsg::Start(
-                                    WebResourceResponse::new(url)
+                                    WebResourceResponse::new(url.into_url())
                                         .headers(response.headers().clone())
                                         .status_code(response.status()),
                                 ))
                                 .and_then(|<span class="kw">_</span>| {
-                                    sender.send(WebResourceResponseMsg::Body(HttpBodyData::Chunk(
+                                    sender.send(WebResourceResponseMsg::SendBodyData(
                                         response.body().to_vec(),
-                                    )))
+                                    ))
                                 })
                                 .and_then(|<span class="kw">_</span>| {
-                                    sender.send(WebResourceResponseMsg::Body(HttpBodyData::Done))
+                                    sender.send(WebResourceResponseMsg::SendBodyData(Vec::new()))
                                 });
                         } <span class="kw">else </span>{
-                            <span class="kw">let _ </span>= sender.send(WebResourceResponseMsg::None);
+                            <span class="kw">let _ </span>= sender.send(WebResourceResponseMsg::DoNotIntercept);
                         }
                     }
                 }
