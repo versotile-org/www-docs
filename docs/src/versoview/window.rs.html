@@ -1181,7 +1181,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) on_navigation_starting: bool,
     <span class="doccomment">/// A id to request response sender map if the controller wants to get and handle web resource requests
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) on_web_resource_requested:
-        <span class="prelude-ty">Option</span>&lt;HashMap&lt;uuid::Uuid, (ServoUrl, IpcSender&lt;WebResourceResponseMsg&gt;)&gt;&gt;,
+        <span class="prelude-ty">Option</span>&lt;HashMap&lt;uuid::Uuid, (url::Url, IpcSender&lt;WebResourceResponseMsg&gt;)&gt;&gt;,
     <span class="doccomment">/// This is `true` if the controller wants to get and handle WindowEvent::CloseRequested
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) on_close_requested: bool,
 }

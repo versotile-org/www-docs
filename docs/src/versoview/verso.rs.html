@@ -988,10 +988,7 @@
 <a href="#987" id="987">987</a>
 <a href="#988" id="988">988</a>
 <a href="#989" id="989">989</a>
-<a href="#990" id="990">990</a>
-<a href="#991" id="991">991</a>
-<a href="#992" id="992">992</a>
-<a href="#993" id="993">993</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#990" id="990">990</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -1016,7 +1013,6 @@
 <span class="kw">use </span>ipc_channel::router::ROUTER;
 <span class="kw">use </span>layout_thread_2020;
 <span class="kw">use </span>log::{Log, Metadata, Record};
-<span class="kw">use </span>media::{GlApi, GlContext, NativeDisplay, WindowGLContext};
 <span class="kw">use </span>net::resource_thread;
 <span class="kw">use </span>profile;
 <span class="kw">use </span>script::{<span class="self">self</span>, JSEngineSetup};
@@ -1450,7 +1446,7 @@
                     {
                         <span class="macro">log::error!</span>(
                             <span class="string">"Verso failed to send WebResourceRequested to controller: {error}"
-                        </span>)
+                        </span>);
                     } <span class="kw">else </span>{
                         <span class="kw">return </span><span class="bool-val">false</span>;
                     }
@@ -1683,18 +1679,16 @@
                         <span class="kw">if let </span><span class="prelude-val">Some</span>(response) = response.response {
                             <span class="kw">let _ </span>= sender
                                 .send(WebResourceResponseMsg::Start(
-                                    WebResourceResponse::new(url.into_url())
+                                    WebResourceResponse::new(url)
                                         .headers(response.headers().clone())
                                         .status_code(response.status()),
                                 ))
                                 .and_then(|<span class="kw">_</span>| {
                                     sender.send(WebResourceResponseMsg::SendBodyData(
-                                        response.body().to_vec(),
+                                        response.into_body(),
                                     ))
                                 })
-                                .and_then(|<span class="kw">_</span>| {
-                                    sender.send(WebResourceResponseMsg::SendBodyData(Vec::new()))
-                                });
+                                .and_then(|<span class="kw">_</span>| sender.send(WebResourceResponseMsg::FinishLoad));
                         } <span class="kw">else </span>{
                             <span class="kw">let _ </span>= sender.send(WebResourceResponseMsg::DoNotIntercept);
                         }

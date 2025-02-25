@@ -854,7 +854,7 @@
                             ),
                         ) {
                             <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
-                                request_map.insert(id, (ServoUrl::from_url(request.url), sender));
+                                request_map.insert(id, (request.url, sender));
                                 <span class="comment">// We will handle a ToVersoMessage::WebResourceRequestResponse
                                 // and send the response through this sender there if the call succeed
                                 </span><span class="kw">return</span>;
