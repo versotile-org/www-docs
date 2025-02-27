@@ -688,7 +688,13 @@
 <a href="#687" id="687">687</a>
 <a href="#688" id="688">688</a>
 <a href="#689" id="689">689</a>
-<a href="#690" id="690">690</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -977,6 +983,12 @@
                 } <span class="kw">else </span>{
                     <span class="macro">log::error!</span>(<span class="string">"Failed to get WebView {webview_id:?} in this window."</span>);
                 }
+            }
+            EmbedderMsg::ShowIME(_webview_id, input_method_type, text, multiline, position) =&gt; {
+                <span class="self">self</span>.show_ime(input_method_type, text, multiline, position);
+            }
+            EmbedderMsg::HideIME(_webview_id) =&gt; {
+                <span class="self">self</span>.hide_ime();
             }
             e =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso WebView isn't supporting this message yet: {e:?}"</span>)

@@ -987,8 +987,7 @@
 <a href="#986" id="986">986</a>
 <a href="#987" id="987">987</a>
 <a href="#988" id="988">988</a>
-<a href="#989" id="989">989</a>
-<a href="#990" id="990">990</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#989" id="989">989</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -1116,7 +1115,6 @@
         <span class="comment">// Reserving a namespace to create TopLevelBrowsingContextId.
         </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
         <span class="kw">let </span>(<span class="kw-2">mut </span>window, rendering_context) = Window::new(evl, window_settings);
-
         <span class="kw">let </span>event_loop_waker = Box::new(Waker(proxy));
         <span class="kw">let </span>opts = opts::get();
 
