@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/webview/webview.rs`."><title>webview.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="versoview" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../../../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">versoview/webview/</div>webview.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/webview/webview.rs`."><title>webview.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-46132b98.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="versoview" data-themes="" data-resource-suffix="" data-rustdoc-version="1.85.0 (4d91de4e4 2025-02-17)" data-channel="1.85.0" data-search-js="search-75f5ac3e.js" data-settings-js="settings-0f613d39.js" ><script src="../../../static.files/storage-59e33391.js"></script><script defer src="../../../static.files/src-script-56102188.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-5f194d8c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">versoview/webview/</div>webview.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers">
 <a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -694,16 +694,37 @@
 <a href="#693" id="693">693</a>
 <a href="#694" id="694">694</a>
 <a href="#695" id="695">695</a>
-<a href="#696" id="696">696</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
-    AllowOrDeny, ContextMenuResult, EmbedderMsg, LoadStatus, PromptDefinition, PromptResult,
-    TraversalDirection,
+    AlertResponse, AllowOrDeny, ConfirmResponse, ContextMenuResult, EmbedderMsg, LoadStatus,
+    PromptResponse, SimpleDialog, TraversalDirection, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverScriptCommand,
 };
 <span class="kw">use </span>ipc_channel::ipc;
-<span class="kw">use </span>script_traits::webdriver_msg::{WebDriverJSResult, WebDriverScriptCommand};
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>url::Url;
 <span class="kw">use </span>versoview_messages::ToControllerMessage;
@@ -772,7 +793,7 @@
     ) {
         <span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::WebViewOpened(<span class="kw">_</span>) | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
+            EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
                 <span class="comment">// Most WebView messages are ignored because it's done by compositor.
                 </span><span class="macro">log::trace!</span>(<span class="string">"Verso WebView {webview_id:?} ignores this message: {message:?}"</span>)
             }
@@ -932,19 +953,29 @@
                     }
                 }
             }
-            EmbedderMsg::Prompt(_webview_id, prompt_type, _origin) =&gt; {
+            EmbedderMsg::ShowSimpleDialog(_webview_id, simple_dialog) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.tab(webview_id) {
                     <span class="kw">let </span><span class="kw-2">mut </span>prompt = PromptDialog::new();
                     <span class="kw">let </span>rect = tab.webview().rect;
-                    <span class="kw">match </span>prompt_type {
-                        PromptDefinition::Alert(message, prompt_sender) =&gt; {
-                            prompt.alert(sender, rect, message, prompt_sender);
+                    <span class="kw">match </span>simple_dialog {
+                        SimpleDialog::Alert {
+                            message,
+                            response_sender,
+                        } =&gt; {
+                            prompt.alert(sender, rect, message, response_sender);
                         }
-                        PromptDefinition::OkCancel(message, prompt_sender) =&gt; {
-                            prompt.ok_cancel(sender, rect, message, prompt_sender);
+                        SimpleDialog::Confirm {
+                            message,
+                            response_sender,
+                        } =&gt; {
+                            prompt.ok_cancel(sender, rect, message, response_sender);
                         }
-                        PromptDefinition::Input(message, default_value, prompt_sender) =&gt; {
-                            prompt.input(sender, rect, message, <span class="prelude-val">Some</span>(default_value), prompt_sender);
+                        SimpleDialog::Prompt {
+                            message,
+                            default,
+                            response_sender,
+                        } =&gt; {
+                            prompt.input(sender, rect, message, <span class="prelude-val">Some</span>(default), response_sender);
                         }
                     }
 
@@ -1007,7 +1038,7 @@
     ) -&gt; bool {
         <span class="macro">log::trace!</span>(<span class="string">"Verso Panel {panel_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
-            EmbedderMsg::WebViewOpened(<span class="kw">_</span>) | EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
+            EmbedderMsg::WebViewClosed(<span class="kw">_</span>) =&gt; {
                 <span class="comment">// Most WebView messages are ignored because it's done by compositor.
                 </span><span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
             }
@@ -1040,12 +1071,16 @@
             EmbedderMsg::HistoryChanged(..) | EmbedderMsg::ChangePageTitle(..) =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
             }
-            EmbedderMsg::Prompt(_webview_id, definition, _origin) =&gt; {
-                <span class="kw">match </span>definition {
-                    PromptDefinition::Input(msg, <span class="kw">_</span>, prompt_sender) =&gt; {
+            EmbedderMsg::ShowSimpleDialog(_webview_id, simple_dialog) =&gt; {
+                <span class="kw">match </span>simple_dialog {
+                    SimpleDialog::Prompt {
+                        message,
+                        default: <span class="kw">_</span>,
+                        response_sender,
+                    } =&gt; {
                         <span class="comment">/* Tab */
-                        </span><span class="kw">if </span>msg.starts_with(<span class="string">"CLOSE_TAB:"</span>) {
-                            <span class="kw">let </span>request_str = msg.strip_prefix(<span class="string">"CLOSE_TAB:"</span>).unwrap();
+                        </span><span class="kw">if </span>message.starts_with(<span class="string">"CLOSE_TAB:"</span>) {
+                            <span class="kw">let </span>request_str = message.strip_prefix(<span class="string">"CLOSE_TAB:"</span>).unwrap();
                             <span class="kw">let </span>request: TabCloseRequest = serde_json::from_str(request_str)
                                 .expect(<span class="string">"Failed to parse TabCloseRequest"</span>);
 
@@ -1057,10 +1092,10 @@
                                 );
                             }
 
-                            <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
+                            <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
                             <span class="kw">return </span><span class="bool-val">false</span>;
-                        } <span class="kw">else if </span>msg.starts_with(<span class="string">"ACTIVATE_TAB:"</span>) {
-                            <span class="kw">let </span>request_str = msg.strip_prefix(<span class="string">"ACTIVATE_TAB:"</span>).unwrap();
+                        } <span class="kw">else if </span>message.starts_with(<span class="string">"ACTIVATE_TAB:"</span>) {
+                            <span class="kw">let </span>request_str = message.strip_prefix(<span class="string">"ACTIVATE_TAB:"</span>).unwrap();
                             <span class="kw">let </span>request: TabActivateRequest = serde_json::from_str(request_str)
                                 .expect(<span class="string">"Failed to parse TabActivateRequest"</span>);
 
@@ -1069,9 +1104,9 @@
                             <span class="comment">// FIXME: set dirty flag, and only resize when flag is set
                             </span><span class="self">self</span>.activate_tab(compositor, tab_id, <span class="self">self</span>.tab_manager.count() &gt; <span class="number">1</span>);
 
-                            <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
+                            <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
                             <span class="kw">return </span><span class="bool-val">false</span>;
-                        } <span class="kw">else if </span>msg == <span class="string">"NEW_TAB" </span>{
+                        } <span class="kw">else if </span>message == <span class="string">"NEW_TAB" </span>{
                             <span class="kw">let </span>webview_id = WebViewId::new();
                             <span class="kw">let </span>size = <span class="self">self</span>.size();
                             <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
@@ -1091,16 +1126,16 @@
                                 success: <span class="bool-val">true</span>,
                                 id: webview_id,
                             };
-                            <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">Some</span>(result.to_json()));
+                            <span class="kw">let _ </span>= response_sender.send(PromptResponse::Ok(result.to_json()));
                             <span class="kw">return </span><span class="bool-val">false</span>;
                         }
 
-                        <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
+                        <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
 
                         <span class="comment">/* Window */
-                        </span><span class="kw">match </span>msg.as_str() {
+                        </span><span class="kw">match </span>message.as_str() {
                             <span class="string">"NEW_WINDOW" </span>=&gt; {
-                                <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
+                                <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
                                 <span class="kw">return </span><span class="bool-val">true</span>;
                             }
                             <span class="string">"MINIMIZE" </span>=&gt; {
@@ -1122,8 +1157,8 @@
                         <span class="comment">/* Main WebView */
                         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.current_tab() {
                             <span class="kw">let </span>id = tab.id();
-                            <span class="kw">if </span>msg.starts_with(<span class="string">"NAVIGATE_TO:"</span>) {
-                                <span class="kw">let </span>unparsed_url = msg.strip_prefix(<span class="string">"NAVIGATE_TO:"</span>).unwrap();
+                            <span class="kw">if </span>message.starts_with(<span class="string">"NAVIGATE_TO:"</span>) {
+                                <span class="kw">let </span>unparsed_url = message.strip_prefix(<span class="string">"NAVIGATE_TO:"</span>).unwrap();
                                 <span class="kw">let </span>url = <span class="kw">match </span>Url::parse(unparsed_url) {
                                     <span class="prelude-val">Ok</span>(url_parsed) =&gt; url_parsed,
                                     <span class="prelude-val">Err</span>(e) =&gt; {
@@ -1141,7 +1176,7 @@
                                     ConstellationMsg::LoadUrl(id, ServoUrl::from_url(url)),
                                 );
                             } <span class="kw">else </span>{
-                                <span class="kw">match </span>msg.as_str() {
+                                <span class="kw">match </span>message.as_str() {
                                     <span class="string">"PREV" </span>=&gt; {
                                         send_to_constellation(
                                             sender,
@@ -1236,11 +1271,15 @@
             EmbedderMsg::WebViewFocused(webview_id) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
             }
-            EmbedderMsg::Prompt(_webview_id, definition, _origin) =&gt; <span class="kw">match </span>definition {
-                PromptDefinition::Input(msg, <span class="kw">_</span>, prompt_sender) =&gt; {
-                    <span class="kw">let _ </span>= prompt_sender.send(<span class="prelude-val">None</span>);
-                    <span class="kw">if </span>msg.starts_with(<span class="string">"CONTEXT_MENU:"</span>) {
-                        <span class="kw">let </span>json_str_msg = msg.strip_prefix(<span class="string">"CONTEXT_MENU:"</span>).unwrap();
+            EmbedderMsg::ShowSimpleDialog(_webview_id, simple_dialog) =&gt; <span class="kw">match </span>simple_dialog {
+                SimpleDialog::Prompt {
+                    message,
+                    default: <span class="kw">_</span>,
+                    response_sender,
+                } =&gt; {
+                    <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
+                    <span class="kw">if </span>message.starts_with(<span class="string">"CONTEXT_MENU:"</span>) {
+                        <span class="kw">let </span>json_str_msg = message.strip_prefix(<span class="string">"CONTEXT_MENU:"</span>).unwrap();
                         <span class="kw">let </span>result =
                             serde_json::from_str::&lt;ContextMenuUIResponse&gt;(json_str_msg).unwrap();
 
@@ -1280,9 +1319,12 @@
             EmbedderMsg::WebViewFocused(webview_id) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
             }
-            EmbedderMsg::Prompt(_webview_id, prompt, _origin) =&gt; <span class="kw">match </span>prompt {
-                PromptDefinition::Alert(msg, dummy_sender) =&gt; {
-                    <span class="kw">let _ </span>= dummy_sender.send(());
+            EmbedderMsg::ShowSimpleDialog(_webview_id, simple_dialog) =&gt; <span class="kw">match </span>simple_dialog {
+                SimpleDialog::Alert {
+                    message,
+                    response_sender,
+                } =&gt; {
+                    <span class="kw">let _ </span>= response_sender.send(AlertResponse::default());
 
                     <span class="kw">let </span><span class="prelude-val">Some</span>(prompt) = <span class="self">self</span>.tab_manager.prompt_by_prompt_id(webview_id) <span class="kw">else </span>{
                         <span class="macro">log::error!</span>(<span class="string">"Prompt not found. WebView: {webview_id:?}"</span>);
@@ -1292,46 +1334,46 @@
                     <span class="kw">let </span>servo_sender = prompt.sender().unwrap();
                     <span class="kw">match </span>servo_sender {
                         PromptSender::AlertSender(sender) =&gt; {
-                            <span class="kw">let _ </span>= sender.send(());
+                            <span class="kw">let _ </span>= sender.send(AlertResponse::default());
                         }
                         PromptSender::ConfirmSender(sender) =&gt; {
-                            <span class="kw">let </span>result: PromptResult = <span class="kw">match </span>msg.as_str() {
-                                <span class="string">"ok" </span>=&gt; PromptResult::Primary,
-                                <span class="string">"cancel" </span>=&gt; PromptResult::Secondary,
+                            <span class="kw">let </span>result: ConfirmResponse = <span class="kw">match </span>message.as_str() {
+                                <span class="string">"ok" </span>=&gt; ConfirmResponse::Ok,
+                                <span class="string">"cancel" </span>=&gt; ConfirmResponse::Cancel,
                                 <span class="kw">_ </span>=&gt; {
-                                    <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
-                                    PromptResult::Dismissed
+                                    <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {message}"</span>);
+                                    ConfirmResponse::default()
                                 }
                             };
                             <span class="kw">let _ </span>= sender.send(result);
                         }
                         PromptSender::InputSender(sender) =&gt; {
                             <span class="kw">if let </span><span class="prelude-val">Ok</span>(PromptInputResult { action, value }) =
-                                serde_json::from_str::&lt;PromptInputResult&gt;(<span class="kw-2">&amp;</span>msg)
+                                serde_json::from_str::&lt;PromptInputResult&gt;(<span class="kw-2">&amp;</span>message)
                             {
                                 <span class="kw">match </span>action.as_str() {
                                     <span class="string">"ok" </span>=&gt; {
-                                        <span class="kw">let _ </span>= sender.send(<span class="prelude-val">Some</span>(value));
+                                        <span class="kw">let _ </span>= sender.send(PromptResponse::Ok(value));
                                     }
                                     <span class="string">"cancel" </span>=&gt; {
-                                        <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
+                                        <span class="kw">let _ </span>= sender.send(PromptResponse::Cancel);
                                     }
                                     <span class="kw">_ </span>=&gt; {
-                                        <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
-                                        <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
+                                        <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {message}"</span>);
+                                        <span class="kw">let _ </span>= sender.send(PromptResponse::default());
                                     }
                                 }
                             } <span class="kw">else </span>{
-                                <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
-                                <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
+                                <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {message}"</span>);
+                                <span class="kw">let _ </span>= sender.send(PromptResponse::default());
                             }
                         }
                         PromptSender::AllowDenySender(sender) =&gt; {
-                            <span class="kw">let </span>result: AllowOrDeny = <span class="kw">match </span>msg.as_str() {
+                            <span class="kw">let </span>result: AllowOrDeny = <span class="kw">match </span>message.as_str() {
                                 <span class="string">"allow" </span>=&gt; AllowOrDeny::Allow,
                                 <span class="string">"deny" </span>=&gt; AllowOrDeny::Deny,
                                 <span class="kw">_ </span>=&gt; {
-                                    <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
+                                    <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {message}"</span>);
                                     AllowOrDeny::Deny
                                 }
                             };
@@ -1339,7 +1381,7 @@
                         }
                         PromptSender::HttpBasicAuthSender(sender) =&gt; {
                             <span class="kw">if let </span><span class="prelude-val">Ok</span>(HttpBasicAuthInputResult { action, auth }) =
-                                serde_json::from_str::&lt;HttpBasicAuthInputResult&gt;(<span class="kw-2">&amp;</span>msg)
+                                serde_json::from_str::&lt;HttpBasicAuthInputResult&gt;(<span class="kw-2">&amp;</span>message)
                             {
                                 <span class="kw">match </span>action.as_str() {
                                     <span class="string">"signin" </span>=&gt; {
@@ -1353,7 +1395,7 @@
                                     }
                                 };
                             } <span class="kw">else </span>{
-                                <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {msg}"</span>);
+                                <span class="macro">log::error!</span>(<span class="string">"Invalid prompt action: {message}"</span>);
                                 <span class="kw">let _ </span>= sender.send(<span class="prelude-val">None</span>);
                             }
                         }
@@ -1383,7 +1425,7 @@
     <span class="kw">let </span>(result_sender, result_receiver) = ipc::channel::&lt;WebDriverJSResult&gt;().unwrap();
     send_to_constellation(
         constellation_sender,
-        ConstellationMsg::WebDriverCommand(script_traits::WebDriverCommandMsg::ScriptCommand(
+        ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
             webview.<span class="number">0</span>,
             WebDriverScriptCommand::ExecuteScript(js.to_string(), result_sender),
         )),

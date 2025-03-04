@@ -360,6 +360,9 @@
         "inset-inline-start": {
             "pref": null
         },
+        "isolation": {
+            "pref": null
+        },
         "justify-content": {
             "pref": null
         },
