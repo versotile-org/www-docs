@@ -1196,11 +1196,7 @@
 <a href="#1195" id="1195">1195</a>
 <a href="#1196" id="1196">1196</a>
 <a href="#1197" id="1197">1197</a>
-<a href="#1198" id="1198">1198</a>
-<a href="#1199" id="1199">1199</a>
-<a href="#1200" id="1200">1200</a>
-<a href="#1201" id="1201">1201</a>
-<a href="#1202" id="1202">1202</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1198" id="1198">1198</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
@@ -1426,18 +1422,14 @@
     </span><span class="kw">pub fn </span>create_panel(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
-        initial_url: <span class="prelude-ty">Option</span>&lt;url::Url&gt;,
+        initial_url: url::Url,
     ) {
         <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
         <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
         <span class="kw">let </span>panel_id = WebViewId::new();
         <span class="self">self</span>.panel = <span class="prelude-val">Some</span>(Panel {
             webview: WebView::new(panel_id, DeviceIntRect::from_size(size)),
-            initial_url: <span class="kw">if let </span><span class="prelude-val">Some</span>(initial_url) = initial_url {
-                ServoUrl::from_url(initial_url)
-            } <span class="kw">else </span>{
-                ServoUrl::parse(<span class="string">"https://example.com"</span>).unwrap()
-            },
+            initial_url: ServoUrl::from_url(initial_url),
         });
 
         <span class="kw">let </span>url = ServoUrl::parse(<span class="string">"verso://resources/components/panel.html"</span>).unwrap();

@@ -409,8 +409,101 @@
 <a href="#408" id="408">408</a>
 <a href="#409" id="409">409</a>
 <a href="#410" id="410">410</a>
-<a href="#411" id="411">411</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
+<a href="#422" id="422">422</a>
+<a href="#423" id="423">423</a>
+<a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
+<a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a>
+<a href="#475" id="475">475</a>
+<a href="#476" id="476">476</a>
+<a href="#477" id="477">477</a>
+<a href="#478" id="478">478</a>
+<a href="#479" id="479">479</a>
+<a href="#480" id="480">480</a>
+<a href="#481" id="481">481</a>
+<a href="#482" id="482">482</a>
+<a href="#483" id="483">483</a>
+<a href="#484" id="484">484</a>
+<a href="#485" id="485">485</a>
+<a href="#486" id="486">486</a>
+<a href="#487" id="487">487</a>
+<a href="#488" id="488">488</a>
+<a href="#489" id="489">489</a>
+<a href="#490" id="490">490</a>
+<a href="#491" id="491">491</a>
+<a href="#492" id="492">492</a>
+<a href="#493" id="493">493</a>
+<a href="#494" id="494">494</a>
+<a href="#495" id="495">495</a>
+<a href="#496" id="496">496</a>
+<a href="#497" id="497">497</a>
+<a href="#498" id="498">498</a>
+<a href="#499" id="499">499</a>
+<a href="#500" id="500">500</a>
+<a href="#501" id="501">501</a>
+<a href="#502" id="502">502</a>
+<a href="#503" id="503">503</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
 
+<span class="kw">use </span>dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 <span class="kw">use </span>embedder_traits::resources::{<span class="self">self</span>, Resource, ResourceReaderMethods};
 <span class="kw">use </span>headers::{ContentType, HeaderMapExt};
 <span class="kw">use </span>net::protocols::{ProtocolHandler, ProtocolRegistry};
@@ -423,7 +516,8 @@
     opts::{set_options, Opts, OutputOptions},
     prefs::Preferences,
 };
-<span class="kw">use </span>winit::{dpi, window::WindowAttributes};
+<span class="kw">use </span>versoview_messages::ConfigFromController;
+<span class="kw">use </span>winit::window::WindowAttributes;
 
 <span class="doccomment">/// Servo time profile settings
 </span><span class="attr">#[derive(Clone, Debug)]
@@ -444,12 +538,16 @@
     </span><span class="kw">pub </span>ipc_channel: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="doccomment">/// Should launch without control panel
     </span><span class="kw">pub </span>no_panel: bool,
-    <span class="doccomment">/// Window settings for the initial winit window
-    </span><span class="kw">pub </span>window_attributes: WindowAttributes,
+    <span class="doccomment">/// Window size for the initial window
+    </span><span class="kw">pub </span>inner_size: <span class="prelude-ty">Option</span>&lt;PhysicalSize&lt;u32&gt;&gt;,
+    <span class="doccomment">/// Window position for the initial window
+    </span><span class="kw">pub </span>position: <span class="prelude-ty">Option</span>&lt;PhysicalPosition&lt;i32&gt;&gt;,
+    <span class="doccomment">/// Don't maximize the initial window
+    </span><span class="kw">pub </span>no_maximized: bool,
     <span class="doccomment">/// Port number to start a server to listen to remote Firefox devtools connections. 0 for random port.
     </span><span class="kw">pub </span>devtools_port: <span class="prelude-ty">Option</span>&lt;u16&gt;,
     <span class="doccomment">/// Servo time profile settings
-    </span><span class="kw">pub </span>profiler_settings: <span class="prelude-ty">Option</span>&lt;ProfilerSettings&gt;,
+    </span><span class="kw">pub </span>profiler_settings: <span class="prelude-ty">Option</span>&lt;versoview_messages::ProfilerSettings&gt;,
     <span class="doccomment">/// Path to resource directory. If None, Verso will try to get default directory. And if that
     /// still doesn't exist, all resource configuration will set to default values.
     </span><span class="kw">pub </span>resource_dir: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
@@ -463,19 +561,8 @@
     </span><span class="kw">pub </span>zoom_level: <span class="prelude-ty">Option</span>&lt;f32&gt;,
 }
 
-<span class="doccomment">/// Configuration of Verso instance.
-</span><span class="attr">#[derive(Clone, Debug)]
-</span><span class="kw">pub struct </span>Config {
-    <span class="doccomment">/// Global flag options of Servo.
-    </span><span class="kw">pub </span>opts: Opts,
-    <span class="doccomment">/// Command line arguments.
-    </span><span class="kw">pub </span>args: CliArgs,
-    <span class="doccomment">/// Path to resource directory. If None, Verso will try to get default directory. And if that
-    /// still doesn't exist, all resource configuration will set to default values.
-    </span><span class="kw">pub </span>resource_dir: PathBuf,
-}
-
-<span class="kw">fn </span>parse_cli_args() -&gt; <span class="prelude-ty">Result</span>&lt;CliArgs, getopts::Fail&gt; {
+<span class="doccomment">/// Parse CLI arguments to a [`CliArgs`]
+</span><span class="kw">pub fn </span>parse_cli_args() -&gt; <span class="prelude-ty">Result</span>&lt;CliArgs, getopts::Fail&gt; {
     <span class="kw">let </span>args: Vec&lt;String&gt; = std::env::args().collect();
 
     <span class="kw">let </span><span class="kw-2">mut </span>opts = getopts::Options::new();
@@ -590,11 +677,11 @@
     <span class="kw">let </span>profiler_settings = <span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(profiler_interval)) = matches.opt_get(<span class="string">"profiler"</span>) {
         <span class="kw">let </span>profile_output = matches.opt_str(<span class="string">"profiler-output-file"</span>);
         <span class="kw">let </span>trace_output = matches.opt_str(<span class="string">"profiler-trace-path"</span>);
-        <span class="prelude-val">Some</span>(ProfilerSettings {
+        <span class="prelude-val">Some</span>(versoview_messages::ProfilerSettings {
             output_options: <span class="kw">if let </span><span class="prelude-val">Some</span>(output_file) = profile_output {
-                OutputOptions::FileName(output_file)
+                versoview_messages::OutputOptions::FileName(output_file)
             } <span class="kw">else </span>{
-                OutputOptions::Stdout(profiler_interval)
+                versoview_messages::OutputOptions::Stdout(profiler_interval)
             },
             trace_path: trace_output,
         })
@@ -606,15 +693,6 @@
     <span class="kw">let </span>init_script = matches.opt_str(<span class="string">"init-script"</span>);
     <span class="kw">let </span>userscripts_directory = matches.opt_str(<span class="string">"userscripts-directory"</span>);
 
-    <span class="kw">let </span><span class="kw-2">mut </span>window_attributes = winit::window::Window::default_attributes();
-
-    <span class="comment">// set min inner size
-    // should be at least able to show the whole control panel
-    // FIXME: url input has weird behavior that will expand lager when having long text
-    </span><span class="kw">if </span>!no_panel {
-        window_attributes = window_attributes.with_min_inner_size(dpi::LogicalSize::new(<span class="number">480</span>, <span class="number">72</span>));
-    }
-
     <span class="kw">let </span>width = matches.opt_get::&lt;u32&gt;(<span class="string">"width"</span>).unwrap_or_else(|e| {
         <span class="macro">log::error!</span>(<span class="string">"Failed to parse width command line argument: {e}"</span>);
         <span class="prelude-val">None
@@ -623,44 +701,41 @@
         <span class="macro">log::error!</span>(<span class="string">"Failed to parse height command line argument: {e}"</span>);
         <span class="prelude-val">None
     </span>});
-    <span class="kw">match </span>(width, height) {
+    <span class="kw">let </span>inner_size = <span class="kw">match </span>(width, height) {
         (<span class="prelude-val">Some</span>(_width), <span class="prelude-val">None</span>) =&gt; {
             <span class="macro">log::error!</span>(<span class="string">"Invalid size command line argument, width is present but not height"</span>);
-        }
+            <span class="prelude-val">None
+        </span>}
         (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(_height)) =&gt; {
             <span class="macro">log::error!</span>(<span class="string">"Invalid size command line argument, height is present but not width"</span>);
-        }
-        (<span class="prelude-val">Some</span>(width), <span class="prelude-val">Some</span>(height)) =&gt; {
-            window_attributes =
-                window_attributes.with_inner_size(dpi::PhysicalSize::new(width, height))
-        }
-        <span class="kw">_ </span>=&gt; {}
+            <span class="prelude-val">None
+        </span>}
+        (<span class="prelude-val">Some</span>(width), <span class="prelude-val">Some</span>(height)) =&gt; <span class="prelude-val">Some</span>(PhysicalSize::new(width, height)),
+        <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
     };
 
-    <span class="kw">let </span>x = matches.opt_get::&lt;u32&gt;(<span class="string">"x"</span>).unwrap_or_else(|e| {
+    <span class="kw">let </span>x = matches.opt_get::&lt;i32&gt;(<span class="string">"x"</span>).unwrap_or_else(|e| {
         <span class="macro">log::error!</span>(<span class="string">"Failed to parse x command line argument: {e}"</span>);
         <span class="prelude-val">None
     </span>});
-    <span class="kw">let </span>y = matches.opt_get::&lt;u32&gt;(<span class="string">"y"</span>).unwrap_or_else(|e| {
+    <span class="kw">let </span>y = matches.opt_get::&lt;i32&gt;(<span class="string">"y"</span>).unwrap_or_else(|e| {
         <span class="macro">log::error!</span>(<span class="string">"Failed to parse y command line argument: {e}"</span>);
         <span class="prelude-val">None
     </span>});
-    <span class="kw">match </span>(x, y) {
+    <span class="kw">let </span>position = <span class="kw">match </span>(x, y) {
         (<span class="prelude-val">Some</span>(_x), <span class="prelude-val">None</span>) =&gt; {
             <span class="macro">log::error!</span>(<span class="string">"Invalid size command line argument, x is present but not y"</span>);
-        }
+            <span class="prelude-val">None
+        </span>}
         (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(_y)) =&gt; {
             <span class="macro">log::error!</span>(<span class="string">"Invalid size command line argument, y is present but not x"</span>);
-        }
-        (<span class="prelude-val">Some</span>(x), <span class="prelude-val">Some</span>(y)) =&gt; {
-            window_attributes = window_attributes.with_position(dpi::PhysicalPosition::new(x, y))
-        }
-        <span class="kw">_ </span>=&gt; {}
+            <span class="prelude-val">None
+        </span>}
+        (<span class="prelude-val">Some</span>(x), <span class="prelude-val">Some</span>(y)) =&gt; <span class="prelude-val">Some</span>(PhysicalPosition::new(x, y)),
+        <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
     };
 
-    <span class="kw">if </span>!matches.opt_present(<span class="string">"no-maximized"</span>) {
-        window_attributes = window_attributes.with_maximized(<span class="bool-val">true</span>);
-    }
+    <span class="kw">let </span>no_maximized = matches.opt_present(<span class="string">"no-maximized"</span>);
 
     <span class="kw">let </span>zoom_level = matches.opt_get::&lt;f32&gt;(<span class="string">"zoom"</span>).unwrap_or_else(|e| {
         <span class="macro">log::error!</span>(<span class="string">"Failed to parse zoom command line argument: {e}"</span>);
@@ -672,49 +747,115 @@
         resource_dir,
         ipc_channel,
         no_panel,
-        window_attributes,
         devtools_port,
         profiler_settings,
         user_agent,
         init_script,
         userscripts_directory,
         zoom_level,
+        inner_size,
+        position,
+        no_maximized,
     })
 }
 
+<span class="doccomment">/// Configuration of Verso instance.
+</span><span class="attr">#[derive(Clone, Debug)]
+</span><span class="kw">pub struct </span>Config {
+    <span class="doccomment">/// URL to load initially.
+    </span><span class="kw">pub </span>url: url::Url,
+    <span class="doccomment">/// Should launch without or without control panel
+    </span><span class="kw">pub </span>with_panel: bool,
+    <span class="doccomment">/// Window settings for the initial winit window
+    </span><span class="kw">pub </span>window_attributes: WindowAttributes,
+    <span class="doccomment">/// Port number to start a server to listen to remote Firefox devtools connections. 0 for random port.
+    </span><span class="kw">pub </span>devtools_port: <span class="prelude-ty">Option</span>&lt;u16&gt;,
+    <span class="doccomment">/// Servo time profile settings
+    </span><span class="kw">pub </span>profiler_settings: <span class="prelude-ty">Option</span>&lt;ProfilerSettings&gt;,
+    <span class="doccomment">/// Override the user agent
+    </span><span class="kw">pub </span>user_agent: String,
+    <span class="doccomment">/// Script to run on document started to load
+    </span><span class="kw">pub </span>init_script: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// The directory to load userscripts from
+    </span><span class="kw">pub </span>userscripts_directory: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Initial window's zoom level
+    </span><span class="kw">pub </span>zoom_level: <span class="prelude-ty">Option</span>&lt;f32&gt;,
+    <span class="doccomment">/// Path to resource directory. If None, Verso will try to get default directory. And if that
+    /// still doesn't exist, all resource configuration will set to default values.
+    </span><span class="kw">pub </span>resource_dir: PathBuf,
+}
+
 <span class="kw">impl </span>Config {
-    <span class="doccomment">/// Create a new configuration for creating Verso instance.
-    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span><span class="kw-2">mut </span>opts = Opts::default();
-        <span class="kw">let </span>args = parse_cli_args().unwrap_or_default();
+    <span class="doccomment">/// Create a new configuration for creating Verso instance from the CLI arguments.
+    </span><span class="kw">pub fn </span>from_cli_args(cli_args: CliArgs) -&gt; <span class="self">Self </span>{
+        <span class="self">Self</span>::from_controller_config(ConfigFromController {
+            url: cli_args.url,
+            with_panel: !cli_args.no_panel,
+            devtools_port: cli_args.devtools_port,
+            profiler_settings: cli_args.profiler_settings,
+            user_agent: cli_args.user_agent,
+            init_script: cli_args.init_script,
+            userscripts_directory: cli_args.userscripts_directory,
+            zoom_level: cli_args.zoom_level,
+            resources_directory: cli_args.resource_dir,
+            maximized: !cli_args.no_maximized,
+            position: cli_args.position.map(Into::into),
+            inner_size: cli_args.inner_size.map(Into::into),
+        })
+    }
 
-        <span class="kw">let </span>(devtools_server_enabled, devtools_port) =
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(devtools_port) = args.devtools_port {
-                (<span class="bool-val">true</span>, devtools_port)
-            } <span class="kw">else </span>{
-                (<span class="bool-val">false</span>, <span class="number">0</span>)
-            };
+    <span class="doccomment">/// Create a new configuration for creating Verso instance from the controller config.
+    </span><span class="kw">pub fn </span>from_controller_config(config: ConfigFromController) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>resource_dir = config
+            .resources_directory
+            .unwrap_or_else(resources_dir_path);
+        <span class="kw">let </span>with_panel = config.with_panel;
+        <span class="kw">let </span>user_agent = config
+            .user_agent
+            .unwrap_or_else(|| default_user_agent_string().to_string());
 
-        servo_config::prefs::set(Preferences {
-            devtools_server_enabled,
-            devtools_server_port: devtools_port <span class="kw">as </span>i64,
-            ..Default::default()
-        });
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>profiler_settings) = args.profiler_settings {
-            opts.time_profiling = <span class="prelude-val">Some</span>(profiler_settings.output_options.clone());
-            opts.time_profiler_trace_path = profiler_settings.trace_path.clone();
+        <span class="kw">let </span><span class="kw-2">mut </span>window_attributes = winit::window::Window::default_attributes();
+        <span class="comment">// set min inner size
+        // should be at least able to show the whole control panel
+        // FIXME: url input has weird behavior that will expand lager when having long text
+        </span><span class="kw">if </span>with_panel {
+            window_attributes = window_attributes.with_min_inner_size(LogicalSize::new(<span class="number">480</span>, <span class="number">72</span>));
         }
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>userscripts_directory) = args.userscripts_directory {
-            opts.userscripts = <span class="prelude-val">Some</span>(userscripts_directory.clone());
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(position) = config.position {
+            window_attributes = window_attributes.with_position(position);
         }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(size) = config.inner_size {
+            window_attributes = window_attributes.with_inner_size(size);
+        }
+        window_attributes = window_attributes.with_maximized(config.maximized);
 
-        <span class="kw">let </span>resource_dir = args.resource_dir.clone().unwrap_or(resources_dir_path());
+        <span class="kw">let </span>profiler_settings =
+            config
+                .profiler_settings
+                .map(|profiler_settings| ProfilerSettings {
+                    output_options: <span class="kw">match </span>profiler_settings.output_options {
+                        versoview_messages::OutputOptions::FileName(outfile) =&gt; {
+                            OutputOptions::FileName(outfile)
+                        }
+                        versoview_messages::OutputOptions::Stdout(profiler_interval) =&gt; {
+                            OutputOptions::Stdout(profiler_interval)
+                        }
+                    },
+                    trace_path: profiler_settings.trace_path,
+                });
 
         <span class="self">Self </span>{
-            opts,
-            args,
+            url: config
+                .url
+                .unwrap_or_else(|| url::Url::parse(<span class="string">"https://example.com"</span>).unwrap()),
+            with_panel,
+            window_attributes,
+            devtools_port: config.devtools_port,
+            profiler_settings,
+            user_agent,
+            init_script: config.init_script,
+            userscripts_directory: config.userscripts_directory,
+            zoom_level: config.zoom_level,
             resource_dir,
         }
     }
@@ -728,12 +869,37 @@
     }
 
     <span class="doccomment">/// Init options and preferences.
-    </span><span class="kw">pub fn </span>init(<span class="self">self</span>) {
-        <span class="comment">// Set the resource files and preferences of Servo.
-        </span>resources::set(Box::new(ResourceReader(<span class="self">self</span>.resource_dir)));
+    </span><span class="kw">pub fn </span>init(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="comment">// Set the resource files of Servo.
+        </span>resources::set(Box::new(ResourceReader(<span class="self">self</span>.resource_dir.clone())));
+
+        <span class="kw">let </span><span class="kw-2">mut </span>opts = Opts::default();
+
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>profiler_settings) = <span class="self">self</span>.profiler_settings {
+            opts.time_profiling = <span class="prelude-val">Some</span>(profiler_settings.output_options.clone());
+            opts.time_profiler_trace_path = profiler_settings.trace_path.clone();
+        }
+
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>userscripts_directory) = <span class="self">self</span>.userscripts_directory {
+            opts.userscripts = <span class="prelude-val">Some</span>(userscripts_directory.clone());
+        }
 
         <span class="comment">// Set the global options of Servo.
-        </span>set_options(<span class="self">self</span>.opts);
+        </span>set_options(opts);
+
+        <span class="kw">let </span>(devtools_server_enabled, devtools_port) =
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(devtools_port) = <span class="self">self</span>.devtools_port {
+                (<span class="bool-val">true</span>, devtools_port)
+            } <span class="kw">else </span>{
+                (<span class="bool-val">false</span>, <span class="number">0</span>)
+            };
+
+        <span class="comment">// Set the preferences of Servo.
+        </span>servo_config::prefs::set(Preferences {
+            devtools_server_enabled,
+            devtools_server_port: devtools_port <span class="kw">as </span>i64,
+            ..Default::default()
+        });
     }
 }
 
@@ -819,5 +985,23 @@
     </span><span class="kw">let </span>root_dir = std::env::current_dir();
 
     root_dir.ok().map(|dir| dir.join(<span class="string">"resources"</span>)).unwrap()
+}
+
+<span class="kw">fn </span>default_user_agent_string() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+    <span class="attr">#[cfg(macos)]
+    </span><span class="kw">const </span>UA_STRING: <span class="kw-2">&amp;</span>str =
+        <span class="string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Servo/1.0 Firefox/111.0"</span>;
+    <span class="attr">#[cfg(ios)]
+    </span><span class="kw">const </span>UA_STRING: <span class="kw-2">&amp;</span>str =
+        <span class="string">"Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X; rv:109.0) Servo/1.0 Firefox/111.0"</span>;
+    <span class="attr">#[cfg(android)]
+    </span><span class="kw">const </span>UA_STRING: <span class="kw-2">&amp;</span>str = <span class="string">"Mozilla/5.0 (Android; Mobile; rv:109.0) Servo/1.0 Firefox/111.0"</span>;
+    <span class="attr">#[cfg(linux)]
+    </span><span class="kw">const </span>UA_STRING: <span class="kw-2">&amp;</span>str = <span class="string">"Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Servo/1.0 Firefox/111.0"</span>;
+    <span class="attr">#[cfg(windows)]
+    </span><span class="kw">const </span>UA_STRING: <span class="kw-2">&amp;</span>str =
+        <span class="string">"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Servo/1.0 Firefox/111.0"</span>;
+
+    UA_STRING
 }
 </code></pre></div></section></main></body></html>
