@@ -42,6 +42,9 @@
         "aspect-ratio": {
             "pref": null
         },
+        "backdrop-filter": {
+            "pref": "layout.unimplemented"
+        },
         "backface-visibility": {
             "pref": null
         },
@@ -234,6 +237,9 @@
         "column-width": {
             "pref": "layout.columns.enabled"
         },
+        "contain": {
+            "pref": "layout.unimplemented"
+        },
         "container-name": {
             "pref": "layout.container-queries.enabled"
         },
@@ -414,6 +420,9 @@
         "margin-top": {
             "pref": null
         },
+        "mask-image": {
+            "pref": "layout.unimplemented"
+        },
         "max-block-size": {
             "pref": null
         },
@@ -446,6 +455,9 @@
         },
         "object-position": {
             "pref": null
+        },
+        "offset-path": {
+            "pref": "layout.unimplemented"
         },
         "opacity": {
             "pref": null
@@ -616,6 +628,9 @@
             "pref": null
         },
         "width": {
+            "pref": null
+        },
+        "will-change": {
             "pref": null
         },
         "word-break": {

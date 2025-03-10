@@ -1,2 +1,2 @@
-window.ALL_CRATES = ["versoview"];
-//{"start":21,"fragment_lengths":[11]}
+window.ALL_CRATES = ["verso","versoview","versoview_messages"];
+//{"start":21,"fragment_lengths":[7,12,21]}

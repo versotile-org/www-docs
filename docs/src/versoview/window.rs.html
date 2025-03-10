@@ -1196,9 +1196,41 @@
 <a href="#1195" id="1195">1195</a>
 <a href="#1196" id="1196">1196</a>
 <a href="#1197" id="1197">1197</a>
-<a href="#1198" id="1198">1198</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1198" id="1198">1198</a>
+<a href="#1199" id="1199">1199</a>
+<a href="#1200" id="1200">1200</a>
+<a href="#1201" id="1201">1201</a>
+<a href="#1202" id="1202">1202</a>
+<a href="#1203" id="1203">1203</a>
+<a href="#1204" id="1204">1204</a>
+<a href="#1205" id="1205">1205</a>
+<a href="#1206" id="1206">1206</a>
+<a href="#1207" id="1207">1207</a>
+<a href="#1208" id="1208">1208</a>
+<a href="#1209" id="1209">1209</a>
+<a href="#1210" id="1210">1210</a>
+<a href="#1211" id="1211">1211</a>
+<a href="#1212" id="1212">1212</a>
+<a href="#1213" id="1213">1213</a>
+<a href="#1214" id="1214">1214</a>
+<a href="#1215" id="1215">1215</a>
+<a href="#1216" id="1216">1216</a>
+<a href="#1217" id="1217">1217</a>
+<a href="#1218" id="1218">1218</a>
+<a href="#1219" id="1219">1219</a>
+<a href="#1220" id="1220">1220</a>
+<a href="#1221" id="1221">1221</a>
+<a href="#1222" id="1222">1222</a>
+<a href="#1223" id="1223">1223</a>
+<a href="#1224" id="1224">1224</a>
+<a href="#1225" id="1225">1225</a>
+<a href="#1226" id="1226">1226</a>
+<a href="#1227" id="1227">1227</a>
+<a href="#1228" id="1228">1228</a>
+<a href="#1229" id="1229">1229</a>
+<a href="#1230" id="1230">1230</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
-<span class="kw">use </span>base::id::WebViewId;
+<span class="kw">use </span>base::id::{TopLevelBrowsingContextId, WebViewId};
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
@@ -1589,8 +1621,17 @@
             WindowEvent::CursorMoved { position, .. } =&gt; {
                 <span class="kw">let </span>point: DevicePoint = DevicePoint::new(position.x <span class="kw">as </span>f32, position.y <span class="kw">as </span>f32);
                 <span class="self">self</span>.mouse_position.set(<span class="prelude-val">Some</span>(<span class="kw-2">*</span>position));
+                <span class="kw">let </span>webview_id = <span class="kw">match </span><span class="self">self</span>.focused_webview_id {
+                    <span class="prelude-val">Some</span>(webview_id) =&gt; webview_id,
+                    <span class="prelude-val">None </span>=&gt; {
+                        <span class="macro">log::trace!</span>(<span class="string">"No focused webview, skipping MouseInput event."</span>);
+                        <span class="kw">return</span>;
+                    }
+                };
+
                 forward_input_event(
                     compositor,
+                    webview_id,
                     sender,
                     InputEvent::MouseMove(MouseMoveEvent { point }),
                 );
@@ -1661,7 +1702,20 @@
                         }
                     }
                 };
-                forward_input_event(compositor, sender, InputEvent::MouseButton(event));
+
+                <span class="kw">let </span>webview_id = <span class="kw">match </span><span class="self">self</span>.focused_webview_id {
+                    <span class="prelude-val">Some</span>(webview_id) =&gt; webview_id,
+                    <span class="prelude-val">None </span>=&gt; {
+                        <span class="macro">log::trace!</span>(<span class="string">"No focused webview, skipping MouseInput event."</span>);
+                        <span class="kw">return</span>;
+                    }
+                };
+                forward_input_event(
+                    compositor,
+                    webview_id,
+                    sender,
+                    InputEvent::MouseButton(event),
+                );
 
                 <span class="comment">// Winit didn't send click event, so we send it after mouse up
                 </span><span class="kw">if </span><span class="kw-2">*</span>state == ElementState::Released {
@@ -1670,7 +1724,12 @@
                         action: MouseButtonAction::Click,
                         button,
                     };
-                    forward_input_event(compositor, sender, InputEvent::MouseButton(event));
+                    forward_input_event(
+                        compositor,
+                        webview_id,
+                        sender,
+                        InputEvent::MouseButton(event),
+                    );
                 }
             }
             WindowEvent::PinchGesture { delta, .. } =&gt; {
@@ -1741,6 +1800,7 @@
                         <span class="kw">let </span>text = text.clone();
                         forward_input_event(
                             compositor,
+                            webview_id,
                             sender,
                             InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
                                 state: CompositionState::End,
@@ -1751,6 +1811,7 @@
                     Ime::Enabled =&gt; {
                         forward_input_event(
                             compositor,
+                            webview_id,
                             sender,
                             InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
                                 state: CompositionState::Start,
@@ -1761,6 +1822,7 @@
                     Ime::Preedit(text, <span class="kw">_</span>) =&gt; {
                         forward_input_event(
                             compositor,
+                            webview_id,
                             sender,
                             InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
                                 state: CompositionState::Update,
@@ -1771,6 +1833,7 @@
                     Ime::Disabled =&gt; {
                         forward_input_event(
                             compositor,
+                            webview_id,
                             sender,
                             InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
                                 state: CompositionState::End,
@@ -1802,7 +1865,7 @@
                 </span><span class="kw">if </span><span class="self">self</span>.handle_keyboard_shortcut(compositor, <span class="kw-2">&amp;</span>event) {
                     <span class="kw">return</span>;
                 }
-                forward_input_event(compositor, sender, InputEvent::Keyboard(event));
+                forward_input_event(compositor, webview_id, sender, InputEvent::Keyboard(event));
             }
             e =&gt; <span class="macro">log::trace!</span>(<span class="string">"Verso Window isn't supporting this window event yet: {e:?}"</span>),
         }
@@ -2381,17 +2444,18 @@
 <span class="doccomment">/// Forward input event to compositor or constellation.
 </span><span class="kw">fn </span>forward_input_event(
     compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
+    webview_id: TopLevelBrowsingContextId,
     constellation_proxy: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
     event: InputEvent,
 ) {
     <span class="comment">// Events with a `point` first go to the compositor for hit testing.
     </span><span class="kw">if </span>event.point().is_some() {
-        compositor.on_input_event(event);
+        compositor.on_input_event(webview_id, event);
         <span class="kw">return</span>;
     }
 
     <span class="kw">let _ </span>= constellation_proxy.send(ConstellationMsg::ForwardInputEvent(
-        event, <span class="prelude-val">None</span>, <span class="comment">/* hit_test */
+        webview_id, event, <span class="prelude-val">None</span>, <span class="comment">/* hit_test */
     </span>));
 }
 </code></pre></div></section></main></body></html>

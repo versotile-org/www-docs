@@ -1121,7 +1121,7 @@
             <span class="kw-2">&amp;</span>opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
         );
-        <span class="kw">let </span>mem_profiler_sender = profile::mem::Profiler::create(opts.mem_profiler_period);
+        <span class="kw">let </span>mem_profiler_sender = profile::mem::Profiler::create();
 
         <span class="comment">// Create compositor and embedder channels
         </span><span class="kw">let </span>(compositor_sender, compositor_receiver) = {
