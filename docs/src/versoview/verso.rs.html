@@ -989,7 +989,15 @@
 <a href="#988" id="988">988</a>
 <a href="#989" id="989">989</a>
 <a href="#990" id="990">990</a>
-<a href="#991" id="991">991</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#991" id="991">991</a>
+<a href="#992" id="992">992</a>
+<a href="#993" id="993">993</a>
+<a href="#994" id="994">994</a>
+<a href="#995" id="995">995</a>
+<a href="#996" id="996">996</a>
+<a href="#997" id="997">997</a>
+<a href="#998" id="998">998</a>
+<a href="#999" id="999">999</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     sync::{atomic::Ordering, Arc},
@@ -1708,19 +1716,20 @@
                     <span class="kw">let _ </span>= window.window.drag_window();
                 }
             }
-            ToVersoMessage::GetSize =&gt; {
+            ToVersoMessage::GetSize(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
-                        ToControllerMessage::GetSizeResponse(window.window.inner_size()),
+                        ToControllerMessage::GetSizeResponse(id, window.window.inner_size()),
                     ) {
                         <span class="macro">log::error!</span>(<span class="string">"Verso failed to send GetSizeReponse to controller: {error}"</span>)
                     }
                 }
             }
-            ToVersoMessage::GetPosition =&gt; {
+            ToVersoMessage::GetPosition(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
                         ToControllerMessage::GetPositionResponse(
+                            id,
                             window.window.inner_position().ok(),
                         ),
                     ) {
@@ -1730,10 +1739,11 @@
                     }
                 }
             }
-            ToVersoMessage::GetMinimized =&gt; {
+            ToVersoMessage::GetMinimized(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
                         ToControllerMessage::GetMinimizedResponse(
+                            id,
                             window.window.is_minimized().unwrap_or_default(),
                         ),
                     ) {
@@ -1743,10 +1753,10 @@
                     }
                 }
             }
-            ToVersoMessage::GetMaximized =&gt; {
+            ToVersoMessage::GetMaximized(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
-                        ToControllerMessage::GetMaximizedResponse(window.window.is_maximized()),
+                        ToControllerMessage::GetMaximizedResponse(id, window.window.is_maximized()),
                     ) {
                         <span class="macro">log::error!</span>(
                             <span class="string">"Verso failed to send GetMaximizedResponse to controller: {error}"
@@ -1754,10 +1764,11 @@
                     }
                 }
             }
-            ToVersoMessage::GetFullscreen =&gt; {
+            ToVersoMessage::GetFullscreen(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
                         ToControllerMessage::GetFullscreenResponse(
+                            id,
                             window.window.fullscreen().is_some(),
                         ),
                     ) {
@@ -1767,10 +1778,11 @@
                     }
                 }
             }
-            ToVersoMessage::GetVisible =&gt; {
+            ToVersoMessage::GetVisible(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
                         ToControllerMessage::GetVisibleResponse(
+                            id,
                             window.window.is_visible().unwrap_or(<span class="bool-val">true</span>),
                         ),
                     ) {
@@ -1780,10 +1792,13 @@
                     }
                 }
             }
-            ToVersoMessage::GetScaleFactor =&gt; {
+            ToVersoMessage::GetScaleFactor(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
-                        ToControllerMessage::GetScaleFactorResponse(window.window.scale_factor()),
+                        ToControllerMessage::GetScaleFactorResponse(
+                            id,
+                            window.window.scale_factor(),
+                        ),
                     ) {
                         <span class="macro">log::error!</span>(
                             <span class="string">"Verso failed to send GetScaleFactorResponse to controller: {error}"
@@ -1791,12 +1806,13 @@
                     }
                 }
             }
-            ToVersoMessage::GetCurrentUrl =&gt; {
+            ToVersoMessage::GetCurrentUrl(id) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">let </span>tab = window.tab_manager.current_tab().unwrap();
                     <span class="kw">let </span>history = tab.history();
                     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.to_controller_sender.as_ref().unwrap().send(
                         ToControllerMessage::GetCurrentUrlResponse(
+                            id,
                             history.list[history.current_idx].as_url().clone(),
                         ),
                     ) {
