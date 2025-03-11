@@ -1,3 +1,3 @@
-var srcIndex = new Map(JSON.parse('[["verso",["",[],["lib.rs"]]],["versoview",["",[["webview",[],["context_menu.rs","mod.rs","prompt.rs","webview.rs"]]],["compositor.rs","config.rs","errors.rs","keyboard.rs","lib.rs","rendering.rs","tab.rs","touch.rs","verso.rs","window.rs"]]],["versoview_messages",["",[],["lib.rs"]]]]'));
+var srcIndex = new Map(JSON.parse('[["verso",["",[],["builder.rs","lib.rs"]]],["versoview",["",[["webview",[],["context_menu.rs","mod.rs","prompt.rs","webview.rs"]]],["compositor.rs","config.rs","errors.rs","keyboard.rs","lib.rs","rendering.rs","tab.rs","touch.rs","verso.rs","window.rs"]]],["versoview_messages",["",[],["lib.rs"]]]]'));
 createSrcSidebar();
-//{"start":36,"fragment_lengths":[28,213,42]}
+//{"start":36,"fragment_lengths":[41,213,42]}

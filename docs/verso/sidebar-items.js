@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["VersoviewController","VersoviewSettings"]};
+window.SIDEBAR_ITEMS = {"struct":["ProfilerSettings","VersoBuilder","VersoviewController","VersoviewSettings"]};

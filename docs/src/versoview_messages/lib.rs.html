@@ -159,7 +159,35 @@
 <a href="#158" id="158">158</a>
 <a href="#159" id="159">159</a>
 <a href="#160" id="160">160</a>
-<a href="#161" id="161">161</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 <span class="kw">use </span>ipc_channel::ipc;
@@ -261,7 +289,7 @@
 }
 
 <span class="doccomment">/// Configuration of Verso instance.
-</span><span class="attr">#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+</span><span class="attr">#[derive(Clone, Debug, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>ConfigFromController {
     <span class="doccomment">/// URL to load initially.
     </span><span class="kw">pub </span>url: <span class="prelude-ty">Option</span>&lt;url::Url&gt;,
@@ -271,8 +299,14 @@
     </span><span class="kw">pub </span>inner_size: <span class="prelude-ty">Option</span>&lt;Size&gt;,
     <span class="doccomment">/// Window position for the initial winit window
     </span><span class="kw">pub </span>position: <span class="prelude-ty">Option</span>&lt;Position&gt;,
-    <span class="doccomment">/// Window position for the initial winit window
+    <span class="doccomment">/// Launch maximized or not for the initial winit window
     </span><span class="kw">pub </span>maximized: bool,
+    <span class="doccomment">/// Launch visible or not for the initial winit window
+    </span><span class="kw">pub </span>visible: bool,
+    <span class="doccomment">/// Launch fullscreen or not for the initial winit window
+    </span><span class="kw">pub </span>fullscreen: bool,
+    <span class="doccomment">/// Launch focused or not for the initial winit window
+    </span><span class="kw">pub </span>focused: bool,
     <span class="doccomment">/// Port number to start a server to listen to remote Firefox devtools connections. 0 for random port.
     </span><span class="kw">pub </span>devtools_port: <span class="prelude-ty">Option</span>&lt;u16&gt;,
     <span class="doccomment">/// Servo time profile settings
@@ -288,6 +322,28 @@
     <span class="doccomment">/// Path to resource directory. If None, Verso will try to get default directory. And if that
     /// still doesn't exist, all resource configuration will set to default values.
     </span><span class="kw">pub </span>resources_directory: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
+}
+
+<span class="kw">impl </span>Default <span class="kw">for </span>ConfigFromController {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            url: <span class="prelude-val">None</span>,
+            with_panel: <span class="bool-val">false</span>,
+            inner_size: <span class="prelude-val">None</span>,
+            position: <span class="prelude-val">None</span>,
+            maximized: <span class="bool-val">false</span>,
+            visible: <span class="bool-val">true</span>,
+            focused: <span class="bool-val">true</span>,
+            fullscreen: <span class="bool-val">false</span>,
+            devtools_port: <span class="prelude-val">None</span>,
+            profiler_settings: <span class="prelude-val">None</span>,
+            user_agent: <span class="prelude-val">None</span>,
+            init_script: <span class="prelude-val">None</span>,
+            userscripts_directory: <span class="prelude-val">None</span>,
+            zoom_level: <span class="prelude-val">None</span>,
+            resources_directory: <span class="prelude-val">None</span>,
+        }
+    }
 }
 
 <span class="doccomment">/// Servo time profile settings
