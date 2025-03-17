@@ -516,12 +516,12 @@
 <span class="kw">use </span>headers::{ContentType, HeaderMapExt};
 <span class="kw">use </span>net::protocols::{ProtocolHandler, ProtocolRegistry};
 <span class="kw">use </span>net_traits::{
+    ResourceFetchTiming,
     request::Request,
     response::{Response, ResponseBody},
-    ResourceFetchTiming,
 };
 <span class="kw">use </span>servo_config::{
-    opts::{set_options, Opts, OutputOptions},
+    opts::{Opts, OutputOptions, set_options},
     prefs::Preferences,
 };
 <span class="kw">use </span>versoview_messages::ConfigFromController;

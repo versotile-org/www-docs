@@ -1230,7 +1230,7 @@
 <a href="#1229" id="1229">1229</a>
 <a href="#1230" id="1230">1230</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
-<span class="kw">use </span>base::id::{TopLevelBrowsingContextId, WebViewId};
+<span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
@@ -1255,8 +1255,8 @@
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>versoview_messages::ToControllerMessage;
 <span class="kw">use </span>webrender_api::{
-    units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutVector2D},
     ScrollLocation,
+    units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutVector2D},
 };
 <span class="attr">#[cfg(any(linux, target_os = <span class="string">"windows"</span>))]
 </span><span class="kw">use </span>winit::window::ResizeDirection;
@@ -1271,14 +1271,14 @@
 <span class="kw">use crate</span>::{
     compositor::IOCompositor,
     keyboard::keyboard_event_from_winit,
-    rendering::{gl_config_picker, RenderingContext},
+    rendering::{RenderingContext, gl_config_picker},
     tab::TabManager,
     verso::send_to_constellation,
     webview::{
+        Panel, WebView,
         context_menu::{ContextMenu, Menu},
         execute_script,
         prompt::PromptSender,
-        Panel, WebView,
     },
 };
 
@@ -2444,7 +2444,7 @@
 <span class="doccomment">/// Forward input event to compositor or constellation.
 </span><span class="kw">fn </span>forward_input_event(
     compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
-    webview_id: TopLevelBrowsingContextId,
+    webview_id: WebViewId,
     constellation_proxy: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
     event: InputEvent,
 ) {

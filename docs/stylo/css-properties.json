@@ -250,10 +250,10 @@
             "pref": null
         },
         "counter-increment": {
-            "pref": "layout.legacy_layout"
+            "pref": "layout.unimplemented"
         },
         "counter-reset": {
-            "pref": "layout.legacy_layout"
+            "pref": "layout.unimplemented"
         },
         "cursor": {
             "pref": null
@@ -571,7 +571,7 @@
             "pref": null
         },
         "text-overflow": {
-            "pref": "layout.legacy_layout"
+            "pref": "layout.unimplemented"
         },
         "text-rendering": {
             "pref": null

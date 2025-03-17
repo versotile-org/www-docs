@@ -2178,23 +2178,14 @@
 <a href="#2177" id="2177">2177</a>
 <a href="#2178" id="2178">2178</a>
 <a href="#2179" id="2179">2179</a>
-<a href="#2180" id="2180">2180</a>
-<a href="#2181" id="2181">2181</a>
-<a href="#2182" id="2182">2182</a>
-<a href="#2183" id="2183">2183</a>
-<a href="#2184" id="2184">2184</a>
-<a href="#2185" id="2185">2185</a>
-<a href="#2186" id="2186">2186</a>
-<a href="#2187" id="2187">2187</a>
-<a href="#2188" id="2188">2188</a>
-<a href="#2189" id="2189">2189</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2180" id="2180">2180</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 <span class="kw">use </span>base::cross_process_instant::CrossProcessInstant;
-<span class="kw">use </span>base::id::{PipelineId, TopLevelBrowsingContextId};
+<span class="kw">use </span>base::id::{PipelineId, WebViewId};
 <span class="kw">use </span>base::{Epoch, WebRenderEpochToU16};
 <span class="kw">use </span>compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg,
@@ -2205,7 +2196,7 @@
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     TouchEvent, TouchEventType, TouchId,
 };
-<span class="kw">use </span>euclid::{vec2, Point2D, Scale, Size2D, Transform3D, Vector2D};
+<span class="kw">use </span>euclid::{Point2D, Scale, Size2D, Transform3D, Vector2D, vec2};
 <span class="kw">use </span>gleam::gl;
 <span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSharedMemory};
 <span class="kw">use </span>log::{debug, error, trace, warn};
@@ -2311,7 +2302,7 @@
     </span>port: CompositorReceiver,
 
     <span class="doccomment">/// Tracks each webview and its current pipeline
-    </span>webviews: HashMap&lt;TopLevelBrowsingContextId, PipelineId&gt;,
+    </span>webviews: HashMap&lt;WebViewId, PipelineId&gt;,
 
     <span class="doccomment">/// Tracks details about each active pipeline that the compositor knows about.
     </span>pipeline_details: HashMap&lt;PipelineId, PipelineDetails&gt;,
@@ -2585,7 +2576,8 @@
         }
     }
 
-    <span class="kw">fn </span>update_cursor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, result: <span class="kw-2">&amp;</span>CompositorHitTestResult) {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>update_cursor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, pos: DevicePoint, result: <span class="kw-2">&amp;</span>CompositorHitTestResult) {
+        <span class="self">self</span>.cursor_pos = pos;
         <span class="kw">let </span>cursor = <span class="kw">match </span>result.cursor {
             <span class="prelude-val">Some</span>(cursor) <span class="kw">if </span>cursor != <span class="self">self</span>.cursor =&gt; cursor,
             <span class="kw">_ </span>=&gt; <span class="kw">return</span>,
@@ -2595,7 +2587,7 @@
             </span>.pipeline_details(result.pipeline_id)
             .pipeline
             .as_ref()
-            .map(|composition_pipeline| composition_pipeline.top_level_browsing_context_id)
+            .map(|composition_pipeline| composition_pipeline.webview_id)
         <span class="kw">else </span>{
             <span class="macro">warn!</span>(
                 <span class="string">"Updating cursor for not-yet-rendered pipeline: {}"</span>,
@@ -2653,7 +2645,7 @@
         <span class="kw">match </span><span class="self">self</span>.shutdown_state {
             ShutdownState::NotShuttingDown =&gt; {}
             ShutdownState::ShuttingDown =&gt; {
-                <span class="kw">return </span><span class="self">self</span>.handle_browser_message_while_shutting_down(msg)
+                <span class="kw">return </span><span class="self">self</span>.handle_browser_message_while_shutting_down(msg);
             }
             ShutdownState::FinishedShuttingDown =&gt; {
                 <span class="macro">error!</span>(<span class="string">"compositor shouldn't be handling messages after shutting down"</span>);
@@ -2663,7 +2655,7 @@
 
         <span class="kw">match </span>msg {
             CompositorMsg::ChangeRunningAnimationsState(
-                _top_level_browsing_context_id,
+                _webview_id,
                 pipeline_id,
                 animation_state,
             ) =&gt; {
@@ -2675,8 +2667,8 @@
                 <span class="self">self</span>.send_scroll_positions_to_layout_for_pipeline(<span class="kw-2">&amp;</span>frame_tree.pipeline.id);
             }
 
-            CompositorMsg::RemoveWebView(top_level_browsing_context_id) =&gt; {
-                <span class="self">self</span>.remove_webview(top_level_browsing_context_id, windows);
+            CompositorMsg::RemoveWebView(webview_id) =&gt; {
+                <span class="self">self</span>.remove_webview(webview_id, windows);
             }
 
             CompositorMsg::TouchEventProcessed(_webview_id, result) =&gt; {
@@ -2703,12 +2695,12 @@
                 <span class="self">self</span>.composite_if_necessary(CompositingReason::Headless);
             }
 
-            CompositorMsg::SetThrottled(_top_level_browsing_context_id, pipeline_id, throttled) =&gt; {
+            CompositorMsg::SetThrottled(_webview_id, pipeline_id, throttled) =&gt; {
                 <span class="self">self</span>.pipeline_details(pipeline_id).throttled = throttled;
                 <span class="self">self</span>.process_animations(<span class="bool-val">true</span>);
             }
 
-            CompositorMsg::PipelineExited(_top_level_browsing_context_id, pipeline_id, sender) =&gt; {
+            CompositorMsg::PipelineExited(_webview_id, pipeline_id, sender) =&gt; {
                 <span class="macro">debug!</span>(<span class="string">"Compositor got pipeline exited: {:?}"</span>, pipeline_id);
                 <span class="self">self</span>.remove_pipeline_root_layer(pipeline_id);
                 <span class="kw">let _ </span>= sender.send(());
@@ -2719,7 +2711,7 @@
 
                 <span class="kw">if </span>recomposite_needed {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(<span class="self">self</span>.cursor_pos) {
-                        <span class="self">self</span>.update_cursor(<span class="kw-2">&amp;</span>result);
+                        <span class="self">self</span>.update_cursor(<span class="self">self</span>.cursor_pos, <span class="kw-2">&amp;</span>result);
                     }
                 }
 
@@ -2757,11 +2749,7 @@
                 );
             }
 
-            CompositorMsg::PendingPaintMetric(
-                _top_level_browsing_context_id,
-                pipeline_id,
-                epoch,
-            ) =&gt; {
+            CompositorMsg::PendingPaintMetric(_webview_id, pipeline_id, epoch) =&gt; {
                 <span class="self">self</span>.pending_paint_metrics
                     .entry(pipeline_id)
                     .or_default()
@@ -2789,7 +2777,7 @@
             }
 
             CrossProcessCompositorMessage::SendScrollNode(
-                _top_level_browsing_context_id,
+                _webview_id,
                 pipeline_id,
                 point,
                 external_scroll_id,
@@ -2837,7 +2825,7 @@
                     <span class="prelude-val">Err</span>(error) =&gt; {
                         <span class="kw">return </span><span class="macro">warn!</span>(
                             <span class="string">"Could not receive WebRender display list items data: {error}"
-                        </span>)
+                        </span>);
                     }
                 };
                 <span class="kw">let </span>cache_data = <span class="kw">match </span>display_list_receiver.recv() {
@@ -2845,7 +2833,7 @@
                     <span class="prelude-val">Err</span>(error) =&gt; {
                         <span class="kw">return </span><span class="macro">warn!</span>(
                             <span class="string">"Could not receive WebRender display list cache data: {error}"
-                        </span>)
+                        </span>);
                     }
                 };
                 <span class="kw">let </span>spatial_tree = <span class="kw">match </span>display_list_receiver.recv() {
@@ -2853,7 +2841,7 @@
                     <span class="prelude-val">Err</span>(error) =&gt; {
                         <span class="kw">return </span><span class="macro">warn!</span>(
                             <span class="string">"Could not receive WebRender display list spatial tree: {error}."
-                        </span>)
+                        </span>);
                     }
                 };
                 <span class="kw">let </span>built_display_list = BuiltDisplayList::from_data(
@@ -3249,7 +3237,7 @@
         windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;,
     ) {
         <span class="kw">let </span>pipeline_id = frame_tree.pipeline.id;
-        <span class="kw">let </span>webview_id = frame_tree.pipeline.top_level_browsing_context_id;
+        <span class="kw">let </span>webview_id = frame_tree.pipeline.webview_id;
         <span class="macro">debug!</span>(
             <span class="string">"Verso Compositor is setting frame tree with pipeline {} for webview {}"</span>,
             pipeline_id, webview_id
@@ -3269,17 +3257,13 @@
 
     <span class="kw">fn </span>remove_webview(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         windows: <span class="kw-2">&amp;mut </span>HashMap&lt;WindowId, (Window, DocumentId)&gt;,
     ) {
-        <span class="macro">debug!</span>(
-            <span class="string">"Verso Compositor is removing webview {}"</span>,
-            top_level_browsing_context_id
-        );
+        <span class="macro">debug!</span>(<span class="string">"Verso Compositor is removing webview {}"</span>, webview_id);
         <span class="kw">let </span><span class="kw-2">mut </span>window_id = <span class="prelude-val">None</span>;
         <span class="kw">for </span>(window, <span class="kw">_</span>) <span class="kw">in </span>windows.values_mut() {
-            <span class="kw">let </span>(webview, close_window) =
-                window.remove_webview(top_level_browsing_context_id, <span class="self">self</span>);
+            <span class="kw">let </span>(webview, close_window) = window.remove_webview(webview_id, <span class="self">self</span>);
             <span class="kw">if let </span><span class="prelude-val">Some</span>(webview) = webview {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(pipeline_id) = <span class="self">self</span>.webviews.remove(<span class="kw-2">&amp;</span>webview.webview_id) {
                     <span class="self">self</span>.remove_pipeline_details_recursively(pipeline_id);
@@ -3304,25 +3288,21 @@
     }
 
     <span class="doccomment">/// Notify compositor the provided webview is resized. The compositor will tell constellation and update the display list.
-    </span><span class="kw">pub fn </span>on_resize_webview_event(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        webview_id: TopLevelBrowsingContextId,
-        rect: DeviceIntRect,
-    ) {
+    </span><span class="kw">pub fn </span>on_resize_webview_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, rect: DeviceIntRect) {
         <span class="self">self</span>.send_window_size_message_for_top_level_browser_context(rect, webview_id);
     }
 
     <span class="kw">fn </span>send_window_size_message_for_top_level_browser_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         rect: DeviceIntRect,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
     ) {
         <span class="comment">// The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
         </span><span class="kw">let </span>device_pixel_ratio = <span class="self">self</span>.device_pixels_per_page_pixel_not_including_page_zoom();
         <span class="kw">let </span>initial_viewport = rect.size().to_f32() / device_pixel_ratio;
         <span class="kw">let </span>msg = ConstellationMsg::WindowSize(
-            top_level_browsing_context_id,
+            webview_id,
             WindowSizeData {
                 device_pixel_ratio,
                 initial_viewport,
@@ -3474,7 +3454,7 @@
     </span>}
 
     <span class="doccomment">/// Dispatch input event to constellation.
-    </span><span class="kw">fn </span>dispatch_input_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: InputEvent) {
+    </span><span class="kw">fn </span>dispatch_input_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, event: InputEvent) {
         <span class="comment">// Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         </span><span class="kw">let </span><span class="prelude-val">Some</span>(point) = event.point() <span class="kw">else </span>{
@@ -3486,7 +3466,7 @@
             <span class="kw">return</span>;
         };
 
-        <span class="self">self</span>.update_cursor(<span class="kw-2">&amp;</span>result);
+        <span class="self">self</span>.update_cursor(point, <span class="kw-2">&amp;</span>result);
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self
             </span>.constellation_chan
@@ -3501,7 +3481,7 @@
     }
 
     <span class="doccomment">/// Handle the input event in the window.
-    </span><span class="kw">pub fn </span>on_input_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: InputEvent) {
+    </span><span class="kw">pub fn </span>on_input_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, event: InputEvent) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
@@ -3583,7 +3563,7 @@
             .collect()
     }
 
-    <span class="kw">fn </span>send_touch_event(<span class="kw-2">&amp;</span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: TouchEvent) {
+    <span class="kw">fn </span>send_touch_event(<span class="kw-2">&amp;</span><span class="self">self</span>, webview_id: WebViewId, event: TouchEvent) {
         <span class="kw">let </span><span class="prelude-val">Some</span>(result) = <span class="self">self</span>.hit_test_at_point(event.point) <span class="kw">else </span>{
             <span class="kw">return</span>;
         };
@@ -3602,7 +3582,7 @@
     }
 
     <span class="doccomment">/// Handle touch event.
-    </span><span class="kw">pub fn </span>on_touch_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: TouchEvent) {
+    </span><span class="kw">pub fn </span>on_touch_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, event: TouchEvent) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
@@ -3615,12 +3595,12 @@
         }
     }
 
-    <span class="kw">fn </span>on_touch_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: TouchEvent) {
+    <span class="kw">fn </span>on_touch_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, event: TouchEvent) {
         <span class="self">self</span>.touch_handler.on_touch_down(event.id, event.point);
         <span class="self">self</span>.send_touch_event(webview_id, event);
     }
 
-    <span class="kw">fn </span>on_touch_move(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: TouchEvent) {
+    <span class="kw">fn </span>on_touch_move(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, event: TouchEvent) {
         <span class="kw">match </span><span class="self">self</span>.touch_handler.on_touch_move(event.id, event.point) {
             TouchAction::Scroll(delta) =&gt; <span class="self">self</span>.on_scroll_window_event(
                 ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
@@ -3648,7 +3628,7 @@
         }
     }
 
-    <span class="kw">fn </span>on_touch_up(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: TouchEvent) {
+    <span class="kw">fn </span>on_touch_up(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, event: TouchEvent) {
         <span class="self">self</span>.send_touch_event(webview_id, event);
 
         <span class="kw">if let </span>TouchAction::Click = <span class="self">self</span>.touch_handler.on_touch_up(event.id, event.point) {
@@ -3656,14 +3636,14 @@
         }
     }
 
-    <span class="kw">fn </span>on_touch_cancel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, event: TouchEvent) {
+    <span class="kw">fn </span>on_touch_cancel(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, event: TouchEvent) {
         <span class="comment">// Send the event to script.
         </span><span class="self">self</span>.touch_handler.on_touch_cancel(event.id, event.point);
         <span class="self">self</span>.send_touch_event(webview_id, event);
     }
 
     <span class="doccomment">/// &lt;http://w3c.github.io/touch-events/#mouse-events&gt;
-    </span><span class="kw">fn </span>simulate_mouse_click(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: TopLevelBrowsingContextId, point: DevicePoint) {
+    </span><span class="kw">fn </span>simulate_mouse_click(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, point: DevicePoint) {
         <span class="kw">let </span>button = MouseButton::Left;
         <span class="self">self</span>.dispatch_input_event(webview_id, InputEvent::MouseMove(MouseMoveEvent { point }));
         <span class="self">self</span>.dispatch_input_event(
@@ -4063,7 +4043,9 @@
         <span class="kw">match </span><span class="self">self</span>.composite_specific_target(window) {
             <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
                 <span class="kw">if </span><span class="self">self</span>.wait_for_stable_image {
-                    <span class="macro">println!</span>(<span class="string">"Shutting down the Constellation after generating an output file or exit flag specified"</span>);
+                    <span class="macro">println!</span>(
+                        <span class="string">"Shutting down the Constellation after generating an output file or exit flag specified"
+                    </span>);
                     <span class="self">self</span>.start_shutting_down();
                 }
             }

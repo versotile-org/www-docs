@@ -751,7 +751,11 @@
 <a href="#750" id="750">750</a>
 <a href="#751" id="751">751</a>
 <a href="#752" id="752">752</a>
-<a href="#753" id="753">753</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#753" id="753">753</a>
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>compositing_traits::ConstellationMsg;
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -858,8 +862,8 @@
                 }
                 <span class="kw">_ </span>=&gt; {
                     <span class="macro">log::trace!</span>(
-                            <span class="string">"Verso WebView {webview_id:?} ignores NotifyLoadStatusChanged status: {status:?}"
-                        </span>);
+                        <span class="string">"Verso WebView {webview_id:?} ignores NotifyLoadStatusChanged status: {status:?}"
+                    </span>);
                 }
             },
             EmbedderMsg::ChangePageTitle(_webview_id, title) =&gt; {
@@ -887,7 +891,9 @@
                                 url.into_url(),
                             ))
                         {
-                            <span class="macro">log::error!</span>(<span class="string">"Verso failed to send AllowNavigationRequest to controller: {error}"</span>)
+                            <span class="macro">log::error!</span>(
+                                <span class="string">"Verso failed to send AllowNavigationRequest to controller: {error}"
+                            </span>)
                         } <span class="kw">else </span>{
                             <span class="comment">// We will handle a ToVersoMessage::OnNavigationStartingResponse
                             // and send ConstellationMsg::AllowNavigationResponse there if the call succeed
@@ -923,7 +929,9 @@
                                 </span><span class="kw">return</span>;
                             }
                             <span class="prelude-val">Err</span>(error) =&gt; {
-                                <span class="macro">log::error!</span>(<span class="string">"Verso failed to send WebResourceRequested to controller: {error}"</span>)
+                                <span class="macro">log::error!</span>(
+                                    <span class="string">"Verso failed to send WebResourceRequested to controller: {error}"
+                                </span>)
                             }
                         }
                     }
