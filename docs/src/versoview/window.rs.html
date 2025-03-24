@@ -1231,12 +1231,12 @@
 <a href="#1230" id="1230">1230</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
-<span class="kw">use </span>compositing_traits::ConstellationMsg;
+<span class="kw">use </span>constellation_traits::{ConstellationMsg, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
     AlertResponse, AllowOrDeny, ConfirmResponse, ContextMenuResult, Cursor, EmbedderMsg, ImeEvent,
     InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PromptResponse,
-    TouchEventType, TraversalDirection, WebDriverJSValue, WebResourceResponseMsg, WheelMode,
+    TouchEventType, WebDriverJSValue, WebResourceResponseMsg, WheelMode,
 };
 <span class="kw">use </span>euclid::{Point2D, Size2D};
 <span class="kw">use </span>glutin::{

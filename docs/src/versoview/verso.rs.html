@@ -1014,8 +1014,9 @@
 <span class="kw">use </span>bluetooth::BluetoothThreadFactory;
 <span class="kw">use </span>bluetooth_traits::BluetoothRequest;
 <span class="kw">use </span>canvas::canvas_paint_thread::CanvasPaintThread;
-<span class="kw">use </span>compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
+<span class="kw">use </span>compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver};
 <span class="kw">use </span>constellation::{Constellation, FromCompositorLogger, InitialConstellationState};
+<span class="kw">use </span>constellation_traits::{ConstellationMsg, WindowSizeData};
 <span class="kw">use </span>crossbeam_channel::{Receiver, Sender, unbounded};
 <span class="kw">use </span>devtools;
 <span class="kw">use </span>embedder_traits::{
@@ -1031,7 +1032,6 @@
 <span class="kw">use </span>net::resource_thread;
 <span class="kw">use </span>profile;
 <span class="kw">use </span>script::{<span class="self">self</span>, JSEngineSetup};
-<span class="kw">use </span>script_traits::WindowSizeData;
 <span class="kw">use </span>servo_config::{opts, pref};
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>style;
