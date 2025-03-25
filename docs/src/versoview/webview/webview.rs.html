@@ -754,7 +754,10 @@
 <a href="#753" id="753">753</a>
 <a href="#754" id="754">754</a>
 <a href="#755" id="755">755</a>
-<a href="#756" id="756">756</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{ConstellationMsg, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -1098,6 +1101,9 @@
             }
             EmbedderMsg::HideIME(_webview_id) =&gt; {
                 <span class="self">self</span>.hide_ime();
+            }
+            EmbedderMsg::ShowNotification(_webview_id, notification) =&gt; {
+                <span class="self">self</span>.show_notification(<span class="kw-2">&amp;</span>notification);
             }
             e =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso WebView isn't supporting this message yet: {e:?}"</span>)

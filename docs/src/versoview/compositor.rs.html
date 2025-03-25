@@ -2881,8 +2881,8 @@
                 <span class="kw">if </span>details.first_paint_metric == PaintMetricState::Waiting {
                     details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
                 }
-                <span class="kw">if </span>details.first_contentful_paint_metric == PaintMetricState::Waiting &amp;&amp;
-                    display_list_info.is_contentful
+                <span class="kw">if </span>details.first_contentful_paint_metric == PaintMetricState::Waiting
+                    &amp;&amp; display_list_info.is_contentful
                 {
                     details.first_contentful_paint_metric =
                         PaintMetricState::Seen(epoch, first_reflow);
