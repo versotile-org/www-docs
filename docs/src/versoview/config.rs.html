@@ -510,10 +510,43 @@
 <a href="#509" id="509">509</a>
 <a href="#510" id="510">510</a>
 <a href="#511" id="511">511</a>
-<a href="#512" id="512">512</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs, path::PathBuf};
+<a href="#512" id="512">512</a>
+<a href="#513" id="513">513</a>
+<a href="#514" id="514">514</a>
+<a href="#515" id="515">515</a>
+<a href="#516" id="516">516</a>
+<a href="#517" id="517">517</a>
+<a href="#518" id="518">518</a>
+<a href="#519" id="519">519</a>
+<a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 <span class="kw">use </span>dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 <span class="kw">use </span>embedder_traits::resources::{<span class="self">self</span>, Resource, ResourceReaderMethods};
+<span class="kw">use </span>embedder_traits::user_content_manager::UserScript <span class="kw">as </span>ServoUserScript;
 <span class="kw">use </span>headers::{ContentType, HeaderMapExt};
 <span class="kw">use </span>net::protocols::{ProtocolHandler, ProtocolRegistry};
 <span class="kw">use </span>net_traits::{
@@ -525,7 +558,7 @@
     opts::{Opts, OutputOptions, set_options},
     prefs::Preferences,
 };
-<span class="kw">use </span>versoview_messages::ConfigFromController;
+<span class="kw">use </span>versoview_messages::{ConfigFromController, UserScript};
 <span class="kw">use </span>winit::window::{Fullscreen, WindowAttributes};
 
 <span class="doccomment">/// Servo time profile settings
@@ -784,9 +817,7 @@
     <span class="doccomment">/// Override the user agent
     </span><span class="kw">pub </span>user_agent: String,
     <span class="doccomment">/// Script to run on document started to load
-    </span><span class="kw">pub </span>init_script: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    <span class="doccomment">/// The directory to load userscripts from
-    </span><span class="kw">pub </span>userscripts_directory: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    </span><span class="kw">pub </span>user_scripts: Vec&lt;ServoUserScript&gt;,
     <span class="doccomment">/// Initial window's zoom level
     </span><span class="kw">pub </span>zoom_level: <span class="prelude-ty">Option</span>&lt;f32&gt;,
     <span class="doccomment">/// Path to resource directory. If None, Verso will try to get default directory. And if that
@@ -797,14 +828,20 @@
 <span class="kw">impl </span>Config {
     <span class="doccomment">/// Create a new configuration for creating Verso instance from the CLI arguments.
     </span><span class="kw">pub fn </span>from_cli_args(cli_args: CliArgs) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>user_scripts = Vec::new();
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(init_script) = cli_args.init_script {
+            user_scripts.push(init_script.into());
+        }
+        user_scripts.extend(
+            load_userscripts(cli_args.userscripts_directory).expect(<span class="string">"Failed to load userscript"</span>),
+        );
         <span class="self">Self</span>::from_controller_config(ConfigFromController {
             url: cli_args.url,
             with_panel: !cli_args.no_panel,
             devtools_port: cli_args.devtools_port,
             profiler_settings: cli_args.profiler_settings,
             user_agent: cli_args.user_agent,
-            init_script: cli_args.init_script,
-            userscripts_directory: cli_args.userscripts_directory,
+            user_scripts,
             zoom_level: cli_args.zoom_level,
             resources_directory: cli_args.resource_dir,
             maximized: !cli_args.no_maximized,
@@ -870,8 +907,14 @@
             devtools_port: config.devtools_port,
             profiler_settings,
             user_agent,
-            init_script: config.init_script,
-            userscripts_directory: config.userscripts_directory,
+            user_scripts: config
+                .user_scripts
+                .into_iter()
+                .map(|userscript| ServoUserScript {
+                    script: userscript.script,
+                    source_file: userscript.source_file,
+                })
+                .collect(),
             zoom_level: config.zoom_level,
             resource_dir,
         }
@@ -897,10 +940,6 @@
             opts.time_profiler_trace_path = profiler_settings.trace_path.clone();
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>userscripts_directory) = <span class="self">self</span>.userscripts_directory {
-            opts.userscripts = <span class="prelude-val">Some</span>(userscripts_directory.clone());
-        }
-
         <span class="comment">// Set the global options of Servo.
         </span>set_options(opts);
 
@@ -919,6 +958,25 @@
             </span>..Default::default()
         });
     }
+}
+
+<span class="kw">fn </span>load_userscripts(
+    userscripts_directory: <span class="prelude-ty">Option</span>&lt;<span class="kw">impl </span>AsRef&lt;Path&gt;&gt;,
+) -&gt; std::io::Result&lt;Vec&lt;UserScript&gt;&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>userscripts = Vec::new();
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(userscripts_directory) = <span class="kw-2">&amp;</span>userscripts_directory {
+        <span class="kw">let </span><span class="kw-2">mut </span>files = std::fs::read_dir(userscripts_directory)<span class="question-mark">?
+            </span>.map(|e| e.map(|entry| entry.path()))
+            .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()<span class="question-mark">?</span>;
+        files.sort();
+        <span class="kw">for </span>file <span class="kw">in </span>files {
+            userscripts.push(UserScript {
+                script: std::fs::read_to_string(<span class="kw-2">&amp;</span>file)<span class="question-mark">?</span>,
+                source_file: <span class="prelude-val">Some</span>(file),
+            });
+        }
+    }
+    <span class="prelude-val">Ok</span>(userscripts)
 }
 
 <span class="kw">struct </span>ResourceReader(PathBuf);

@@ -107,9 +107,15 @@
 <a href="#106" id="106">106</a>
 <a href="#107" id="107">107</a>
 <a href="#108" id="108">108</a>
-<a href="#109" id="109">109</a></pre></div><pre class="rust"><code><span class="kw">use </span>dpi::{Position, Size};
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a></pre></div><pre class="rust"><code><span class="kw">use </span>dpi::{Position, Size};
 <span class="kw">use </span>std::path::{Path, PathBuf};
-<span class="kw">use </span>versoview_messages::{ConfigFromController, ProfilerSettings};
+<span class="kw">use </span>versoview_messages::{ConfigFromController, ProfilerSettings, UserScript};
 
 <span class="kw">use </span><span class="kw">crate</span>::VersoviewController;
 
@@ -183,15 +189,21 @@
         <span class="self">self
     </span>}
 
-    <span class="doccomment">/// Sets the script to run when the document starts loading.
-    </span><span class="comment">// pub fn init_script(mut self, script: impl Into&lt;String&gt;) -&gt; Self {
-    //     self.0.init_script = Some(script.into());
-    //     self
-    // }
+    <span class="doccomment">/// Adds an user script to run when the document starts loading.
+    </span><span class="kw">pub fn </span>user_script(<span class="kw-2">mut </span><span class="self">self</span>, script: <span class="kw">impl </span>Into&lt;UserScript&gt;) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.<span class="number">0</span>.user_scripts.push(script.into());
+        <span class="self">self
+    </span>}
 
-    </span><span class="doccomment">/// Sets the directory to load user scripts from.
-    </span><span class="kw">pub fn </span>userscripts_directory(<span class="kw-2">mut </span><span class="self">self</span>, directory: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
-        <span class="self">self</span>.<span class="number">0</span>.userscripts_directory = <span class="prelude-val">Some</span>(directory.into());
+    <span class="doccomment">/// Adds multiple user scripts to run when the document starts loading.
+    </span><span class="kw">pub fn </span>user_scripts&lt;I, S&gt;(<span class="kw-2">mut </span><span class="self">self</span>, scripts: I) -&gt; <span class="self">Self
+    </span><span class="kw">where
+        </span>I: IntoIterator&lt;Item = S&gt;,
+        S: Into&lt;UserScript&gt;,
+    {
+        <span class="kw">for </span>script <span class="kw">in </span>scripts {
+            <span class="self">self </span>= <span class="self">self</span>.user_script(script)
+        }
         <span class="self">self
     </span>}
 

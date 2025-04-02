@@ -1249,16 +1249,7 @@
 <a href="#1248" id="1248">1248</a>
 <a href="#1249" id="1249">1249</a>
 <a href="#1250" id="1250">1250</a>
-<a href="#1251" id="1251">1251</a>
-<a href="#1252" id="1252">1252</a>
-<a href="#1253" id="1253">1253</a>
-<a href="#1254" id="1254">1254</a>
-<a href="#1255" id="1255">1255</a>
-<a href="#1256" id="1256">1256</a>
-<a href="#1257" id="1257">1257</a>
-<a href="#1258" id="1258">1258</a>
-<a href="#1259" id="1259">1259</a>
-<a href="#1260" id="1260">1260</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1251" id="1251">1251</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{ConstellationMsg, TraversalDirection};
@@ -1341,9 +1332,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) panel: <span class="prelude-ty">Option</span>&lt;Panel&gt;,
     <span class="doccomment">/// The WebView of this window.
     </span><span class="comment">// pub(crate) webview: Option&lt;WebView&gt;,
-    </span><span class="doccomment">/// Script to run on document started to load
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) init_script: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    <span class="doccomment">/// Event listeners registered from the webview controller
+    </span><span class="doccomment">/// Event listeners registered from the webview controller
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) event_listeners: EventListeners,
     <span class="doccomment">/// The mouse physical position in the web view.
     </span>mouse_position: Cell&lt;<span class="prelude-ty">Option</span>&lt;PhysicalPosition&lt;f64&gt;&gt;&gt;,
@@ -1405,7 +1394,6 @@
                 window,
                 surface,
                 panel: <span class="prelude-val">None</span>,
-                init_script: <span class="prelude-val">None</span>,
                 event_listeners: Default::default(),
                 mouse_position: Default::default(),
                 modifiers_state: Cell::new(ModifiersState::default()),
@@ -1450,8 +1438,7 @@
             surface,
             panel: <span class="prelude-val">None</span>,
             <span class="comment">// webview: None,
-            </span>init_script: <span class="prelude-val">None</span>,
-            event_listeners: Default::default(),
+            </span>event_listeners: Default::default(),
             mouse_position: Default::default(),
             modifiers_state: Cell::new(ModifiersState::default()),
             resizing: <span class="bool-val">false</span>,
@@ -1605,11 +1592,6 @@
                 </span>compositor.send_root_pipeline_display_list(<span class="self">self</span>);
             }
         }
-    }
-
-    <span class="doccomment">/// Set the init script that runs on document started to load.
-    </span><span class="kw">pub fn </span>set_init_script(<span class="kw-2">&amp;mut </span><span class="self">self</span>, init_script: <span class="prelude-ty">Option</span>&lt;String&gt;) {
-        <span class="self">self</span>.init_script = init_script;
     }
 
     <span class="doccomment">/// Handle Winit window event and return a boolean to indicate if the compositor should repaint immediately.

@@ -1003,7 +1003,11 @@
 <a href="#1002" id="1002">1002</a>
 <a href="#1003" id="1003">1003</a>
 <a href="#1004" id="1004">1004</a>
-<a href="#1005" id="1005">1005</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#1005" id="1005">1005</a>
+<a href="#1006" id="1006">1006</a>
+<a href="#1007" id="1007">1007</a>
+<a href="#1008" id="1008">1008</a>
+<a href="#1009" id="1009">1009</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     collections::HashMap,
     fmt::Debug,
@@ -1022,7 +1026,7 @@
 <span class="kw">use </span>devtools;
 <span class="kw">use </span>embedder_traits::{
     AllowOrDeny, EmbedderMsg, EmbedderProxy, EventLoopWaker, WebResourceResponse,
-    WebResourceResponseMsg,
+    WebResourceResponseMsg, user_content_manager::UserContentManager,
 };
 <span class="kw">use </span>euclid::Scale;
 <span class="kw">use </span>fonts::SystemFontService;
@@ -1096,7 +1100,7 @@
         <span class="kw">let </span>with_panel = config.with_panel;
         <span class="kw">let </span>window_settings = config.window_attributes.clone();
         <span class="kw">let </span>user_agent: Cow&lt;<span class="lifetime">'static</span>, str&gt; = config.user_agent.clone().into();
-        <span class="kw">let </span>init_script = config.init_script.clone();
+        <span class="kw">let </span>user_scripts = config.user_scripts.clone();
         <span class="kw">let </span>zoom_level = config.zoom_level;
 
         config.init();
@@ -1281,6 +1285,11 @@
             public_resource_threads.clone(),
         );
 
+        <span class="kw">let </span><span class="kw-2">mut </span>user_content_manager = UserContentManager::new();
+        <span class="kw">for </span>script <span class="kw">in </span>user_scripts {
+            user_content_manager.add_script(script);
+        }
+
         <span class="comment">// Create layout factory
         </span><span class="kw">let </span>layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
         <span class="kw">let </span>initial_state = InitialConstellationState {
@@ -1300,6 +1309,7 @@
             user_agent,
             webrender_external_images: external_images,
             wgpu_image_map,
+            user_content_manager,
         };
 
         <span class="comment">// The division by 1 represents the page's default zoom of 100%,
@@ -1358,8 +1368,6 @@
         } <span class="kw">else </span>{
             window.create_tab(<span class="kw-2">&amp;</span>constellation_sender, initial_url.into());
         }
-
-        window.set_init_script(init_script);
 
         <span class="kw">let </span><span class="kw-2">mut </span>windows = HashMap::new();
         windows.insert(window.id(), (window, webrender_document));

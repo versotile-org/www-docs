@@ -477,7 +477,7 @@
     collections::HashMap,
     path::Path,
     process::Command,
-    sync::{mpsc::Sender <span class="kw">as </span>MpscSender, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc::Sender <span class="kw">as </span>MpscSender},
 };
 <span class="kw">pub use </span>versoview_messages::{ConfigFromController <span class="kw">as </span>VersoviewSettings, ProfilerSettings};
 <span class="kw">use </span>versoview_messages::{

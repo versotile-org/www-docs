@@ -306,6 +306,9 @@
         "font-variant-caps": {
             "pref": null
         },
+        "font-variation-settings": {
+            "pref": "layout.unimplemented"
+        },
         "font-weight": {
             "pref": null
         },

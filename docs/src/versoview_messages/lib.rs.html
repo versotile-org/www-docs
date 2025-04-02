@@ -187,7 +187,19 @@
 <a href="#186" id="186">186</a>
 <a href="#187" id="187">187</a>
 <a href="#188" id="188">188</a>
-<a href="#189" id="189">189</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 <span class="kw">use </span>ipc_channel::ipc;
@@ -314,9 +326,7 @@
     <span class="doccomment">/// Override the user agent
     </span><span class="kw">pub </span>user_agent: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="doccomment">/// Script to run on document started to load
-    </span><span class="kw">pub </span>init_script: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    <span class="doccomment">/// The directory to load userscripts from
-    </span><span class="kw">pub </span>userscripts_directory: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    </span><span class="kw">pub </span>user_scripts: Vec&lt;UserScript&gt;,
     <span class="doccomment">/// Initial window's zoom level
     </span><span class="kw">pub </span>zoom_level: <span class="prelude-ty">Option</span>&lt;f32&gt;,
     <span class="doccomment">/// Path to resource directory. If None, Verso will try to get default directory. And if that
@@ -338,10 +348,24 @@
             devtools_port: <span class="prelude-val">None</span>,
             profiler_settings: <span class="prelude-val">None</span>,
             user_agent: <span class="prelude-val">None</span>,
-            init_script: <span class="prelude-val">None</span>,
-            userscripts_directory: <span class="prelude-val">None</span>,
+            user_scripts: Vec::new(),
             zoom_level: <span class="prelude-val">None</span>,
             resources_directory: <span class="prelude-val">None</span>,
+        }
+    }
+}
+
+<span class="attr">#[derive(Clone, Debug, Deserialize, Serialize)]
+</span><span class="kw">pub struct </span>UserScript {
+    <span class="kw">pub </span>script: String,
+    <span class="kw">pub </span>source_file: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
+}
+
+<span class="kw">impl</span>&lt;T: Into&lt;String&gt;&gt; From&lt;T&gt; <span class="kw">for </span>UserScript {
+    <span class="kw">fn </span>from(script: T) -&gt; <span class="self">Self </span>{
+        UserScript {
+            script: script.into(),
+            source_file: <span class="prelude-val">None</span>,
         }
     }
 }
