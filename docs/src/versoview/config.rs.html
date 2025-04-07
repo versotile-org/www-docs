@@ -539,7 +539,10 @@
 <a href="#538" id="538">538</a>
 <a href="#539" id="539">539</a>
 <a href="#540" id="540">540</a>
-<a href="#541" id="541">541</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fs,
     path::{Path, PathBuf},
 };
@@ -861,7 +864,10 @@
             .user_agent
             .unwrap_or_else(|| default_user_agent_string().to_string());
 
-        <span class="kw">let </span><span class="kw-2">mut </span>window_attributes = winit::window::Window::default_attributes();
+        <span class="kw">let </span><span class="kw-2">mut </span>window_attributes = winit::window::Window::default_attributes()
+            .with_transparent(config.transparent)
+            .with_decorations(config.decorated)
+            .with_title(config.title.unwrap_or(<span class="string">"Verso"</span>.to_owned()));
         <span class="comment">// set min inner size
         // should be at least able to show the whole control panel
         // FIXME: url input has weird behavior that will expand lager when having long text

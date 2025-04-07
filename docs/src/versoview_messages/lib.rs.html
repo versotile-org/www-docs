@@ -199,7 +199,16 @@
 <a href="#198" id="198">198</a>
 <a href="#199" id="199">199</a>
 <a href="#200" id="200">200</a>
-<a href="#201" id="201">201</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 <span class="kw">use </span>ipc_channel::ipc;
@@ -319,6 +328,12 @@
     </span><span class="kw">pub </span>fullscreen: bool,
     <span class="doccomment">/// Launch focused or not for the initial winit window
     </span><span class="kw">pub </span>focused: bool,
+    <span class="doccomment">/// Launch decorated or not for the initial winit window
+    </span><span class="kw">pub </span>decorated: bool,
+    <span class="doccomment">/// Launch transparent or not for the initial winit window
+    </span><span class="kw">pub </span>transparent: bool,
+    <span class="doccomment">/// Title of the initial winit window in the title bar.
+    </span><span class="kw">pub </span>title: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="doccomment">/// Port number to start a server to listen to remote Firefox devtools connections. 0 for random port.
     </span><span class="kw">pub </span>devtools_port: <span class="prelude-ty">Option</span>&lt;u16&gt;,
     <span class="doccomment">/// Servo time profile settings
@@ -344,6 +359,9 @@
             maximized: <span class="bool-val">false</span>,
             visible: <span class="bool-val">true</span>,
             focused: <span class="bool-val">true</span>,
+            decorated: <span class="bool-val">false</span>,
+            transparent: <span class="bool-val">true</span>,
+            title: <span class="prelude-val">None</span>,
             fullscreen: <span class="bool-val">false</span>,
             devtools_port: <span class="prelude-val">None</span>,
             profiler_settings: <span class="prelude-val">None</span>,

@@ -468,7 +468,11 @@
 <a href="#467" id="467">467</a>
 <a href="#468" id="468">468</a>
 <a href="#469" id="469">469</a>
-<a href="#470" id="470">470</a></pre></div><pre class="rust"><code><span class="kw">mod </span>builder;
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a></pre></div><pre class="rust"><code><span class="kw">mod </span>builder;
 <span class="kw">pub use </span>builder::VersoBuilder;
 
 <span class="kw">use </span>dpi::{PhysicalPosition, PhysicalSize, Position, Size};
@@ -509,7 +513,10 @@
     get_url_response: ResponseListener&lt;MpscSender&lt;url::Url&gt;&gt;,
 }
 
-<span class="kw">pub struct </span>VersoviewController {
+<span class="doccomment">/// A VersoView controller
+///
+/// Send an exit signal to this Verso instance when dropped
+</span><span class="kw">pub struct </span>VersoviewController {
     sender: IpcSender&lt;ToVersoMessage&gt;,
     event_listeners: EventListeners,
 }
@@ -934,7 +941,8 @@
 </span>}
 
 <span class="kw">impl </span>Drop <span class="kw">for </span>VersoviewController {
-    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="doccomment">/// Send an exit signal to this Verso instance
+    </span><span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">let _ </span>= <span class="self">self</span>.exit();
     }
 }
