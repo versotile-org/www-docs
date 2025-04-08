@@ -2189,7 +2189,19 @@
 <a href="#2188" id="2188">2188</a>
 <a href="#2189" id="2189">2189</a>
 <a href="#2190" id="2190">2190</a>
-<a href="#2191" id="2191">2191</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2191" id="2191">2191</a>
+<a href="#2192" id="2192">2192</a>
+<a href="#2193" id="2193">2193</a>
+<a href="#2194" id="2194">2194</a>
+<a href="#2195" id="2195">2195</a>
+<a href="#2196" id="2196">2196</a>
+<a href="#2197" id="2197">2197</a>
+<a href="#2198" id="2198">2198</a>
+<a href="#2199" id="2199">2199</a>
+<a href="#2200" id="2200">2200</a>
+<a href="#2201" id="2201">2201</a>
+<a href="#2202" id="2202">2202</a>
+<a href="#2203" id="2203">2203</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -3177,20 +3189,30 @@
 
         <span class="kw">let </span>root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
         <span class="kw">let </span>root_clip_chain_id = builder.define_clip_chain(<span class="prelude-val">None</span>, [root_clip_id]);
+        <span class="comment">// Only decorate the webviews if we're in the browser mode
+        </span><span class="kw">let </span>should_decorate = window.panel.is_some();
         <span class="kw">for </span>webview <span class="kw">in </span>window.painting_order() {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(pipeline_id) = <span class="self">self</span>.webviews.get(<span class="kw-2">&amp;</span>webview.webview_id) {
                 <span class="kw">let </span>scaled_webview_rect =
                     LayoutRect::from_untyped(<span class="kw-2">&amp;</span>(webview.rect.to_f32() / zoom_factor).to_untyped());
-                <span class="kw">let </span>complex = ComplexClipRegion::new(
-                    scaled_webview_rect,
-                    BorderRadius::uniform(<span class="number">10.</span>), <span class="comment">// TODO: add fields to webview
-                    </span>ClipMode::Clip,
-                );
-                <span class="kw">let </span>clip_id = builder.define_clip_rounded_rect(zoom_reference_frame, complex);
-                <span class="kw">let </span>clip_chain_id = builder.define_clip_chain(<span class="prelude-val">Some</span>(root_clip_chain_id), [clip_id]);
-                <span class="kw">let </span>root_space_and_clip = SpaceAndClipInfo {
-                    spatial_id: zoom_reference_frame,
-                    clip_chain_id,
+                <span class="kw">let </span>root_space_and_clip = <span class="kw">if </span>should_decorate {
+                    <span class="kw">let </span>complex = ComplexClipRegion::new(
+                        scaled_webview_rect,
+                        BorderRadius::uniform(<span class="number">10.</span>), <span class="comment">// TODO: add fields to webview
+                        </span>ClipMode::Clip,
+                    );
+                    <span class="kw">let </span>clip_id = builder.define_clip_rounded_rect(zoom_reference_frame, complex);
+                    <span class="kw">let </span>clip_chain_id =
+                        builder.define_clip_chain(<span class="prelude-val">Some</span>(root_clip_chain_id), [clip_id]);
+                    SpaceAndClipInfo {
+                        spatial_id: zoom_reference_frame,
+                        clip_chain_id,
+                    }
+                } <span class="kw">else </span>{
+                    SpaceAndClipInfo {
+                        spatial_id: zoom_reference_frame,
+                        clip_chain_id: root_clip_chain_id,
+                    }
                 };
 
                 builder.push_iframe(
@@ -3201,26 +3223,28 @@
                     <span class="bool-val">true</span>,
                 );
 
-                <span class="kw">let </span>root_space = SpaceAndClipInfo {
-                    spatial_id: zoom_reference_frame,
-                    clip_chain_id: root_clip_chain_id,
-                };
-                <span class="kw">let </span>offset = vec2(<span class="number">0.</span>, <span class="number">0.</span>);
-                <span class="kw">let </span>color = ColorF::new(<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">0.4</span>);
-                <span class="kw">let </span>blur_radius = <span class="number">5.0</span>;
-                <span class="kw">let </span>spread_radius = <span class="number">0.0</span>;
-                <span class="kw">let </span>box_shadow_type = BoxShadowClipMode::Outset;
+                <span class="kw">if </span>should_decorate {
+                    <span class="kw">let </span>root_space = SpaceAndClipInfo {
+                        spatial_id: zoom_reference_frame,
+                        clip_chain_id: root_clip_chain_id,
+                    };
+                    <span class="kw">let </span>offset = vec2(<span class="number">0.</span>, <span class="number">0.</span>);
+                    <span class="kw">let </span>color = ColorF::new(<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">0.4</span>);
+                    <span class="kw">let </span>blur_radius = <span class="number">5.0</span>;
+                    <span class="kw">let </span>spread_radius = <span class="number">0.0</span>;
+                    <span class="kw">let </span>box_shadow_type = BoxShadowClipMode::Outset;
 
-                builder.push_box_shadow(
-                    <span class="kw-2">&amp;</span>CommonItemProperties::new(scaled_viewport_rect, root_space),
-                    scaled_webview_rect,
-                    offset,
-                    color,
-                    blur_radius,
-                    spread_radius,
-                    BorderRadius::uniform(<span class="number">10.</span>),
-                    box_shadow_type,
-                );
+                    builder.push_box_shadow(
+                        <span class="kw-2">&amp;</span>CommonItemProperties::new(scaled_viewport_rect, root_space),
+                        scaled_webview_rect,
+                        offset,
+                        color,
+                        blur_radius,
+                        spread_radius,
+                        BorderRadius::uniform(<span class="number">10.</span>),
+                        box_shadow_type,
+                    );
+                }
             }
         }
 
