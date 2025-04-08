@@ -752,14 +752,66 @@
 <a href="#751" id="751">751</a>
 <a href="#752" id="752">752</a>
 <a href="#753" id="753">753</a>
-<a href="#754" id="754">754</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a>
+<a href="#760" id="760">760</a>
+<a href="#761" id="761">761</a>
+<a href="#762" id="762">762</a>
+<a href="#763" id="763">763</a>
+<a href="#764" id="764">764</a>
+<a href="#765" id="765">765</a>
+<a href="#766" id="766">766</a>
+<a href="#767" id="767">767</a>
+<a href="#768" id="768">768</a>
+<a href="#769" id="769">769</a>
+<a href="#770" id="770">770</a>
+<a href="#771" id="771">771</a>
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+<a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
-<span class="kw">use </span>constellation_traits::{ConstellationMsg, TraversalDirection};
+<span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
     AlertResponse, AllowOrDeny, ConfirmResponse, ContextMenuResult, EmbedderMsg, LoadStatus,
-    PromptResponse, SimpleDialog, WebDriverCommandMsg, WebDriverJSResult, WebDriverScriptCommand,
+    PromptResponse, SimpleDialog, ViewportDetails, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverScriptCommand,
 };
+<span class="kw">use </span>euclid::Scale;
 <span class="kw">use </span>ipc_channel::ipc;
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>url::Url;
@@ -822,7 +874,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         webview_id: WebViewId,
         message: EmbedderMsg,
-        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
         to_controller_sender: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;ipc::IpcSender&lt;ToControllerMessage&gt;&gt;,
         clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
@@ -849,7 +901,10 @@
             EmbedderMsg::NotifyLoadStatusChanged(_webview_id, status) =&gt; <span class="kw">match </span>status {
                 LoadStatus::Complete =&gt; {
                     <span class="self">self</span>.window.request_redraw();
-                    send_to_constellation(sender, ConstellationMsg::FocusWebView(webview_id));
+                    send_to_constellation(
+                        sender,
+                        EmbedderToConstellationMessage::FocusWebView(webview_id),
+                    );
                 }
                 <span class="kw">_ </span>=&gt; {
                     <span class="macro">log::trace!</span>(
@@ -887,12 +942,15 @@
                             </span>)
                         } <span class="kw">else </span>{
                             <span class="comment">// We will handle a ToVersoMessage::OnNavigationStartingResponse
-                            // and send ConstellationMsg::AllowNavigationResponse there if the call succeed
+                            // and send EmbedderToConstellationMessage::AllowNavigationResponse there if the call succeed
                             </span><span class="kw">return</span>;
                         }
                     }
                 }
-                send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">true</span>));
+                send_to_constellation(
+                    sender,
+                    EmbedderToConstellationMessage::AllowNavigationResponse(id, <span class="bool-val">true</span>),
+                );
             }
             EmbedderMsg::WebResourceRequested(_webview_id, request, sender) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(to_controller_sender) = to_controller_sender {
@@ -917,8 +975,7 @@
                                 request_map.insert(id, (request.url, sender));
                                 <span class="comment">// We will handle a ToVersoMessage::WebResourceRequestResponse
                                 // and send the response through this sender there if the call succeed
-                                </span><span class="kw">return</span>;
-                            }
+                            </span>}
                             <span class="prelude-val">Err</span>(error) =&gt; {
                                 <span class="macro">log::error!</span>(
                                     <span class="string">"Verso failed to send WebResourceRequested to controller: {error}"
@@ -997,20 +1054,39 @@
                             message,
                             response_sender,
                         } =&gt; {
-                            prompt.alert(sender, rect, message, response_sender);
+                            prompt.alert(
+                                sender,
+                                rect,
+                                <span class="self">self</span>.scale_factor() <span class="kw">as </span>f32,
+                                message,
+                                response_sender,
+                            );
                         }
                         SimpleDialog::Confirm {
                             message,
                             response_sender,
                         } =&gt; {
-                            prompt.ok_cancel(sender, rect, message, response_sender);
+                            prompt.ok_cancel(
+                                sender,
+                                rect,
+                                <span class="self">self</span>.scale_factor() <span class="kw">as </span>f32,
+                                message,
+                                response_sender,
+                            );
                         }
                         SimpleDialog::Prompt {
                             message,
                             default,
                             response_sender,
                         } =&gt; {
-                            prompt.input(sender, rect, message, <span class="prelude-val">Some</span>(default), response_sender);
+                            prompt.input(
+                                sender,
+                                rect,
+                                <span class="self">self</span>.scale_factor() <span class="kw">as </span>f32,
+                                message,
+                                <span class="prelude-val">Some</span>(default),
+                                response_sender,
+                            );
                         }
                     }
 
@@ -1032,6 +1108,7 @@
                     prompt.allow_deny(
                         sender,
                         tab.webview().rect,
+                        <span class="self">self</span>.scale_factor() <span class="kw">as </span>f32,
                         message,
                         PromptSender::AllowDenySender(prompt_sender),
                     );
@@ -1044,7 +1121,12 @@
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.tab(webview_id) {
                     <span class="kw">let </span><span class="kw-2">mut </span>prompt = PromptDialog::new();
                     <span class="kw">let </span>rect = tab.webview().rect;
-                    prompt.http_basic_auth(sender, rect, response_sender);
+                    prompt.http_basic_auth(
+                        sender,
+                        rect,
+                        <span class="self">self</span>.scale_factor() <span class="kw">as </span>f32,
+                        response_sender,
+                    );
                     <span class="self">self</span>.tab_manager.set_prompt(webview_id, prompt);
                 } <span class="kw">else </span>{
                     <span class="macro">log::error!</span>(<span class="string">"Failed to get WebView {webview_id:?} in this window."</span>);
@@ -1106,7 +1188,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         panel_id: WebViewId,
         message: EmbedderMsg,
-        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
         clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) -&gt; bool {
@@ -1131,7 +1213,10 @@
             EmbedderMsg::NotifyLoadStatusChanged(_webview_id, status) =&gt; {
                 <span class="kw">if </span>status == LoadStatus::Complete {
                     <span class="self">self</span>.window.request_redraw();
-                    send_to_constellation(sender, ConstellationMsg::FocusWebView(panel_id));
+                    send_to_constellation(
+                        sender,
+                        EmbedderToConstellationMessage::FocusWebView(panel_id),
+                    );
 
                     <span class="self">self</span>.create_tab(sender, <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone());
                 } <span class="kw">else </span>{
@@ -1140,7 +1225,10 @@
             }
             EmbedderMsg::AllowNavigationRequest(_webview_id, id, _url) =&gt; {
                 <span class="comment">// The panel shouldn't navigate to other pages.
-                </span>send_to_constellation(sender, ConstellationMsg::AllowNavigationResponse(id, <span class="bool-val">false</span>));
+                </span>send_to_constellation(
+                    sender,
+                    EmbedderToConstellationMessage::AllowNavigationResponse(id, <span class="bool-val">false</span>),
+                );
             }
             EmbedderMsg::HistoryChanged(..) | EmbedderMsg::ChangePageTitle(..) =&gt; {
                 <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores this message: {message:?}"</span>)
@@ -1162,7 +1250,7 @@
                             </span><span class="kw">if </span><span class="self">self</span>.tab_manager.tab(request.id).is_some() {
                                 send_to_constellation(
                                     sender,
-                                    ConstellationMsg::CloseWebView(request.id),
+                                    EmbedderToConstellationMessage::CloseWebView(request.id),
                                 );
                             }
 
@@ -1189,11 +1277,17 @@
 
                             <span class="self">self</span>.tab_manager.append_tab(webview, <span class="bool-val">true</span>);
 
+                            <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
+                            <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
                             send_to_constellation(
                                 sender,
-                                ConstellationMsg::NewWebView(
+                                EmbedderToConstellationMessage::NewWebView(
                                     ServoUrl::parse(<span class="string">"https://example.com"</span>).unwrap(),
                                     webview_id,
+                                    ViewportDetails {
+                                        size,
+                                        hidpi_scale_factor,
+                                    },
                                 ),
                             );
                             <span class="kw">let </span>result = TabCreateResponse {
@@ -1247,14 +1341,17 @@
 
                                 send_to_constellation(
                                     sender,
-                                    ConstellationMsg::LoadUrl(id, ServoUrl::from_url(url)),
+                                    EmbedderToConstellationMessage::LoadUrl(
+                                        id,
+                                        ServoUrl::from_url(url),
+                                    ),
                                 );
                             } <span class="kw">else </span>{
                                 <span class="kw">match </span>message.as_str() {
                                     <span class="string">"PREV" </span>=&gt; {
                                         send_to_constellation(
                                             sender,
-                                            ConstellationMsg::TraverseHistory(
+                                            EmbedderToConstellationMessage::TraverseHistory(
                                                 id,
                                                 TraversalDirection::Back(<span class="number">1</span>),
                                             ),
@@ -1264,7 +1361,7 @@
                                     <span class="string">"FORWARD" </span>=&gt; {
                                         send_to_constellation(
                                             sender,
-                                            ConstellationMsg::TraverseHistory(
+                                            EmbedderToConstellationMessage::TraverseHistory(
                                                 id,
                                                 TraversalDirection::Forward(<span class="number">1</span>),
                                             ),
@@ -1272,7 +1369,10 @@
                                         <span class="comment">// TODO Set EmbedderMsg::Status to None
                                     </span>}
                                     <span class="string">"REFRESH" </span>=&gt; {
-                                        send_to_constellation(sender, ConstellationMsg::Reload(id));
+                                        send_to_constellation(
+                                            sender,
+                                            EmbedderToConstellationMessage::Reload(id),
+                                        );
                                     }
                                     e =&gt; <span class="macro">log::trace!</span>(
                                         <span class="string">"Verso Panel isn't supporting this prompt message yet: {e}"
@@ -1333,7 +1433,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         webview_id: WebViewId,
         message: EmbedderMsg,
-        sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
         _clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         _compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) -&gt; bool {
@@ -1381,7 +1481,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         webview_id: WebViewId,
         message: EmbedderMsg,
-        _sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+        _sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
         _clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         _compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) -&gt; bool {
@@ -1492,14 +1592,14 @@
 
 <span class="doccomment">/// Blocking execute a script on this webview
 </span><span class="kw">pub fn </span>execute_script(
-    constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;ConstellationMsg&gt;,
+    constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
     webview: <span class="kw-2">&amp;</span>WebViewId,
     js: <span class="kw">impl </span>ToString,
 ) -&gt; WebDriverJSResult {
     <span class="kw">let </span>(result_sender, result_receiver) = ipc::channel::&lt;WebDriverJSResult&gt;().unwrap();
     send_to_constellation(
         constellation_sender,
-        ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
+        EmbedderToConstellationMessage::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
             webview.<span class="number">0</span>,
             WebDriverScriptCommand::ExecuteScript(js.to_string(), result_sender),
         )),

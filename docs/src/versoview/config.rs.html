@@ -542,7 +542,8 @@
 <a href="#541" id="541">541</a>
 <a href="#542" id="542">542</a>
 <a href="#543" id="543">543</a>
-<a href="#544" id="544">544</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fs,
     path::{Path, PathBuf},
 };
@@ -961,7 +962,8 @@
             devtools_server_enabled,
             devtools_server_port: devtools_port <span class="kw">as </span>i64,
             dom_notification_enabled: <span class="bool-val">true</span>, <span class="comment">// experimental feature
-            </span>..Default::default()
+            </span>user_agent: <span class="self">self</span>.user_agent.clone(),
+            ..Default::default()
         });
     }
 }

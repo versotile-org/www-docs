@@ -2201,7 +2201,24 @@
 <a href="#2200" id="2200">2200</a>
 <a href="#2201" id="2201">2201</a>
 <a href="#2202" id="2202">2202</a>
-<a href="#2203" id="2203">2203</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2203" id="2203">2203</a>
+<a href="#2204" id="2204">2204</a>
+<a href="#2205" id="2205">2205</a>
+<a href="#2206" id="2206">2206</a>
+<a href="#2207" id="2207">2207</a>
+<a href="#2208" id="2208">2208</a>
+<a href="#2209" id="2209">2209</a>
+<a href="#2210" id="2210">2210</a>
+<a href="#2211" id="2211">2211</a>
+<a href="#2212" id="2212">2212</a>
+<a href="#2213" id="2213">2213</a>
+<a href="#2214" id="2214">2214</a>
+<a href="#2215" id="2215">2215</a>
+<a href="#2216" id="2216">2216</a>
+<a href="#2217" id="2217">2217</a>
+<a href="#2218" id="2218">2218</a>
+<a href="#2219" id="2219">2219</a>
+<a href="#2220" id="2220">2220</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -2210,17 +2227,20 @@
 <span class="kw">use </span>base::cross_process_instant::CrossProcessInstant;
 <span class="kw">use </span>base::id::{PipelineId, WebViewId};
 <span class="kw">use </span>base::{Epoch, WebRenderEpochToU16};
+<span class="kw">use </span>compositing_traits::display_list::{HitTestInfo, ScrollTree};
 <span class="kw">use </span>compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorProxy, CompositorReceiver, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorProxy, CompositorReceiver,
+    CrossProcessCompositorMessage, ImageUpdate, SendableFrameTree,
 };
 <span class="kw">use </span>constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent, ScrollState,
-    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
+    AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, ScrollState,
+    WindowSizeType,
 };
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>embedder_traits::{
-    Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    TouchEvent, TouchEventType, TouchId,
+    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseMoveEvent, TouchEvent, TouchEventType, TouchId, UntrustedNodeAddress,
+    ViewportDetails,
 };
 <span class="kw">use </span>euclid::{Point2D, Scale, Size2D, Transform3D, Vector2D, vec2};
 <span class="kw">use </span>gleam::gl;
@@ -2228,7 +2248,6 @@
 <span class="kw">use </span>log::{debug, error, trace, warn};
 <span class="kw">use </span>profile_traits::time::{<span class="self">self </span><span class="kw">as </span>profile_time, ProfilerCategory};
 <span class="kw">use </span>profile_traits::{mem, time, time_profile};
-<span class="kw">use </span>script_traits::AnimationState;
 <span class="kw">use </span>servo_geometry::{DeviceIndependentIntSize, DeviceIndependentPixel};
 <span class="kw">use </span>style_traits::{CSSPixel, PinchZoomFactor};
 <span class="kw">use </span>webrender::{RenderApi, Transaction};
@@ -2244,8 +2263,6 @@
     RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
     SpatialTreeItemKey, TransformStyle,
 };
-<span class="kw">use </span>webrender_traits::display_list::{HitTestInfo, ScrollTree};
-<span class="kw">use </span>webrender_traits::{CrossProcessCompositorMessage, ImageUpdate};
 <span class="kw">use </span>winit::window::WindowId;
 
 <span class="kw">use </span><span class="kw">crate</span>::rendering::RenderingContext;
@@ -2259,7 +2276,7 @@
     <span class="doccomment">/// A port on which messages inbound to the compositor can be received.
     </span><span class="kw">pub </span>receiver: CompositorReceiver,
     <span class="doccomment">/// A channel to the constellation.
-    </span><span class="kw">pub </span>constellation_chan: Sender&lt;ConstellationMsg&gt;,
+    </span><span class="kw">pub </span>constellation_chan: Sender&lt;EmbedderToConstellationMessage&gt;,
     <span class="doccomment">/// A channel to the time profiler thread.
     </span><span class="kw">pub </span>time_profiler_chan: time::ProfilerChan,
     <span class="doccomment">/// A channel to the memory profiler thread.
@@ -2358,7 +2375,7 @@
     </span>frame_tree_id: FrameTreeId,
 
     <span class="doccomment">/// The channel on which messages can be sent to the constellation.
-    </span><span class="kw">pub </span>constellation_chan: Sender&lt;ConstellationMsg&gt;,
+    </span><span class="kw">pub </span>constellation_chan: Sender&lt;EmbedderToConstellationMessage&gt;,
 
     <span class="doccomment">/// The channel on which messages can be sent to the time profiler.
     </span>time_profiler_chan: profile_time::ProfilerChan,
@@ -2632,7 +2649,7 @@
             <span class="kw">return</span>;
         };
         <span class="self">self</span>.cursor = cursor;
-        <span class="kw">let </span>msg = ConstellationMsg::SetCursor(webview_id, cursor);
+        <span class="kw">let </span>msg = EmbedderToConstellationMessage::SetCursor(webview_id, cursor);
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
             <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({:?})."</span>, e);
         }
@@ -2648,7 +2665,10 @@
 
     <span class="kw">fn </span>start_shutting_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="macro">debug!</span>(<span class="string">"Compositor sending Exit message to Constellation"</span>);
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(ConstellationMsg::Exit) {
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self
+            </span>.constellation_chan
+            .send(EmbedderToConstellationMessage::Exit)
+        {
             <span class="macro">warn!</span>(<span class="string">"Sending exit message to constellation failed ({:?})."</span>, e);
         }
 
@@ -3002,24 +3022,30 @@
                 <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
             }
 
-            CrossProcessCompositorMessage::GetClientWindowRect(req) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
-                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
+            CrossProcessCompositorMessage::GetClientWindowRect(_webview_id, response_sender) =&gt; {
+                <span class="comment">// TODO: use ScreenGeometry and bring webviews to compositor. https://github.com/servo/servo/pull/36223
+                </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+                    response_sender.send(<span class="self">self</span>.device_independent_int_size_viewport().into())
+                {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({error:?})."</span>);
                 }
             }
 
-            CrossProcessCompositorMessage::GetScreenSize(req) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport()) {
-                    <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
+            CrossProcessCompositorMessage::GetScreenSize(_webview_id, response_sender) =&gt; {
+                <span class="comment">// TODO: use ScreenGeometry and bring webviews to compositor. https://github.com/servo/servo/pull/36223
+                </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+                    response_sender.send(<span class="self">self</span>.device_independent_int_size_viewport())
+                {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({error:?})."</span>);
                 }
             }
 
-            CrossProcessCompositorMessage::GetAvailableScreenSize(req) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport()) {
-                    <span class="macro">warn!</span>(
-                        <span class="string">"Sending response to get screen avail size failed ({:?})."</span>,
-                        e
-                    );
+            CrossProcessCompositorMessage::GetAvailableScreenSize(_webview_id, response_sender) =&gt; {
+                <span class="comment">// TODO: use ScreenGeometry and bring webviews to compositor. https://github.com/servo/servo/pull/36223
+                </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+                    response_sender.send(<span class="self">self</span>.device_independent_int_size_viewport())
+                {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({error:?})."</span>);
                 }
             }
         }
@@ -3060,25 +3086,27 @@
                 <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
             }
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
-                req,
+                <span class="kw">_</span>,
+                response_sender,
             )) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport().into()) {
-                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({:?})."</span>, e);
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = response_sender.send(Default::default()) {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({error:?})."</span>);
                 }
             }
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(req)) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport()) {
-                    <span class="macro">warn!</span>(<span class="string">"Sending response to get screen size failed ({:?})."</span>, e);
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(
+                <span class="kw">_</span>,
+                response_sender,
+            )) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = response_sender.send(Default::default()) {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({error:?})."</span>);
                 }
             }
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
-                req,
+                <span class="kw">_</span>,
+                response_sender,
             )) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = req.send(<span class="self">self</span>.device_independent_int_size_viewport()) {
-                    <span class="macro">warn!</span>(
-                        <span class="string">"Sending response to get screen avail size failed ({:?})."</span>,
-                        e
-                    );
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = response_sender.send(Default::default()) {
+                    <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({error:?})."</span>);
                 }
             }
             CompositorMsg::NewWebRenderFrameReady(..) =&gt; {
@@ -3352,13 +3380,13 @@
     ) {
         <span class="comment">// The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
-        </span><span class="kw">let </span>device_pixel_ratio = <span class="self">self</span>.device_pixels_per_page_pixel_not_including_page_zoom();
-        <span class="kw">let </span>initial_viewport = rect.size().to_f32() / device_pixel_ratio;
-        <span class="kw">let </span>msg = ConstellationMsg::WindowSize(
+        </span><span class="kw">let </span>hidpi_scale_factor = <span class="self">self</span>.device_pixels_per_page_pixel_not_including_page_zoom();
+        <span class="kw">let </span>size = rect.size().to_f32() / hidpi_scale_factor;
+        <span class="kw">let </span>msg = EmbedderToConstellationMessage::ChangeViewportDetails(
             webview_id,
-            WindowSizeData {
-                device_pixel_ratio,
-                initial_viewport,
+            ViewportDetails {
+                size,
+                hidpi_scale_factor,
             },
             WindowSizeType::Resize,
         );
@@ -3521,13 +3549,13 @@
 
         <span class="self">self</span>.update_cursor(point, <span class="kw-2">&amp;</span>result);
 
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self
-            </span>.constellation_chan
-            .send(ConstellationMsg::ForwardInputEvent(
-                webview_id,
-                event,
-                <span class="prelude-val">Some</span>(result),
-            ))
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+            <span class="self">self</span>.constellation_chan
+                .send(EmbedderToConstellationMessage::ForwardInputEvent(
+                    webview_id,
+                    event,
+                    <span class="prelude-val">Some</span>(result),
+                ))
         {
             <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({error:?})."</span>);
         }
@@ -3622,13 +3650,13 @@
         };
 
         <span class="kw">let </span>event = InputEvent::Touch(event);
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self
-            </span>.constellation_chan
-            .send(ConstellationMsg::ForwardInputEvent(
-                webview_id,
-                event,
-                <span class="prelude-val">Some</span>(result),
-            ))
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) =
+            <span class="self">self</span>.constellation_chan
+                .send(EmbedderToConstellationMessage::ForwardInputEvent(
+                    webview_id,
+                    event,
+                    <span class="prelude-val">Some</span>(result),
+                ))
         {
             <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({:?})."</span>, e);
         }
@@ -3932,7 +3960,7 @@
             tick_type.insert(AnimationTickType::REQUEST_ANIMATION_FRAME);
         }
 
-        <span class="kw">let </span>msg = ConstellationMsg::TickAnimation(pipeline_id, tick_type);
+        <span class="kw">let </span>msg = EmbedderToConstellationMessage::TickAnimation(pipeline_id, tick_type);
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
             <span class="macro">warn!</span>(<span class="string">"Sending tick to constellation failed ({:?})."</span>, e);
         }
@@ -4012,7 +4040,7 @@
             }
         });
 
-        <span class="kw">let </span>message = ConstellationMsg::SetScrollStates(<span class="kw-2">*</span>pipeline_id, scroll_states);
+        <span class="kw">let </span>message = EmbedderToConstellationMessage::SetScrollStates(<span class="kw-2">*</span>pipeline_id, scroll_states);
         <span class="kw">let _ </span>= <span class="self">self</span>.constellation_chan.send(message);
     }
 
@@ -4065,7 +4093,7 @@
 
                 <span class="comment">// Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
-                </span><span class="kw">let </span>msg = ConstellationMsg::IsReadyToSaveImage(pipeline_epochs);
+                </span><span class="kw">let </span>msg = EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_epochs);
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.constellation_chan.send(msg) {
                     <span class="macro">warn!</span>(<span class="string">"Sending ready to save to constellation failed ({:?})."</span>, e);
                 }
@@ -4348,10 +4376,13 @@
                 // the first "real" display list.
                 </span>PaintMetricState::Seen(epoch, first_reflow) <span class="kw">if </span>epoch &lt;= current_epoch =&gt; {
                     <span class="macro">assert!</span>(epoch &lt;= current_epoch);
-                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.constellation_chan.send(ConstellationMsg::PaintMetric(
-                        <span class="kw-2">*</span>pipeline_id,
-                        PaintMetricEvent::FirstPaint(paint_time, first_reflow),
-                    )) {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+                        <span class="self">self</span>.constellation_chan
+                            .send(EmbedderToConstellationMessage::PaintMetric(
+                                <span class="kw-2">*</span>pipeline_id,
+                                PaintMetricEvent::FirstPaint(paint_time, first_reflow),
+                            ))
+                    {
                         <span class="macro">warn!</span>(<span class="string">"Sending paint metric event to constellation failed ({error:?})."</span>);
                     }
                     pipeline.first_paint_metric = PaintMetricState::Sent;
@@ -4361,10 +4392,13 @@
 
             <span class="kw">match </span>pipeline.first_contentful_paint_metric {
                 PaintMetricState::Seen(epoch, first_reflow) <span class="kw">if </span>epoch &lt;= current_epoch =&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.constellation_chan.send(ConstellationMsg::PaintMetric(
-                        <span class="kw-2">*</span>pipeline_id,
-                        PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
-                    )) {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+                        <span class="self">self</span>.constellation_chan
+                            .send(EmbedderToConstellationMessage::PaintMetric(
+                                <span class="kw-2">*</span>pipeline_id,
+                                PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
+                            ))
+                    {
                         <span class="macro">warn!</span>(<span class="string">"Sending paint metric event to constellation failed ({error:?})."</span>);
                     }
                     pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
