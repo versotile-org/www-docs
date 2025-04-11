@@ -1,0 +1,1 @@
+searchState.loadedDescShard("versoview_build", 0, "VeroView Build\nDecompress the archive to the output directory, this …\nDefault archive base URL: …\nIf you don’t know where to put the versoview executable, …\nDownload and extract the pre-built versoview executable to …\nDownload the pre-built versoview archive to the <code>OUT_DIR</code> …")

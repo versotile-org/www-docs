@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["decompress_archive","default_archive_base_url","default_output_directory","download_and_extract_verso","download_archive"]};
