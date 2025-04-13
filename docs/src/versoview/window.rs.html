@@ -1279,7 +1279,9 @@
 <a href="#1278" id="1278">1278</a>
 <a href="#1279" id="1279">1279</a>
 <a href="#1280" id="1280">1280</a>
-<a href="#1281" id="1281">1281</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1281" id="1281">1281</a>
+<a href="#1282" id="1282">1282</a>
+<a href="#1283" id="1283">1283</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
@@ -1701,7 +1703,7 @@
                 <span class="comment">// handle Windows and Linux non-decoration window resize cursor
                 </span><span class="attr">#[cfg(any(linux, target_os = <span class="string">"windows"</span>))]
                 </span>{
-                    <span class="kw">if </span><span class="self">self</span>.is_resizable() {
+                    <span class="kw">if </span><span class="self">self</span>.should_use_client_region_drag() {
                         <span class="kw">let </span>direction = <span class="self">self</span>.get_drag_resize_direction();
                         <span class="self">self</span>.set_drag_resize_cursor(direction);
                     }
@@ -1729,7 +1731,7 @@
                 </span>{
                     <span class="kw">if </span><span class="kw-2">*</span>state == ElementState::Pressed
                         &amp;&amp; <span class="kw-2">*</span>button == winit::event::MouseButton::Left
-                        &amp;&amp; <span class="self">self</span>.is_resizable()
+                        &amp;&amp; <span class="self">self</span>.should_use_client_region_drag()
                     {
                         <span class="self">self</span>.drag_resize_window();
                     }
@@ -2430,10 +2432,12 @@
 <span class="comment">// Non-decorated window resizing for Windows and Linux.
 </span><span class="attr">#[cfg(any(linux, target_os = <span class="string">"windows"</span>))]
 </span><span class="kw">impl </span>Window {
-    <span class="doccomment">/// Check current window state is allowed to drag-resize.
-    </span><span class="kw">fn </span>is_resizable(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="comment">// TODO: Check if the window is in fullscreen mode.
-        </span>!<span class="self">self</span>.window.is_maximized() &amp;&amp; <span class="self">self</span>.window.is_resizable()
+    <span class="doccomment">/// Check current window state is allowed to apply drag-resize in client region.
+    </span><span class="kw">fn </span>should_use_client_region_drag(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        !<span class="self">self</span>.window.is_decorated()
+            &amp;&amp; !<span class="self">self</span>.window.is_maximized()
+            &amp;&amp; <span class="self">self</span>.window.is_resizable()
+            &amp;&amp; <span class="self">self</span>.window.fullscreen().is_none()
     }
 
     <span class="doccomment">/// Drag resize the window.
