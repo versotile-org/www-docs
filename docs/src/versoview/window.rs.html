@@ -1281,7 +1281,28 @@
 <a href="#1280" id="1280">1280</a>
 <a href="#1281" id="1281">1281</a>
 <a href="#1282" id="1282">1282</a>
-<a href="#1283" id="1283">1283</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1283" id="1283">1283</a>
+<a href="#1284" id="1284">1284</a>
+<a href="#1285" id="1285">1285</a>
+<a href="#1286" id="1286">1286</a>
+<a href="#1287" id="1287">1287</a>
+<a href="#1288" id="1288">1288</a>
+<a href="#1289" id="1289">1289</a>
+<a href="#1290" id="1290">1290</a>
+<a href="#1291" id="1291">1291</a>
+<a href="#1292" id="1292">1292</a>
+<a href="#1293" id="1293">1293</a>
+<a href="#1294" id="1294">1294</a>
+<a href="#1295" id="1295">1295</a>
+<a href="#1296" id="1296">1296</a>
+<a href="#1297" id="1297">1297</a>
+<a href="#1298" id="1298">1298</a>
+<a href="#1299" id="1299">1299</a>
+<a href="#1300" id="1300">1300</a>
+<a href="#1301" id="1301">1301</a>
+<a href="#1302" id="1302">1302</a>
+<a href="#1303" id="1303">1303</a>
+<a href="#1304" id="1304">1304</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
@@ -1355,10 +1376,17 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) on_close_requested: bool,
 }
 
+<span class="attr">#[derive(Debug, Default)]
+</span><span class="kw">struct </span>CursorState {
+    current_cursor: CursorIcon,
+    cursor_resizing: bool,
+}
+
 <span class="doccomment">/// A Verso window is a Winit window containing several web views.
 </span><span class="kw">pub struct </span>Window {
     <span class="doccomment">/// Access to Winit window
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) window: WinitWindow,
+    cursor_state: CursorState,
     <span class="doccomment">/// GL surface of the window
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) surface: Surface&lt;WindowSurface&gt;,
     <span class="doccomment">/// The main panel of this window.
@@ -1421,6 +1449,7 @@
         (
             <span class="self">Self </span>{
                 window,
+                cursor_state: CursorState::default(),
                 surface,
                 panel: <span class="prelude-val">None</span>,
                 event_listeners: Default::default(),
@@ -1465,6 +1494,7 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>window = <span class="self">Self </span>{
             window,
+            cursor_state: CursorState::default(),
             surface,
             panel: <span class="prelude-val">None</span>,
             <span class="comment">// webview: None,
@@ -1983,6 +2013,11 @@
         clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) -&gt; bool {
+        <span class="kw">if let </span>EmbedderMsg::SetCursor(<span class="kw">_</span>, cursor) = message {
+            <span class="self">self</span>.set_cursor_icon(cursor);
+            <span class="kw">return </span><span class="bool-val">false</span>;
+        }
+
         <span class="comment">// Handle message in Verso Panel
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
             <span class="kw">if </span>panel.webview.webview_id == webview_id {
@@ -2146,7 +2181,7 @@
     }
 
     <span class="doccomment">/// Set cursor icon of the window.
-    </span><span class="kw">pub fn </span>set_cursor_icon(<span class="kw-2">&amp;</span><span class="self">self</span>, cursor: Cursor) {
+    </span><span class="kw">pub fn </span>set_cursor_icon(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cursor: Cursor) {
         <span class="kw">let </span>winit_cursor = <span class="kw">match </span>cursor {
             Cursor::Default =&gt; CursorIcon::Default,
             Cursor::Pointer =&gt; CursorIcon::Pointer,
@@ -2182,9 +2217,14 @@
             Cursor::AllScroll =&gt; CursorIcon::AllScroll,
             Cursor::ZoomIn =&gt; CursorIcon::ZoomIn,
             Cursor::ZoomOut =&gt; CursorIcon::ZoomOut,
-            <span class="kw">_ </span>=&gt; CursorIcon::Default,
+            Cursor::None =&gt; {
+                <span class="self">self</span>.window.set_cursor_visible(<span class="bool-val">false</span>);
+                <span class="kw">return</span>;
+            }
         };
+        <span class="self">self</span>.cursor_state.current_cursor = winit_cursor.clone();
         <span class="self">self</span>.window.set_cursor(winit_cursor);
+        <span class="self">self</span>.window.set_cursor_visible(<span class="bool-val">true</span>);
     }
 
     <span class="doccomment">/// This method enables IME and set the IME cursor area of the window.
@@ -2501,9 +2541,9 @@
     }
 
     <span class="doccomment">/// Set drag-resize cursor when mouse is hover on the border of the window.
-    </span><span class="kw">fn </span>set_drag_resize_cursor(<span class="kw-2">&amp;</span><span class="self">self</span>, direction: <span class="prelude-ty">Option</span>&lt;ResizeDirection&gt;) {
-        <span class="kw">let </span>cursor = <span class="kw">match </span>direction {
-            <span class="prelude-val">Some</span>(direction) =&gt; <span class="kw">match </span>direction {
+    </span><span class="kw">fn </span>set_drag_resize_cursor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, direction: <span class="prelude-ty">Option</span>&lt;ResizeDirection&gt;) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(direction) = direction {
+            <span class="kw">let </span>cursor = <span class="kw">match </span>direction {
                 ResizeDirection::East =&gt; CursorIcon::EResize,
                 ResizeDirection::West =&gt; CursorIcon::WResize,
                 ResizeDirection::South =&gt; CursorIcon::SResize,
@@ -2512,11 +2552,13 @@
                 ResizeDirection::NorthWest =&gt; CursorIcon::NwResize,
                 ResizeDirection::SouthEast =&gt; CursorIcon::SeResize,
                 ResizeDirection::SouthWest =&gt; CursorIcon::SwResize,
-            },
-            <span class="prelude-val">None </span>=&gt; CursorIcon::Default,
-        };
-
-        <span class="self">self</span>.window.set_cursor(cursor);
+            };
+            <span class="self">self</span>.cursor_state.cursor_resizing = <span class="bool-val">true</span>;
+            <span class="self">self</span>.window.set_cursor(cursor);
+        } <span class="kw">else if </span><span class="self">self</span>.cursor_state.cursor_resizing {
+            <span class="self">self</span>.cursor_state.cursor_resizing = <span class="bool-val">false</span>;
+            <span class="self">self</span>.window.set_cursor(<span class="self">self</span>.cursor_state.current_cursor);
+        }
     }
 }
 
