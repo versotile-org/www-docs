@@ -802,7 +802,62 @@
 <a href="#801" id="801">801</a>
 <a href="#802" id="802">802</a>
 <a href="#803" id="803">803</a>
-<a href="#804" id="804">804</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
+<a href="#829" id="829">829</a>
+<a href="#830" id="830">830</a>
+<a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
+<a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
+<a href="#848" id="848">848</a>
+<a href="#849" id="849">849</a>
+<a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
+<a href="#852" id="852">852</a>
+<a href="#853" id="853">853</a>
+<a href="#854" id="854">854</a>
+<a href="#855" id="855">855</a>
+<a href="#856" id="856">856</a>
+<a href="#857" id="857">857</a>
+<a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -822,7 +877,10 @@
     compositor::IOCompositor,
     tab::{TabActivateRequest, TabCloseRequest, TabCreateResponse},
     verso::send_to_constellation,
-    webview::prompt::{HttpBasicAuthInputResult, PromptDialog, PromptInputResult, PromptSender},
+    webview::{
+        history_menu::{HistoryMenuUIResponse, OpenHistoryMenuRequest},
+        prompt::{HttpBasicAuthInputResult, PromptDialog, PromptInputResult, PromptSender},
+    },
     window::Window,
 };
 
@@ -887,11 +945,28 @@
             }
             EmbedderMsg::WebViewBlurred =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
-                <span class="self">self</span>.close_context_menu(sender);
+                <span class="self">self</span>.close_webview_menu(sender);
             }
             EmbedderMsg::WebViewFocused(w) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
-                <span class="self">self</span>.close_context_menu(sender);
+                <span class="self">self</span>.close_webview_menu(sender);
+
+                <span class="comment">// set navigation button enabled state
+                // FIXME: should place in Window::activate_tab, but it somehow stuck with execute_script
+                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="self">self</span>.panel.as_ref() {
+                    <span class="kw">let </span>history = <span class="self">self</span>.tab_manager.history(w).unwrap();
+                    <span class="kw">let </span>prev_btn_enabled = history.current_idx &gt; <span class="number">0</span>;
+                    <span class="kw">let </span>next_btn_enabled = history.current_idx &lt; history.list.len() - <span class="number">1</span>;
+                    <span class="kw">let _ </span>= execute_script(
+                        <span class="kw-2">&amp;</span>compositor.constellation_chan,
+                        <span class="kw-2">&amp;</span>panel.webview.webview_id,
+                        <span class="macro">format!</span>(
+                            <span class="string">"window.navbar.setNavBtnEnabled({}, {})"</span>,
+                            prev_btn_enabled, next_btn_enabled
+                        ),
+                    );
+                }
+
                 <span class="macro">log::debug!</span>(
                     <span class="string">"Verso Window {:?}'s webview {} has loaded completely."</span>,
                     <span class="self">self</span>.id(),
@@ -1016,23 +1091,36 @@
             }
             EmbedderMsg::HistoryChanged(_webview_id, list, index) =&gt; {
                 <span class="self">self</span>.close_prompt_dialog(webview_id);
+                <span class="self">self</span>.close_webview_menu(sender);
+
                 compositor.send_root_pipeline_display_list(<span class="self">self</span>);
 
                 <span class="self">self</span>.tab_manager
                     .set_history(webview_id, list.clone(), index);
                 <span class="kw">let </span>url = list.get(index).unwrap();
+                <span class="kw">let </span>prev_btn_enabled = index &gt; <span class="number">0</span>;
+                <span class="kw">let </span>next_btn_enabled = index &lt; list.len() - <span class="number">1</span>;
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="self">self</span>.panel.as_ref() {
                     <span class="kw">let _ </span>= execute_script(
                         sender,
                         <span class="kw-2">&amp;</span>panel.webview.webview_id,
                         <span class="macro">format!</span>(<span class="string">"window.navbar.setNavbarUrl('{}')"</span>, url.as_str()),
                     );
+                    <span class="kw">let _ </span>= execute_script(
+                        sender,
+                        <span class="kw-2">&amp;</span>panel.webview.webview_id,
+                        <span class="macro">format!</span>(
+                            <span class="string">"window.navbar.setNavBtnEnabled({}, {})"</span>,
+                            prev_btn_enabled, next_btn_enabled
+                        ),
+                    );
                 }
             }
             EmbedderMsg::ShowContextMenu(_webview_id, servo_sender, _title, _options) =&gt; {
                 <span class="attr">#[cfg(linux)]
-                </span><span class="kw">if </span><span class="self">self</span>.context_menu.is_none() {
-                    <span class="self">self</span>.context_menu = <span class="prelude-val">Some</span>(<span class="self">self</span>.show_context_menu(sender, servo_sender));
+                </span><span class="kw">if </span><span class="self">self</span>.webview_menu.is_none() {
+                    <span class="self">self</span>.webview_menu =
+                        <span class="prelude-val">Some</span>(Box::new(<span class="self">self</span>.show_context_menu(sender, servo_sender)));
                 } <span class="kw">else </span>{
                     <span class="kw">let _ </span>= servo_sender.send(ContextMenuResult::Ignored);
                 }
@@ -1203,7 +1291,7 @@
             }
             EmbedderMsg::WebViewFocused(webview_id) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
-                <span class="self">self</span>.close_context_menu(sender);
+                <span class="self">self</span>.close_webview_menu(sender);
                 <span class="macro">log::debug!</span>(
                     <span class="string">"Verso Window {:?}'s panel {} has loaded completely."</span>,
                     <span class="self">self</span>.id(),
@@ -1295,6 +1383,17 @@
                                 id: webview_id,
                             };
                             <span class="kw">let _ </span>= response_sender.send(PromptResponse::Ok(result.to_json()));
+                            <span class="kw">return </span><span class="bool-val">false</span>;
+                        } <span class="kw">else if </span>message.starts_with(<span class="string">"OPEN_HISTORY_MENU"</span>) {
+                            <span class="kw">let </span>request_str = message.strip_prefix(<span class="string">"OPEN_HISTORY_MENU:"</span>).unwrap();
+                            <span class="kw">let </span>request: OpenHistoryMenuRequest = serde_json::from_str(request_str)
+                                .expect(<span class="string">"Failed to parse OpenHistoryMenuRequest"</span>);
+                            <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
+
+                            <span class="kw">if let </span><span class="prelude-val">Some</span>(menu) = <span class="self">self</span>.show_history_menu(sender, request) {
+                                <span class="self">self</span>.webview_menu = <span class="prelude-val">Some</span>(Box::new(menu));
+                            }
+
                             <span class="kw">return </span><span class="bool-val">false</span>;
                         }
 
@@ -1406,8 +1505,9 @@
             }
             EmbedderMsg::ShowContextMenu(<span class="kw">_</span>, servo_sender, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
                 <span class="attr">#[cfg(linux)]
-                </span><span class="kw">if </span><span class="self">self</span>.context_menu.is_none() {
-                    <span class="self">self</span>.context_menu = <span class="prelude-val">Some</span>(<span class="self">self</span>.show_context_menu(sender, servo_sender));
+                </span><span class="kw">if </span><span class="self">self</span>.webview_menu.is_none() {
+                    <span class="self">self</span>.webview_menu =
+                        <span class="prelude-val">Some</span>(Box::new(<span class="self">self</span>.show_context_menu(sender, servo_sender)));
                 } <span class="kw">else </span>{
                     <span class="kw">let _ </span>= servo_sender.send(ContextMenuResult::Ignored);
                 }
@@ -1427,9 +1527,8 @@
         <span class="bool-val">false
     </span>}
 
-    <span class="doccomment">/// Handle servo messages with main panel. Return true it requests a new window.
-    </span><span class="attr">#[cfg(linux)]
-    </span><span class="kw">pub fn </span>handle_servo_messages_with_context_menu(
+    <span class="doccomment">/// Handle servo messages with webview menu. Return true it requests a new window.
+    </span><span class="kw">pub fn </span>handle_servo_messages_with_webview_menu(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         webview_id: WebViewId,
         message: EmbedderMsg,
@@ -1437,7 +1536,7 @@
         _clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         _compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
     ) -&gt; bool {
-        <span class="macro">log::trace!</span>(<span class="string">"Verso Context Menu {webview_id:?} is handling Embedder message: {message:?}"</span>,);
+        <span class="macro">log::trace!</span>(<span class="string">"Verso WebView Menu {webview_id:?} is handling Embedder message: {message:?}"</span>,);
         <span class="kw">match </span>message {
             EmbedderMsg::WebViewBlurred =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">None</span>;
@@ -1452,19 +1551,30 @@
                     response_sender,
                 } =&gt; {
                     <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
-                    <span class="kw">if </span>message.starts_with(<span class="string">"CONTEXT_MENU:"</span>) {
+
+                    <span class="attr">#[cfg(linux)]
+                    </span><span class="kw">if </span>message.starts_with(<span class="string">"CONTEXT_MENU:"</span>) {
                         <span class="kw">let </span>json_str_msg = message.strip_prefix(<span class="string">"CONTEXT_MENU:"</span>).unwrap();
                         <span class="kw">let </span>result =
                             serde_json::from_str::&lt;ContextMenuUIResponse&gt;(json_str_msg).unwrap();
 
                         <span class="self">self</span>.handle_context_menu_event(sender, result);
                     }
+                    <span class="kw">if </span>message.starts_with(<span class="string">"HISTORY_MENU:"</span>) {
+                        <span class="kw">let </span>json_str_msg = message.strip_prefix(<span class="string">"HISTORY_MENU:"</span>).unwrap();
+                        <span class="kw">let </span>result =
+                            serde_json::from_str::&lt;HistoryMenuUIResponse&gt;(json_str_msg).unwrap();
+
+                        <span class="self">self</span>.handle_history_menu_event(sender, result);
+                    }
                 }
                 <span class="kw">_ </span>=&gt; <span class="macro">log::trace!</span>(<span class="string">"Verso context menu isn't supporting this prompt yet"</span>),
             },
-            EmbedderMsg::ShowContextMenu(_webview_id, servo_sender, _title, _options) =&gt; {
-                <span class="kw">if </span><span class="self">self</span>.context_menu.is_none() {
-                    <span class="self">self</span>.context_menu = <span class="prelude-val">Some</span>(<span class="self">self</span>.show_context_menu(sender, servo_sender));
+            <span class="attr">#[cfg(linux)]
+            </span>EmbedderMsg::ShowContextMenu(_webview_id, servo_sender, _title, _options) =&gt; {
+                <span class="kw">if </span><span class="self">self</span>.webview_menu.is_none() {
+                    <span class="self">self</span>.webview_menu =
+                        <span class="prelude-val">Some</span>(Box::new(<span class="self">self</span>.show_context_menu(sender, servo_sender)));
                 } <span class="kw">else </span>{
                     <span class="kw">let _ </span>= servo_sender.send(ContextMenuResult::Ignored);
                 }

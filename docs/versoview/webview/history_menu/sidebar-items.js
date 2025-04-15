@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["HistoryMenuAction"],"struct":["HistoryMenu","HistoryMenuItem","HistoryMenuUIResponse","OpenHistoryMenuRequest"]};

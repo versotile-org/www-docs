@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["execute_script"],"mod":["context_menu","prompt"],"struct":["Panel","WebView"]};
+window.SIDEBAR_ITEMS = {"fn":["execute_script"],"mod":["context_menu","history_menu","prompt","webview_menu"],"struct":["Panel","WebView"]};

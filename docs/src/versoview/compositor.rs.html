@@ -3496,10 +3496,10 @@
             }
         }
         <span class="attr">#[cfg(linux)]
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(context_menu) = <span class="kw-2">&amp;mut </span>window.context_menu {
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(webview_menu) = <span class="kw-2">&amp;mut </span>window.webview_menu {
             <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
-            context_menu.webview.rect = rect;
-            <span class="self">self</span>.on_resize_webview_event(context_menu.webview.webview_id, rect);
+            webview_menu.set_webview_rect(rect);
+            <span class="self">self</span>.on_resize_webview_event(webview_menu.webview().webview_id, rect);
         }
 
         <span class="self">self</span>.send_root_pipeline_display_list(window);
