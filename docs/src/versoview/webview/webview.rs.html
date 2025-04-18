@@ -857,7 +857,20 @@
 <a href="#856" id="856">856</a>
 <a href="#857" id="857">857</a>
 <a href="#858" id="858">858</a>
-<a href="#859" id="859">859</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
+<a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
+<a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -871,7 +884,7 @@
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>url::Url;
 <span class="kw">use </span>versoview_messages::ToControllerMessage;
-<span class="kw">use </span>webrender_api::units::DeviceIntRect;
+<span class="kw">use </span>webrender_api::units::{DevicePoint, DeviceRect};
 
 <span class="kw">use crate</span>::{
     compositor::IOCompositor,
@@ -893,17 +906,22 @@
     <span class="doccomment">/// Webview ID
     </span><span class="kw">pub </span>webview_id: WebViewId,
     <span class="doccomment">/// The position and size of the webview.
-    </span><span class="kw">pub </span>rect: DeviceIntRect,
+    </span><span class="kw">pub </span>rect: DeviceRect,
 }
 
 <span class="kw">impl </span>WebView {
     <span class="doccomment">/// Create a web view.
-    </span><span class="kw">pub fn </span>new(webview_id: WebViewId, rect: DeviceIntRect) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ webview_id, rect }
+    </span><span class="comment">// TODO: use ViewportDetails instead of hidpi_scale_factor
+    </span><span class="kw">pub fn </span>new(webview_id: WebViewId, viewport_details: ViewportDetails) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>size = viewport_details.size * viewport_details.hidpi_scale_factor;
+        <span class="self">Self </span>{
+            webview_id,
+            rect: DeviceRect::from_origin_and_size(DevicePoint::origin(), size),
+        }
     }
 
     <span class="doccomment">/// Set the webview size.
-    </span><span class="kw">pub fn </span>set_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceIntRect) {
+    </span><span class="kw">pub fn </span>set_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceRect) {
         <span class="self">self</span>.rect = rect;
     }
 }
@@ -1357,15 +1375,23 @@
                             <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
                             <span class="kw">return </span><span class="bool-val">false</span>;
                         } <span class="kw">else if </span>message == <span class="string">"NEW_TAB" </span>{
+                            <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
+
                             <span class="kw">let </span>webview_id = WebViewId::new();
                             <span class="kw">let </span>size = <span class="self">self</span>.size();
-                            <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+                            <span class="kw">let </span>rect = DeviceRect::from_size(size);
                             <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, <span class="bool-val">true</span>);
-                            <span class="kw">let </span>webview = WebView::new(webview_id, content_size);
+                            <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
+                            <span class="kw">let </span>webview = WebView::new(
+                                webview_id,
+                                ViewportDetails {
+                                    size,
+                                    hidpi_scale_factor,
+                                },
+                            );
 
                             <span class="self">self</span>.tab_manager.append_tab(webview, <span class="bool-val">true</span>);
 
-                            <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
                             <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
                             send_to_constellation(
                                 sender,

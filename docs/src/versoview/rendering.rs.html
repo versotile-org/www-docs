@@ -169,11 +169,35 @@
 <a href="#168" id="168">168</a>
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
-<a href="#171" id="171">171</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::ffi::CString;
-<span class="kw">use </span>std::num::NonZeroU32;
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::num::NonZeroU32;
 <span class="kw">use </span>std::rc::Rc;
+<span class="kw">use </span>std::{cell::Cell, ffi::CString};
 
-<span class="kw">use </span>euclid::default::Size2D;
+<span class="kw">use </span>dpi::PhysicalSize;
+<span class="kw">use </span>euclid::Size2D;
 <span class="kw">use </span>gleam::gl;
 <span class="kw">use </span>glutin::{
     config::{Config, GetGlConfig, GlConfig},
@@ -186,12 +210,14 @@
 };
 <span class="kw">use </span>glutin_winit::GlWindow;
 <span class="kw">use </span>raw_window_handle::HasWindowHandle;
+<span class="kw">use </span>webrender_api::units::DevicePixel;
 <span class="kw">use </span>winit::window::Window;
 
 <span class="doccomment">/// A Verso rendering context, which holds all of the information needed
 /// to render Servo's layout, and bridges WebRender and glutin.
 </span><span class="kw">pub struct </span>RenderingContext {
     context: PossiblyCurrentContext,
+    size: Cell&lt;PhysicalSize&lt;u32&gt;&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) gl: Rc&lt;<span class="kw">dyn </span>gl::Gl&gt;,
 }
 
@@ -200,6 +226,7 @@
     </span><span class="kw">pub fn </span>create(
         window: <span class="kw-2">&amp;</span>Window,
         gl_config: <span class="kw-2">&amp;</span>Config,
+        size: PhysicalSize&lt;u32&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, Surface&lt;WindowSurface&gt;), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
         <span class="comment">// XXX This will panic on Android, but we care about Desktop for now.
         </span><span class="kw">let </span>raw_window_handle = window.window_handle().ok().map(|handle| handle.as_raw());
@@ -275,7 +302,14 @@
             gl.get_string(gl::SHADING_LANGUAGE_VERSION)
         );
 
-        <span class="prelude-val">Ok</span>((<span class="self">Self </span>{ context, gl }, surface))
+        <span class="prelude-val">Ok</span>((
+            <span class="self">Self </span>{
+                size: Cell::new(size),
+                context,
+                gl,
+            },
+            surface,
+        ))
     }
 
     <span class="doccomment">/// Create a surface based on provided window.
@@ -303,14 +337,15 @@
     </span><span class="kw">pub fn </span>resize(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         surface: <span class="kw-2">&amp;</span>Surface&lt;<span class="kw">impl </span>SurfaceTypeTrait + ResizeableSurface&gt;,
-        size: Size2D&lt;i32&gt;,
+        size: PhysicalSize&lt;u32&gt;,
     ) {
         surface.resize(
             <span class="kw-2">&amp;</span><span class="self">self</span>.context,
-            NonZeroU32::new(size.width <span class="kw">as </span>u32).unwrap(),
-            NonZeroU32::new(size.height <span class="kw">as </span>u32).unwrap(),
+            NonZeroU32::new(size.width).unwrap(),
+            NonZeroU32::new(size.height).unwrap(),
         );
-        <span class="self">self</span>.gl.viewport(<span class="number">0</span>, <span class="number">0</span>, size.width, size.height);
+        <span class="self">self</span>.gl
+            .viewport(<span class="number">0</span>, <span class="number">0</span>, size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
     }
 
     <span class="doccomment">/// Present the surface of the rendering context.
@@ -321,6 +356,17 @@
         <span class="self">self</span>.context.make_current(surface)<span class="question-mark">?</span>;
         surface.swap_buffers(<span class="kw-2">&amp;</span><span class="self">self</span>.context)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="doccomment">/// Get the current size of this [`RenderingContext`].
+    </span><span class="kw">pub fn </span>size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PhysicalSize&lt;u32&gt; {
+        <span class="self">self</span>.size.get()
+    }
+
+    <span class="doccomment">/// Get the current size of this [`RenderingContext`] as [`Size2D`].
+    </span><span class="kw">pub fn </span>size2d(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Size2D&lt;u32, DevicePixel&gt; {
+        <span class="kw">let </span>size = <span class="self">self</span>.size();
+        Size2D::new(size.width, size.height)
     }
 }
 

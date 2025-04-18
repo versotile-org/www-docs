@@ -220,17 +220,19 @@
 <a href="#219" id="219">219</a>
 <a href="#220" id="220">220</a>
 <a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a></pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::webview_menu::WebViewMenu;
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a></pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::webview_menu::WebViewMenu;
 <span class="kw">use </span><span class="kw">crate</span>::webview::WebView;
 <span class="kw">use crate</span>::{verso::send_to_constellation, window::Window};
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
+<span class="kw">use </span>embedder_traits::ViewportDetails;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>std::fmt;
 <span class="kw">use </span>url::Url;
-<span class="kw">use </span>webrender_api::units::DeviceIntRect;
+<span class="kw">use </span>webrender_api::units::DeviceRect;
 <span class="kw">use </span>winit::dpi::LogicalPosition;
 
 <span class="doccomment">/// The Previous/Next History Menu of the Window. It will be opened when users left long click on panel's previous/next button.
@@ -250,7 +252,7 @@
     <span class="doccomment">/// Create history menu with custom items
     </span><span class="kw">pub fn </span>new_with_menu(action: HistoryMenuAction, menu_items: Vec&lt;HistoryMenuItem&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>webview_id = WebViewId::new();
-        <span class="kw">let </span>webview = WebView::new(webview_id, DeviceIntRect::zero());
+        <span class="kw">let </span>webview = WebView::new(webview_id, ViewportDetails::default());
 
         <span class="self">Self </span>{
             action,
@@ -279,7 +281,7 @@
         ServoUrl::from_url(url)
     }
 
-    <span class="kw">fn </span>set_webview_rect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceIntRect) {
+    <span class="kw">fn </span>set_webview_rect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceRect) {
         <span class="self">self</span>.webview.set_size(rect);
     }
 

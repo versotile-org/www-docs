@@ -1137,9 +1137,7 @@
 <a href="#1136" id="1136">1136</a>
 <a href="#1137" id="1137">1137</a>
 <a href="#1138" id="1138">1138</a>
-<a href="#1139" id="1139">1139</a>
-<a href="#1140" id="1140">1140</a>
-<a href="#1141" id="1141">1141</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1139" id="1139">1139</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::EmbedderToConstellationMessage;
@@ -1169,7 +1167,7 @@
 <span class="kw">use </span>versoview_messages::ToControllerMessage;
 <span class="kw">use </span>webrender_api::{
     ScrollLocation,
-    units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, LayoutVector2D},
+    units::{DeviceIntPoint, DevicePoint, DeviceRect, DeviceSize, LayoutVector2D},
 };
 <span class="attr">#[cfg(any(linux, target_os = <span class="string">"windows"</span>))]
 </span><span class="kw">use </span>winit::window::ResizeDirection;
@@ -1210,7 +1208,8 @@
 <span class="attr">#[derive(Debug, Default)]
 </span><span class="kw">struct </span>CursorState {
     current_cursor: CursorIcon,
-    cursor_resizing: bool,
+    <span class="attr">#[cfg(any(linux, target_os = <span class="string">"windows"</span>))]
+    </span>cursor_resizing: bool,
 }
 
 <span class="doccomment">/// A Verso window is a Winit window containing several web views.
@@ -1271,8 +1270,9 @@
                 );
             }
         }
-        <span class="kw">let </span>(rendering_context, surface) = RenderingContext::create(<span class="kw-2">&amp;</span>window, <span class="kw-2">&amp;</span>gl_config)
-            .expect(<span class="string">"Failed to create rendering context"</span>);
+        <span class="kw">let </span>(rendering_context, surface) =
+            RenderingContext::create(<span class="kw-2">&amp;</span>window, <span class="kw-2">&amp;</span>gl_config, window.inner_size())
+                .expect(<span class="string">"Failed to create rendering context"</span>);
         <span class="macro">log::trace!</span>(<span class="string">"Created rendering context for window {:?}"</span>, window);
 
         (
@@ -1341,17 +1341,17 @@
     }
 
     <span class="doccomment">/// Get the content area size for the webview to draw on
-    </span><span class="kw">pub fn </span>get_content_size(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">mut </span>size: DeviceIntRect, include_tab: bool) -&gt; DeviceIntRect {
+    </span><span class="kw">pub fn </span>get_content_size(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">mut </span>size: DeviceRect, include_tab: bool) -&gt; DeviceRect {
         <span class="kw">if </span><span class="self">self</span>.panel.is_some() {
             <span class="kw">let </span>height: f64 = <span class="kw">if </span>include_tab {
                 (PANEL_HEIGHT + TAB_HEIGHT + PANEL_PADDING) * <span class="self">self</span>.scale_factor()
             } <span class="kw">else </span>{
                 (PANEL_HEIGHT + PANEL_PADDING) * <span class="self">self</span>.scale_factor()
             };
-            size.min.y = size.max.y.min(height <span class="kw">as </span>i32);
-            size.min.x += <span class="number">10</span>;
-            size.max.y -= <span class="number">10</span>;
-            size.max.x -= <span class="number">10</span>;
+            size.min.y = size.max.y.min(height <span class="kw">as </span>f32);
+            size.min.x += <span class="number">10.0</span>;
+            size.max.y -= <span class="number">10.0</span>;
+            size.max.x -= <span class="number">10.0</span>;
         }
         size
     }
@@ -1362,27 +1362,26 @@
         constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
         initial_url: url::Url,
     ) {
+        <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
         <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
-        <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32);
+        <span class="kw">let </span>size = Size2D::new(size.width <span class="kw">as </span>f32, size.height <span class="kw">as </span>f32);
+        <span class="kw">let </span>size = size.to_f32() / hidpi_scale_factor;
+        <span class="kw">let </span>viewport_details = ViewportDetails {
+            size,
+            hidpi_scale_factor,
+        };
+
         <span class="kw">let </span>panel_id = WebViewId::new();
         <span class="self">self</span>.panel = <span class="prelude-val">Some</span>(Panel {
-            webview: WebView::new(panel_id, DeviceIntRect::from_size(size)),
+            webview: WebView::new(panel_id, viewport_details),
             initial_url: ServoUrl::from_url(initial_url),
         });
 
         <span class="kw">let </span>url = ServoUrl::parse(<span class="string">"verso://resources/components/panel.html"</span>).unwrap();
-        <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
-        <span class="kw">let </span>size = size.to_f32() / hidpi_scale_factor;
+
         send_to_constellation(
             constellation_sender,
-            EmbedderToConstellationMessage::NewWebView(
-                url,
-                panel_id,
-                ViewportDetails {
-                    size,
-                    hidpi_scale_factor,
-                },
-            ),
+            EmbedderToConstellationMessage::NewWebView(url, panel_id, viewport_details),
         );
     }
 
@@ -1393,13 +1392,20 @@
         initial_url: ServoUrl,
     ) {
         <span class="kw">let </span>webview_id = WebViewId::new();
-        <span class="kw">let </span>size = <span class="self">self</span>.size();
-        <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+        <span class="kw">let </span>size = <span class="self">self</span>.size().to_f32();
+        <span class="kw">let </span>rect = DeviceRect::from_size(size);
 
         <span class="kw">let </span>show_tab = <span class="self">self</span>.tab_manager.count() &gt;= <span class="number">1</span>;
         <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, show_tab);
 
-        <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(webview_id, rect);
+        <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
+        <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
+        <span class="kw">let </span>viewport_details = ViewportDetails {
+            size,
+            hidpi_scale_factor,
+        };
+
+        <span class="kw">let </span><span class="kw-2">mut </span>webview = WebView::new(webview_id, viewport_details);
         webview.set_size(content_size);
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
@@ -1414,20 +1420,9 @@
 
         <span class="self">self</span>.tab_manager.append_tab(webview, <span class="bool-val">true</span>);
 
-        <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, show_tab);
-
-        <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
-        <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
         send_to_constellation(
             constellation_sender,
-            EmbedderToConstellationMessage::NewWebView(
-                initial_url,
-                webview_id,
-                ViewportDetails {
-                    size,
-                    hidpi_scale_factor,
-                },
-            ),
+            EmbedderToConstellationMessage::NewWebView(initial_url, webview_id, viewport_details),
         );
         <span class="macro">log::debug!</span>(<span class="string">"Verso Window {:?} adds webview {}"</span>, <span class="self">self</span>.id(), webview_id);
     }
@@ -1441,6 +1436,7 @@
                     <span class="string">"window.navbar.closeTab('{}')"</span>,
                     serde_json::to_string(<span class="kw-2">&amp;</span>tab_id).unwrap()
                 );
+
                 <span class="kw">let </span>active_tab_id = execute_script(
                     <span class="kw-2">&amp;</span>compositor.constellation_chan,
                     <span class="kw-2">&amp;</span>panel.webview.webview_id,
@@ -1467,8 +1463,8 @@
         tab_id: WebViewId,
         show_tab: bool,
     ) {
-        <span class="kw">let </span>size = <span class="self">self</span>.size();
-        <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+        <span class="kw">let </span>size = <span class="self">self</span>.size().to_f32();
+        <span class="kw">let </span>rect = DeviceRect::from_size(size);
         <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, show_tab);
         <span class="kw">let </span>(tab_id, prompt_id) = <span class="self">self</span>.tab_manager.set_size(tab_id, content_size);
 
@@ -1528,7 +1524,7 @@
                     <span class="self">self</span>.resizing = <span class="bool-val">true</span>;
                 }
                 <span class="kw">let </span>size = Size2D::new(size.width, size.height);
-                compositor.resize(size.to_i32(), <span class="self">self</span>);
+                compositor.resize(size.to_f32(), <span class="self">self</span>);
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } =&gt; {
                 compositor.on_scale_factor_event(<span class="kw-2">*</span>scale_factor <span class="kw">as </span>f32, <span class="self">self</span>);
@@ -1886,15 +1882,15 @@
     }
 
     <span class="doccomment">/// Size of the window that's used by webrender.
-    </span><span class="kw">pub fn </span>size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceIntSize {
+    </span><span class="kw">pub fn </span>size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceSize {
         <span class="kw">let </span>size = <span class="self">self</span>.window.inner_size();
-        Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32)
+        Size2D::new(size.width <span class="kw">as </span>f32, size.height <span class="kw">as </span>f32)
     }
 
     <span class="doccomment">/// Size of the window, including the window decorations.
-    </span><span class="kw">pub fn </span>outer_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceIntSize {
+    </span><span class="kw">pub fn </span>outer_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceSize {
         <span class="kw">let </span>size = <span class="self">self</span>.window.outer_size();
-        Size2D::new(size.width <span class="kw">as </span>i32, size.height <span class="kw">as </span>i32)
+        Size2D::new(size.width <span class="kw">as </span>f32, size.height <span class="kw">as </span>f32)
     }
 
     <span class="doccomment">/// Get Winit window ID of the window.

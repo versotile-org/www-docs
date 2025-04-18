@@ -60,7 +60,7 @@
 <span class="kw">use </span>embedder_traits::ViewportDetails;
 <span class="kw">use </span>euclid::Scale;
 <span class="kw">use </span>servo_url::ServoUrl;
-<span class="kw">use </span>webrender_api::units::DeviceIntRect;
+<span class="kw">use </span>webrender_api::units::DeviceRect;
 
 <span class="kw">use crate</span>::{verso::send_to_constellation, window::Window};
 
@@ -71,7 +71,7 @@
     <span class="doccomment">/// Get the webview of the menu
     </span><span class="kw">fn </span>webview(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>WebView;
     <span class="doccomment">/// Set the webview rect of the menu
-    </span><span class="kw">fn </span>set_webview_rect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceIntRect);
+    </span><span class="kw">fn </span>set_webview_rect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rect: DeviceRect);
     <span class="doccomment">/// Get the position of the menu
     </span><span class="kw">fn </span>position(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; LogicalPosition&lt;f64&gt;;
     <span class="doccomment">/// Set the position of the menu
@@ -86,7 +86,7 @@
         position: PhysicalPosition&lt;f64&gt;,
     ) {
         <span class="self">self</span>.set_position(position.to_logical(window.scale_factor()));
-        <span class="self">self</span>.set_webview_rect(DeviceIntRect::from_size(window.outer_size()));
+        <span class="self">self</span>.set_webview_rect(DeviceRect::from_size(window.outer_size()));
 
         <span class="kw">let </span>hidpi_scale_factor = Scale::new(window.scale_factor() <span class="kw">as </span>f32);
         <span class="kw">let </span>size = window.outer_size().to_f32() / hidpi_scale_factor;

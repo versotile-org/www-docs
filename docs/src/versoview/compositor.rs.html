@@ -2179,64 +2179,25 @@
 <a href="#2178" id="2178">2178</a>
 <a href="#2179" id="2179">2179</a>
 <a href="#2180" id="2180">2180</a>
-<a href="#2181" id="2181">2181</a>
-<a href="#2182" id="2182">2182</a>
-<a href="#2183" id="2183">2183</a>
-<a href="#2184" id="2184">2184</a>
-<a href="#2185" id="2185">2185</a>
-<a href="#2186" id="2186">2186</a>
-<a href="#2187" id="2187">2187</a>
-<a href="#2188" id="2188">2188</a>
-<a href="#2189" id="2189">2189</a>
-<a href="#2190" id="2190">2190</a>
-<a href="#2191" id="2191">2191</a>
-<a href="#2192" id="2192">2192</a>
-<a href="#2193" id="2193">2193</a>
-<a href="#2194" id="2194">2194</a>
-<a href="#2195" id="2195">2195</a>
-<a href="#2196" id="2196">2196</a>
-<a href="#2197" id="2197">2197</a>
-<a href="#2198" id="2198">2198</a>
-<a href="#2199" id="2199">2199</a>
-<a href="#2200" id="2200">2200</a>
-<a href="#2201" id="2201">2201</a>
-<a href="#2202" id="2202">2202</a>
-<a href="#2203" id="2203">2203</a>
-<a href="#2204" id="2204">2204</a>
-<a href="#2205" id="2205">2205</a>
-<a href="#2206" id="2206">2206</a>
-<a href="#2207" id="2207">2207</a>
-<a href="#2208" id="2208">2208</a>
-<a href="#2209" id="2209">2209</a>
-<a href="#2210" id="2210">2210</a>
-<a href="#2211" id="2211">2211</a>
-<a href="#2212" id="2212">2212</a>
-<a href="#2213" id="2213">2213</a>
-<a href="#2214" id="2214">2214</a>
-<a href="#2215" id="2215">2215</a>
-<a href="#2216" id="2216">2216</a>
-<a href="#2217" id="2217">2217</a>
-<a href="#2218" id="2218">2218</a>
-<a href="#2219" id="2219">2219</a>
-<a href="#2220" id="2220">2220</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2181" id="2181">2181</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+<span class="kw">use </span>std::time::{Duration, Instant};
 
 <span class="kw">use </span>base::cross_process_instant::CrossProcessInstant;
 <span class="kw">use </span>base::id::{PipelineId, WebViewId};
 <span class="kw">use </span>base::{Epoch, WebRenderEpochToU16};
-<span class="kw">use </span>compositing_traits::display_list::{HitTestInfo, ScrollTree};
+<span class="kw">use </span>compositing_traits::display_list::{CompositorDisplayListInfo, HitTestInfo, ScrollTree};
 <span class="kw">use </span>compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorProxy, CompositorReceiver,
-    CrossProcessCompositorMessage, ImageUpdate, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorProxy, ImageUpdate, SendableFrameTree,
 };
 <span class="kw">use </span>constellation_traits::{
     AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, ScrollState,
     WindowSizeType,
 };
-<span class="kw">use </span>crossbeam_channel::Sender;
+<span class="kw">use </span>crossbeam_channel::{Receiver, Sender};
+<span class="kw">use </span>dpi::PhysicalSize;
 <span class="kw">use </span>embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseMoveEvent, TouchEvent, TouchEventType, TouchId, UntrustedNodeAddress,
@@ -2246,13 +2207,14 @@
 <span class="kw">use </span>gleam::gl;
 <span class="kw">use </span>ipc_channel::ipc::{<span class="self">self</span>, IpcSharedMemory};
 <span class="kw">use </span>log::{debug, error, trace, warn};
+<span class="kw">use </span>profile_traits::mem::{ProcessReports, Report, ReportKind};
 <span class="kw">use </span>profile_traits::time::{<span class="self">self </span><span class="kw">as </span>profile_time, ProfilerCategory};
-<span class="kw">use </span>profile_traits::{mem, time, time_profile};
+<span class="kw">use </span>profile_traits::{mem, path, time, time_profile};
 <span class="kw">use </span>servo_geometry::{DeviceIndependentIntSize, DeviceIndependentPixel};
-<span class="kw">use </span>style_traits::{CSSPixel, PinchZoomFactor};
+<span class="kw">use </span>style_traits::CSSPixel;
 <span class="kw">use </span>webrender::{RenderApi, Transaction};
 <span class="kw">use </span>webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, LayoutPoint,
+    DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, DeviceSize, LayoutPoint,
     LayoutRect, LayoutSize, LayoutVector2D, WorldPoint,
 };
 <span class="kw">use </span>webrender_api::{
@@ -2274,7 +2236,7 @@
     <span class="doccomment">/// A channel to the compositor.
     </span><span class="kw">pub </span>sender: CompositorProxy,
     <span class="doccomment">/// A port on which messages inbound to the compositor can be received.
-    </span><span class="kw">pub </span>receiver: CompositorReceiver,
+    </span><span class="kw">pub </span>receiver: Receiver&lt;CompositorMsg&gt;,
     <span class="doccomment">/// A channel to the constellation.
     </span><span class="kw">pub </span>constellation_chan: Sender&lt;EmbedderToConstellationMessage&gt;,
     <span class="doccomment">/// A channel to the time profiler thread.
@@ -2315,10 +2277,6 @@
     </span>MouseUp(MouseButton, DevicePoint),
 }
 
-<span class="comment">// Default viewport constraints
-</span><span class="kw">const </span>MAX_ZOOM: f32 = <span class="number">8.0</span>;
-<span class="kw">const </span>MIN_ZOOM: f32 = <span class="number">0.1</span>;
-
 <span class="comment">// NB: Never block on the Constellation, because sometimes the Constellation blocks on us.
 </span><span class="doccomment">/// The Verso compositor contains a GL rendering context with a WebRender instance.
 /// The compositor will communicate with Servo using messages from the Constellation,
@@ -2328,7 +2286,7 @@
     </span><span class="kw">pub </span>current_window: WindowId,
 
     <span class="doccomment">/// Size of current viewport that Compositor is handling.
-    </span>viewport: DeviceIntSize,
+    </span>viewport: DeviceSize,
 
     <span class="doccomment">/// The pixel density of the display.
     </span>scale_factor: Scale&lt;f32, DeviceIndependentPixel, DevicePixel&gt;,
@@ -2337,23 +2295,13 @@
     </span>webrender_document: DocumentId,
 
     <span class="doccomment">/// The port on which we receive messages.
-    </span>port: CompositorReceiver,
+    </span>compositor_receiver: Receiver&lt;CompositorMsg&gt;,
 
     <span class="doccomment">/// Tracks each webview and its current pipeline
     </span>webviews: HashMap&lt;WebViewId, PipelineId&gt;,
 
     <span class="doccomment">/// Tracks details about each active pipeline that the compositor knows about.
     </span>pipeline_details: HashMap&lt;PipelineId, PipelineDetails&gt;,
-
-    <span class="doccomment">/// "Mobile-style" zoom that does not reflow the page.
-    </span>viewport_zoom: PinchZoomFactor,
-
-    <span class="doccomment">/// Viewport zoom constraints provided by @viewport.
-    </span>min_viewport_zoom: <span class="prelude-ty">Option</span>&lt;PinchZoomFactor&gt;,
-    max_viewport_zoom: <span class="prelude-ty">Option</span>&lt;PinchZoomFactor&gt;,
-
-    <span class="doccomment">/// "Desktop-style" zoom that resizes the viewport to fit the window.
-    </span>page_zoom: Scale&lt;f32, CSSPixel, DeviceIndependentPixel&gt;,
 
     <span class="doccomment">/// Tracks whether we should composite this frame.
     </span>composition_request: CompositionRequest,
@@ -2364,12 +2312,6 @@
     <span class="doccomment">/// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor.
     </span><span class="kw">pub </span>shutdown_state: ShutdownState,
-
-    <span class="doccomment">/// Tracks whether the zoom action has happened recently.
-    </span>zoom_action: bool,
-
-    <span class="doccomment">/// The time of the last zoom action has started.
-    </span>zoom_time: f64,
 
     <span class="doccomment">/// The current frame tree ID (used to reject old paint buffers)
     </span>frame_tree_id: FrameTreeId,
@@ -2575,7 +2517,7 @@
     <span class="doccomment">/// Create a new compositor.
     </span><span class="kw">pub fn </span>new(
         current_window: WindowId,
-        viewport: DeviceIntSize,
+        viewport: DeviceSize,
         scale_factor: Scale&lt;f32, DeviceIndependentPixel, DevicePixel&gt;,
         state: InitialCompositorState,
         wait_for_stable_image: bool,
@@ -2584,7 +2526,7 @@
         <span class="kw">let </span>compositor = IOCompositor {
             current_window,
             viewport,
-            port: state.receiver,
+            compositor_receiver: state.receiver,
             webviews: HashMap::new(),
             pipeline_details: HashMap::new(),
             scale_factor,
@@ -2592,12 +2534,6 @@
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
             shutdown_state: ShutdownState::NotShuttingDown,
-            page_zoom: Scale::new(<span class="number">1.0</span>),
-            viewport_zoom: PinchZoomFactor::new(<span class="number">1.0</span>),
-            min_viewport_zoom: <span class="prelude-val">Some</span>(PinchZoomFactor::new(<span class="number">1.0</span>)),
-            max_viewport_zoom: <span class="prelude-val">None</span>,
-            zoom_action: <span class="bool-val">false</span>,
-            zoom_time: <span class="number">0f64</span>,
             frame_tree_id: FrameTreeId(<span class="number">0</span>),
             constellation_chan: state.constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
@@ -2627,6 +2563,11 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(webrender) = <span class="self">self</span>.webrender.take() {
             webrender.deinit();
         }
+    }
+
+    <span class="doccomment">/// Get the current size of the rendering context.
+    </span><span class="kw">pub fn </span>rendering_context_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Size2D&lt;u32, DevicePixel&gt; {
+        <span class="self">self</span>.rendering_context.size2d()
     }
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>update_cursor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, pos: DevicePoint, result: <span class="kw-2">&amp;</span>CompositorHitTestResult) {
@@ -2681,7 +2622,7 @@
 
         <span class="comment">// Drain compositor port, sometimes messages contain channels that are blocking
         // another thread from finishing (i.e. SetFrameTree).
-        </span><span class="kw">while </span><span class="self">self</span>.port.try_recv_compositor_msg().is_some() {}
+        </span><span class="kw">while </span><span class="self">self</span>.compositor_receiver.try_recv().is_ok() {}
 
         <span class="comment">// Tell the profiler, memory profiler, and scrolling timer to shut down.
         </span><span class="kw">if let </span><span class="prelude-val">Ok</span>((sender, receiver)) = ipc::channel() {
@@ -2710,6 +2651,30 @@
         }
 
         <span class="kw">match </span>msg {
+            CompositorMsg::CollectMemoryReport(sender) =&gt; {
+                <span class="kw">let </span>ops =
+                    wr_malloc_size_of::MallocSizeOfOps::new(servo_allocator::usable_size, <span class="prelude-val">None</span>);
+                <span class="kw">let </span>report = <span class="self">self</span>.webrender_api.report_memory(ops);
+                <span class="kw">let </span>reports = <span class="macro">vec!</span>[
+                    Report {
+                        path: <span class="macro">path!</span>[<span class="string">"webrender"</span>, <span class="string">"fonts"</span>],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.fonts,
+                    },
+                    Report {
+                        path: <span class="macro">path!</span>[<span class="string">"webrender"</span>, <span class="string">"images"</span>],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.images,
+                    },
+                    Report {
+                        path: <span class="macro">path!</span>[<span class="string">"webrender"</span>, <span class="string">"display-list"</span>],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.display_list,
+                    },
+                ];
+                sender.send(ProcessReports::new(reports));
+            }
+
             CompositorMsg::ChangeRunningAnimationsState(
                 _webview_id,
                 pipeline_id,
@@ -2731,7 +2696,7 @@
                 <span class="self">self</span>.touch_handler.on_event_processed(result);
             }
 
-            CompositorMsg::CreatePng(_page_rect, reply) =&gt; {
+            CompositorMsg::CreatePng(_webview_id, _page_rect, reply) =&gt; {
                 <span class="comment">// TODO create image
                 </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = reply.send(<span class="prelude-val">None</span>) {
                     <span class="macro">warn!</span>(<span class="string">"Sending reply to create png failed ({:?})."</span>, e);
@@ -2805,19 +2770,7 @@
                 );
             }
 
-            CompositorMsg::CrossProcess(cross_process_message) =&gt; {
-                <span class="self">self</span>.handle_cross_process_message(cross_process_message);
-            }
-        }
-
-        <span class="bool-val">true
-    </span>}
-
-    <span class="doccomment">/// Accept messages from content processes that need to be relayed to the WebRender
-    /// instance in the parent process.
-    </span><span class="kw">fn </span>handle_cross_process_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, msg: CrossProcessCompositorMessage) {
-        <span class="kw">match </span>msg {
-            CrossProcessCompositorMessage::SendInitialTransaction(pipeline) =&gt; {
+            CompositorMsg::SendInitialTransaction(pipeline) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
                 txn.set_display_list(WebRenderEpoch(<span class="number">0</span>), (pipeline, Default::default()));
                 <span class="self">self</span>.generate_frame(<span class="kw-2">&amp;mut </span>txn, RenderReasons::SCENE);
@@ -2825,17 +2778,12 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            CrossProcessCompositorMessage::SendScrollNode(
-                _webview_id,
-                pipeline_id,
-                point,
-                external_scroll_id,
-            ) =&gt; {
+            CompositorMsg::SendScrollNode(_webview_id, pipeline_id, point, external_scroll_id) =&gt; {
                 <span class="kw">let </span>pipeline_id = pipeline_id.into();
                 <span class="kw">let </span>pipeline_details = <span class="kw">match </span><span class="self">self</span>.pipeline_details.get_mut(<span class="kw-2">&amp;</span>pipeline_id) {
                     <span class="prelude-val">Some</span>(details) =&gt; details,
-                    <span class="prelude-val">None </span>=&gt; <span class="kw">return</span>,
-                };
+                    <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="bool-val">true</span>, <span class="comment">// TODO: remove return true after we adapt to api based embder
+                </span>};
 
                 <span class="kw">let </span>offset = LayoutVector2D::new(point.x, point.y);
                 <span class="kw">if </span>!pipeline_details
@@ -2846,8 +2794,8 @@
                     )
                 {
                     <span class="macro">warn!</span>(<span class="string">"Could not scroll not with id: {external_scroll_id:?}"</span>);
-                    <span class="kw">return</span>;
-                }
+                    <span class="kw">return </span><span class="bool-val">true</span>; <span class="comment">// TODO: remove return true after we adapt to api based embder
+                </span>}
 
                 <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
                 txn.set_scroll_offsets(
@@ -2862,35 +2810,51 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            CrossProcessCompositorMessage::SendDisplayList {
+            CompositorMsg::SendDisplayList {
                 webview_id: <span class="kw">_</span>,
-                display_list_info,
                 display_list_descriptor,
                 display_list_receiver,
             } =&gt; {
                 <span class="comment">// This must match the order from the sender, currently in `shared/script/lib.rs`.
-                </span><span class="kw">let </span>items_data = <span class="kw">match </span>display_list_receiver.recv() {
+                </span><span class="kw">let </span>display_list_info = <span class="kw">match </span>display_list_receiver.recv() {
+                    <span class="prelude-val">Ok</span>(display_list_info) =&gt; display_list_info,
+                    <span class="prelude-val">Err</span>(error) =&gt; {
+                        <span class="comment">// TODO: remove return true after we adapt to api based embder
+                        </span><span class="macro">warn!</span>(<span class="string">"Could not receive display list info: {error}"</span>);
+                        <span class="kw">return </span><span class="bool-val">true</span>;
+                    }
+                };
+                <span class="kw">let </span>display_list_info: CompositorDisplayListInfo =
+                    <span class="kw">match </span>bincode::deserialize(<span class="kw-2">&amp;</span>display_list_info) {
+                        <span class="prelude-val">Ok</span>(display_list_info) =&gt; display_list_info,
+                        <span class="prelude-val">Err</span>(error) =&gt; {
+                            <span class="comment">// TODO: remove return true after we adapt to api based embder
+                            </span><span class="macro">warn!</span>(<span class="string">"Could not deserialize display list info: {error}"</span>);
+                            <span class="kw">return </span><span class="bool-val">true</span>;
+                        }
+                    };
+                <span class="kw">let </span>items_data = <span class="kw">match </span>display_list_receiver.recv() {
                     <span class="prelude-val">Ok</span>(display_list_data) =&gt; display_list_data,
                     <span class="prelude-val">Err</span>(error) =&gt; {
-                        <span class="kw">return </span><span class="macro">warn!</span>(
-                            <span class="string">"Could not receive WebRender display list items data: {error}"
-                        </span>);
+                        <span class="comment">// TODO: remove return true after we adapt to api based embder
+                        </span><span class="macro">warn!</span>(<span class="string">"Could not receive WebRender display list items data: {error}"</span>);
+                        <span class="kw">return </span><span class="bool-val">true</span>;
                     }
                 };
                 <span class="kw">let </span>cache_data = <span class="kw">match </span>display_list_receiver.recv() {
                     <span class="prelude-val">Ok</span>(display_list_data) =&gt; display_list_data,
                     <span class="prelude-val">Err</span>(error) =&gt; {
-                        <span class="kw">return </span><span class="macro">warn!</span>(
-                            <span class="string">"Could not receive WebRender display list cache data: {error}"
-                        </span>);
+                        <span class="comment">// TODO: remove return true after we adapt to api based embder
+                        </span><span class="macro">warn!</span>(<span class="string">"Could not receive WebRender display list cache data: {error}"</span>);
+                        <span class="kw">return </span><span class="bool-val">true</span>;
                     }
                 };
                 <span class="kw">let </span>spatial_tree = <span class="kw">match </span>display_list_receiver.recv() {
                     <span class="prelude-val">Ok</span>(display_list_data) =&gt; display_list_data,
                     <span class="prelude-val">Err</span>(error) =&gt; {
-                        <span class="kw">return </span><span class="macro">warn!</span>(
-                            <span class="string">"Could not receive WebRender display list spatial tree: {error}."
-                        </span>);
+                        <span class="comment">// TODO: remove return true after we adapt to api based embder
+                        </span><span class="macro">warn!</span>(<span class="string">"Could not receive WebRender display list spatial tree: {error}."</span>);
+                        <span class="kw">return </span><span class="bool-val">true</span>;
                     }
                 };
                 <span class="kw">let </span>built_display_list = BuiltDisplayList::from_data(
@@ -2929,7 +2893,7 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
             }
 
-            CrossProcessCompositorMessage::HitTest(pipeline, point, flags, sender) =&gt; {
+            CompositorMsg::HitTest(pipeline, point, flags, sender) =&gt; {
                 <span class="comment">// When a display list is sent to WebRender, it starts scene building in a
                 // separate thread and then that display list is available for hit testing.
                 // Without flushing scene building, any hit test we do might be done against
@@ -2946,11 +2910,11 @@
                 <span class="kw">let _ </span>= sender.send(result);
             }
 
-            CrossProcessCompositorMessage::GenerateImageKey(sender) =&gt; {
+            CompositorMsg::GenerateImageKey(sender) =&gt; {
                 <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_image_key());
             }
 
-            CrossProcessCompositorMessage::UpdateImages(updates) =&gt; {
+            CompositorMsg::UpdateImages(updates) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
                 <span class="kw">for </span>update <span class="kw">in </span>updates {
                     <span class="kw">match </span>update {
@@ -2967,27 +2931,22 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            CrossProcessCompositorMessage::AddFont(font_key, data, index) =&gt; {
+            CompositorMsg::AddFont(font_key, data, index) =&gt; {
                 <span class="self">self</span>.add_font(font_key, index, data);
             }
 
-            CrossProcessCompositorMessage::AddSystemFont(font_key, native_handle) =&gt; {
+            CompositorMsg::AddSystemFont(font_key, native_handle) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
                 transaction.add_native_font(font_key, native_handle);
                 <span class="self">self</span>.webrender_api
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
             }
 
-            CrossProcessCompositorMessage::AddFontInstance(
-                font_instance_key,
-                font_key,
-                size,
-                flags,
-            ) =&gt; {
+            CompositorMsg::AddFontInstance(font_instance_key, font_key, size, flags) =&gt; {
                 <span class="self">self</span>.add_font_instance(font_instance_key, font_key, size, flags);
             }
 
-            CrossProcessCompositorMessage::RemoveFonts(keys, instance_keys) =&gt; {
+            CompositorMsg::RemoveFonts(keys, instance_keys) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
 
                 <span class="kw">for </span>instance <span class="kw">in </span>instance_keys.into_iter() {
@@ -3001,14 +2960,14 @@
                     .send_transaction(<span class="self">self</span>.webrender_document, transaction);
             }
 
-            CrossProcessCompositorMessage::AddImage(key, desc, data) =&gt; {
+            CompositorMsg::AddImage(key, desc, data) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>txn = Transaction::new();
                 txn.add_image(key, desc, data.into(), <span class="prelude-val">None</span>);
                 <span class="self">self</span>.webrender_api
                     .send_transaction(<span class="self">self</span>.webrender_document, txn);
             }
 
-            CrossProcessCompositorMessage::GenerateFontKeys(
+            CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
@@ -3022,7 +2981,7 @@
                 <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
             }
 
-            CrossProcessCompositorMessage::GetClientWindowRect(_webview_id, response_sender) =&gt; {
+            CompositorMsg::GetClientWindowRect(_webview_id, response_sender) =&gt; {
                 <span class="comment">// TODO: use ScreenGeometry and bring webviews to compositor. https://github.com/servo/servo/pull/36223
                 </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
                     response_sender.send(<span class="self">self</span>.device_independent_int_size_viewport().into())
@@ -3031,7 +2990,7 @@
                 }
             }
 
-            CrossProcessCompositorMessage::GetScreenSize(_webview_id, response_sender) =&gt; {
+            CompositorMsg::GetScreenSize(_webview_id, response_sender) =&gt; {
                 <span class="comment">// TODO: use ScreenGeometry and bring webviews to compositor. https://github.com/servo/servo/pull/36223
                 </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
                     response_sender.send(<span class="self">self</span>.device_independent_int_size_viewport())
@@ -3040,7 +2999,7 @@
                 }
             }
 
-            CrossProcessCompositorMessage::GetAvailableScreenSize(_webview_id, response_sender) =&gt; {
+            CompositorMsg::GetAvailableScreenSize(_webview_id, response_sender) =&gt; {
                 <span class="comment">// TODO: use ScreenGeometry and bring webviews to compositor. https://github.com/servo/servo/pull/36223
                 </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
                     response_sender.send(<span class="self">self</span>.device_independent_int_size_viewport())
@@ -3049,7 +3008,9 @@
                 }
             }
         }
-    }
+
+        <span class="bool-val">true
+    </span>}
 
     <span class="doccomment">/// Handle messages sent to the compositor during the shutdown process. In general,
     /// the things the compositor can do in this state are limited. It's very important to
@@ -3067,16 +3028,14 @@
                 <span class="self">self</span>.remove_pipeline_root_layer(pipeline_id);
                 <span class="kw">let _ </span>= sender.send(());
             }
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateImageKey(
-                sender,
-            )) =&gt; {
+            CompositorMsg::GenerateImageKey(sender) =&gt; {
                 <span class="kw">let _ </span>= sender.send(<span class="self">self</span>.webrender_api.generate_image_key());
             }
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateFontKeys(
+            CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-            )) =&gt; {
+            ) =&gt; {
                 <span class="kw">let </span>font_keys = (<span class="number">0</span>..number_of_font_keys)
                     .map(|<span class="kw">_</span>| <span class="self">self</span>.webrender_api.generate_font_key())
                     .collect();
@@ -3085,26 +3044,17 @@
                     .collect();
                 <span class="kw">let _ </span>= result_sender.send((font_keys, font_instance_keys));
             }
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
-                <span class="kw">_</span>,
-                response_sender,
-            )) =&gt; {
+            CompositorMsg::GetClientWindowRect(<span class="kw">_</span>, response_sender) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = response_sender.send(Default::default()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({error:?})."</span>);
                 }
             }
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(
-                <span class="kw">_</span>,
-                response_sender,
-            )) =&gt; {
+            CompositorMsg::GetScreenSize(<span class="kw">_</span>, response_sender) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = response_sender.send(Default::default()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({error:?})."</span>);
                 }
             }
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
-                <span class="kw">_</span>,
-                response_sender,
-            )) =&gt; {
+            CompositorMsg::GetAvailableScreenSize(<span class="kw">_</span>, response_sender) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = response_sender.send(Default::default()) {
                     <span class="macro">warn!</span>(<span class="string">"Sending response to get client window failed ({error:?})."</span>);
                 }
@@ -3210,12 +3160,13 @@
             SpatialTreeItemKey::new(<span class="number">0</span>, <span class="number">0</span>),
         );
 
-        <span class="kw">let </span>scaled_viewport_size = <span class="self">self</span>.viewport.to_f32() / zoom_factor;
-        <span class="kw">let </span>scaled_viewport_size = LayoutSize::from_untyped(scaled_viewport_size.to_untyped());
-        <span class="kw">let </span>scaled_viewport_rect =
-            LayoutRect::from_origin_and_size(LayoutPoint::zero(), scaled_viewport_size);
+        <span class="kw">let </span>viewport_size = <span class="self">self</span>.rendering_context.size2d().to_f32().to_untyped();
+        <span class="kw">let </span>viewport_rect = LayoutRect::from_origin_and_size(
+            LayoutPoint::zero(),
+            LayoutSize::from_untyped(viewport_size),
+        );
 
-        <span class="kw">let </span>root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
+        <span class="kw">let </span>root_clip_id = builder.define_clip_rect(zoom_reference_frame, viewport_rect);
         <span class="kw">let </span>root_clip_chain_id = builder.define_clip_chain(<span class="prelude-val">None</span>, [root_clip_id]);
         <span class="comment">// Only decorate the webviews if we're in the browser mode
         </span><span class="kw">let </span>should_decorate = window.panel.is_some();
@@ -3263,7 +3214,7 @@
                     <span class="kw">let </span>box_shadow_type = BoxShadowClipMode::Outset;
 
                     builder.push_box_shadow(
-                        <span class="kw-2">&amp;</span>CommonItemProperties::new(scaled_viewport_rect, root_space),
+                        <span class="kw-2">&amp;</span>CommonItemProperties::new(viewport_rect, root_space),
                         scaled_webview_rect,
                         offset,
                         color,
@@ -3369,13 +3320,13 @@
     }
 
     <span class="doccomment">/// Notify compositor the provided webview is resized. The compositor will tell constellation and update the display list.
-    </span><span class="kw">pub fn </span>on_resize_webview_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, rect: DeviceIntRect) {
+    </span><span class="kw">pub fn </span>on_resize_webview_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, webview_id: WebViewId, rect: DeviceRect) {
         <span class="self">self</span>.send_window_size_message_for_top_level_browser_context(rect, webview_id);
     }
 
     <span class="kw">fn </span>send_window_size_message_for_top_level_browser_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        rect: DeviceIntRect,
+        rect: DeviceRect,
         webview_id: WebViewId,
     ) {
         <span class="comment">// The device pixel ratio used by the style system should include the scale from page pixels
@@ -3470,20 +3421,20 @@
     }
 
     <span class="doccomment">/// Resize the rendering context and all web views.
-    </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, size: Size2D&lt;i32, DevicePixel&gt;, window: <span class="kw-2">&amp;mut </span>Window) {
-        <span class="kw">if </span>size.height == <span class="number">0 </span>|| size.width == <span class="number">0 </span>{
+    </span><span class="kw">pub fn </span>resize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, size: Size2D&lt;f32, DevicePixel&gt;, window: <span class="kw-2">&amp;mut </span>Window) {
+        <span class="kw">if </span>size.height == <span class="number">0.0 </span>|| size.width == <span class="number">0.0 </span>{
             <span class="kw">return</span>;
         }
 
         <span class="self">self</span>.on_resize_window_event(size, window);
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;mut </span>window.panel {
-            <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+            <span class="kw">let </span>rect = DeviceRect::from_size(size);
             panel.webview.rect = rect;
             <span class="self">self</span>.on_resize_webview_event(panel.webview.webview_id, rect);
         }
 
-        <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+        <span class="kw">let </span>rect = DeviceRect::from_size(size);
         <span class="kw">let </span>show_tab_bar = window.tab_manager.count() &gt; <span class="number">1</span>;
         <span class="kw">let </span>content_size = window.get_content_size(rect, show_tab_bar);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = window.tab_manager.current_tab_id() {
@@ -3497,7 +3448,7 @@
         }
         <span class="attr">#[cfg(linux)]
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(webview_menu) = <span class="kw-2">&amp;mut </span>window.webview_menu {
-            <span class="kw">let </span>rect = DeviceIntRect::from_size(size);
+            <span class="kw">let </span>rect = DeviceRect::from_size(size);
             webview_menu.set_webview_rect(rect);
             <span class="self">self</span>.on_resize_webview_event(webview_menu.webview().webview_id, rect);
         }
@@ -3506,16 +3457,21 @@
     }
 
     <span class="doccomment">/// Handle the window resize event.
-    </span><span class="kw">pub fn </span>on_resize_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_viewport: DeviceIntSize, window: <span class="kw-2">&amp;</span>Window) {
+    </span><span class="kw">pub fn </span>on_resize_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_viewport: DeviceSize, window: <span class="kw-2">&amp;</span>Window) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
 
-        <span class="self">self</span>.rendering_context
-            .resize(<span class="kw-2">&amp;</span>window.surface, new_viewport.to_untyped());
+        <span class="self">self</span>.rendering_context.resize(
+            <span class="kw-2">&amp;</span>window.surface,
+            PhysicalSize {
+                width: new_viewport.width <span class="kw">as </span>u32,
+                height: new_viewport.height <span class="kw">as </span>u32,
+            },
+        );
         <span class="self">self</span>.viewport = new_viewport;
         <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
-        transaction.set_document_view(DeviceIntRect::from_size(<span class="self">self</span>.viewport));
+        transaction.set_document_view(DeviceIntRect::from_size(<span class="self">self</span>.viewport.to_i32()));
         <span class="self">self</span>.webrender_api
             .send_transaction(<span class="self">self</span>.webrender_document, transaction);
         <span class="self">self</span>.composite_if_necessary(CompositingReason::Resize);
@@ -3784,14 +3740,14 @@
             }));
     }
 
-    <span class="kw">fn </span>process_pending_scroll_events(<span class="kw-2">&amp;mut </span><span class="self">self</span>, window: <span class="kw-2">&amp;</span>Window) {
+    <span class="kw">fn </span>process_pending_scroll_events(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _window: <span class="kw-2">&amp;</span>Window) {
         <span class="comment">// Batch up all scroll events into one, or else we'll do way too much painting.
         </span><span class="kw">let </span><span class="kw-2">mut </span>combined_scroll_event: <span class="prelude-ty">Option</span>&lt;ScrollEvent&gt; = <span class="prelude-val">None</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>combined_magnification = <span class="number">1.0</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>_combined_magnification = <span class="number">1.0</span>;
         <span class="kw">for </span>scroll_event <span class="kw">in </span><span class="self">self</span>.pending_scroll_zoom_events.drain(..) {
             <span class="kw">match </span>scroll_event {
                 ScrollZoomEvent::PinchZoom(magnification) =&gt; {
-                    combined_magnification <span class="kw-2">*</span>= magnification
+                    _combined_magnification <span class="kw-2">*</span>= magnification
                 }
                 ScrollZoomEvent::Scroll(scroll_event_info) =&gt; {
                     <span class="kw">let </span>combined_event = <span class="kw">match </span>combined_scroll_event.as_mut() {
@@ -3833,22 +3789,14 @@
             }
         }
 
-        <span class="kw">let </span>zoom_changed =
-            <span class="self">self</span>.set_pinch_zoom_level(<span class="self">self</span>.pinch_zoom_level().get() * combined_magnification);
         <span class="kw">let </span>scroll_result = combined_scroll_event.and_then(|combined_event| {
             <span class="self">self</span>.scroll_node_at_device_point(
                 combined_event.cursor.to_f32(),
                 combined_event.scroll_location,
             )
         });
-        <span class="kw">if </span>!zoom_changed &amp;&amp; scroll_result.is_none() {
-            <span class="kw">return</span>;
-        }
 
         <span class="kw">let </span><span class="kw-2">mut </span>transaction = Transaction::new();
-        <span class="kw">if </span>zoom_changed {
-            <span class="self">self</span>.send_root_pipeline_display_list_in_transaction(<span class="kw-2">&amp;mut </span>transaction, window);
-        }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>((pipeline_id, external_id, offset)) = scroll_result {
             <span class="kw">let </span>offset = LayoutVector2D::new(-offset.x, -offset.y);
@@ -3967,13 +3915,13 @@
     }
 
     <span class="kw">fn </span>device_pixels_per_page_pixel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Scale&lt;f32, CSSPixel, DevicePixel&gt; {
-        <span class="self">self</span>.device_pixels_per_page_pixel_not_including_page_zoom() * <span class="self">self</span>.pinch_zoom_level()
+        <span class="self">self</span>.device_pixels_per_page_pixel_not_including_page_zoom()
     }
 
     <span class="kw">fn </span>device_pixels_per_page_pixel_not_including_page_zoom(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
     ) -&gt; Scale&lt;f32, CSSPixel, DevicePixel&gt; {
-        <span class="self">self</span>.page_zoom * <span class="self">self</span>.scale_factor
+        Scale::new(<span class="self">self</span>.scale_factor.get())
     }
 
     <span class="kw">fn </span>device_independent_int_size_viewport(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DeviceIndependentIntSize {
@@ -3986,18 +3934,15 @@
             <span class="kw">return</span>;
         }
 
-        <span class="self">self</span>.page_zoom = Scale::new(<span class="number">1.0</span>);
         <span class="self">self</span>.update_after_zoom_or_hidpi_change(window);
     }
 
     <span class="doccomment">/// Handle zoom event in the window
-    </span><span class="kw">pub fn </span>on_zoom_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, magnification: f32, window: <span class="kw-2">&amp;</span>Window) {
+    </span><span class="kw">pub fn </span>on_zoom_window_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _magnification: f32, window: <span class="kw-2">&amp;</span>Window) {
         <span class="kw">if </span><span class="self">self</span>.shutdown_state != ShutdownState::NotShuttingDown {
             <span class="kw">return</span>;
         }
 
-        <span class="self">self</span>.page_zoom =
-            Scale::new((<span class="self">self</span>.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
         <span class="self">self</span>.update_after_zoom_or_hidpi_change(window);
     }
 
@@ -4174,7 +4119,9 @@
                 <span class="comment">// Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
                 </span><span class="kw">if let </span><span class="prelude-val">Some</span>(webrender) = <span class="self">self</span>.webrender.as_mut() {
-                    webrender.render(<span class="self">self</span>.viewport, <span class="number">0 </span><span class="comment">/* buffer_age */</span>).ok();
+                    webrender
+                        .render(<span class="self">self</span>.viewport.to_i32(), <span class="number">0 </span><span class="comment">/* buffer_age */</span>)
+                        .ok();
                 }
             },
         );
@@ -4221,7 +4168,7 @@
         <span class="comment">// Check for new messages coming from the other threads in the system.
         </span><span class="kw">let </span><span class="kw-2">mut </span>compositor_messages = <span class="macro">vec!</span>[];
         <span class="kw">let </span><span class="kw-2">mut </span>found_recomposite_msg = <span class="bool-val">false</span>;
-        <span class="kw">while let </span><span class="prelude-val">Some</span>(msg) = <span class="self">self</span>.port.try_recv_compositor_msg() {
+        <span class="kw">while let </span><span class="prelude-val">Ok</span>(msg) = <span class="self">self</span>.compositor_receiver.try_recv() {
             <span class="kw">match </span>msg {
                 CompositorMsg::NewWebRenderFrameReady(..) <span class="kw">if </span>found_recomposite_msg =&gt; {
                     <span class="comment">// Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
@@ -4252,15 +4199,6 @@
             <span class="kw">return </span><span class="bool-val">false</span>;
         }
 
-        <span class="kw">let </span>now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() <span class="kw">as </span>f64;
-        <span class="comment">// If a pinch-zoom happened recently, ask for tiles at the new resolution
-        </span><span class="kw">if </span><span class="self">self</span>.zoom_action &amp;&amp; now - <span class="self">self</span>.zoom_time &gt; <span class="number">0.3 </span>{
-            <span class="self">self</span>.zoom_action = <span class="bool-val">false</span>;
-        }
-
         <span class="kw">if let </span><span class="prelude-val">Some</span>((window, <span class="kw">_</span>)) = windows.get(<span class="kw-2">&amp;</span><span class="self">self</span>.current_window) {
             <span class="kw">match </span><span class="self">self</span>.composition_request {
                 CompositionRequest::NoCompositingNecessary =&gt; {}
@@ -4275,22 +4213,6 @@
             }
         }
         <span class="self">self</span>.shutdown_state != ShutdownState::FinishedShuttingDown
-    }
-
-    <span class="kw">fn </span>pinch_zoom_level(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Scale&lt;f32, DevicePixel, DevicePixel&gt; {
-        Scale::new(<span class="self">self</span>.viewport_zoom.get())
-    }
-
-    <span class="kw">fn </span>set_pinch_zoom_level(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>zoom: f32) -&gt; bool {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(min) = <span class="self">self</span>.min_viewport_zoom {
-            zoom = f32::max(min.get(), zoom);
-        }
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(max) = <span class="self">self</span>.max_viewport_zoom {
-            zoom = f32::min(max.get(), zoom);
-        }
-
-        <span class="kw">let </span>old_zoom = std::mem::replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>.viewport_zoom, PinchZoomFactor::new(zoom));
-        old_zoom != <span class="self">self</span>.viewport_zoom
     }
 
     <span class="doccomment">/// Update debug option of the webrender.
@@ -4371,7 +4293,7 @@
 
             <span class="kw">match </span>pipeline.first_paint_metric {
                 <span class="comment">// We need to check whether the current epoch is later, because
-                // CrossProcessCompositorMessage::SendInitialTransaction sends an
+                // CompositorMsg::SendInitialTransaction sends an
                 // empty display list to WebRender which can happen before we receive
                 // the first "real" display list.
                 </span>PaintMetricState::Seen(epoch, first_reflow) <span class="kw">if </span>epoch &lt;= current_epoch =&gt; {

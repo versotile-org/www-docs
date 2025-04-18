@@ -3,7 +3,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.webview" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#104-106">Source</a><h4 class="code-header">pub fn <a href="#method.webview" class="fn">webview</a>(&amp;self) -&gt; &amp;<a class="struct" href="../struct.WebView.html" title="struct versoview::webview::WebView">WebView</a></h4></section></summary><div class="docblock"><p>Get prompt webview</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.id" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#108-110">Source</a><h4 class="code-header">pub fn <a href="#method.id" class="fn">id</a>(&amp;self) -&gt; WebViewId</h4></section></summary><div class="docblock"><p>Get prompt webview ID</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.sender" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#113-115">Source</a><h4 class="code-header">pub fn <a href="#method.sender" class="fn">sender</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.85.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="enum" href="enum.PromptSender.html" title="enum versoview::webview::prompt::PromptSender">PromptSender</a>&gt;</h4></section></summary><div class="docblock"><p>Get prompt sender. Send user interaction result back to caller.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_size" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#125-127">Source</a><h4 class="code-header">pub fn <a href="#method.set_size" class="fn">set_size</a>(&amp;mut self, rect: DeviceIntRect)</h4></section></summary><div class="docblock"><p>Resize prompt webview size with new window context size</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_size" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#125-127">Source</a><h4 class="code-header">pub fn <a href="#method.set_size" class="fn">set_size</a>(&amp;mut self, rect: DeviceRect)</h4></section></summary><div class="docblock"><p>Resize prompt webview size with new window context size</p>
 <h6 id="example"><a class="doc-anchor" href="#example">§</a>Example:</h6>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>rect = window.webview.as_ref().unwrap().rect;
 <span class="kw">let </span>content_size = window.get_content_size(rect);
@@ -11,7 +11,7 @@ prompt.set_size(content_size);</code></pre></div>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.alert" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#141-151">Source</a><h4 class="code-header">pub fn <a href="#method.alert" class="fn">alert</a>(
     &amp;mut self,
     sender: &amp;Sender&lt;EmbedderToConstellationMessage&gt;,
-    rect: DeviceIntRect,
+    rect: DeviceRect,
     scale_factor: <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.f32.html">f32</a>,
     message: <a class="struct" href="https://doc.rust-lang.org/1.85.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,
     prompt_sender: IpcSender&lt;AlertResponse&gt;,
@@ -25,7 +25,7 @@ then send user interaction result back to caller.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.ok_cancel" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#165-175">Source</a><h4 class="code-header">pub fn <a href="#method.ok_cancel" class="fn">ok_cancel</a>(
     &amp;mut self,
     sender: &amp;Sender&lt;EmbedderToConstellationMessage&gt;,
-    rect: DeviceIntRect,
+    rect: DeviceRect,
     scale_factor: <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.f32.html">f32</a>,
     message: <a class="struct" href="https://doc.rust-lang.org/1.85.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,
     prompt_sender: IpcSender&lt;ConfirmResponse&gt;,
@@ -39,7 +39,7 @@ then send user interaction result back to caller.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.allow_deny" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#191-201">Source</a><h4 class="code-header">pub fn <a href="#method.allow_deny" class="fn">allow_deny</a>(
     &amp;mut self,
     sender: &amp;Sender&lt;EmbedderToConstellationMessage&gt;,
-    rect: DeviceIntRect,
+    rect: DeviceRect,
     scale_factor: <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.f32.html">f32</a>,
     message: <a class="struct" href="https://doc.rust-lang.org/1.85.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,
     prompt_sender: <a class="enum" href="enum.PromptSender.html" title="enum versoview::webview::prompt::PromptSender">PromptSender</a>,
@@ -55,7 +55,7 @@ prompt.allow_deny(sender, rect, message, prompt_sender);
 </div></details><details class="toggle method-toggle" open><summary><section id="method.input" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#215-231">Source</a><h4 class="code-header">pub fn <a href="#method.input" class="fn">input</a>(
     &amp;mut self,
     sender: &amp;Sender&lt;EmbedderToConstellationMessage&gt;,
-    rect: DeviceIntRect,
+    rect: DeviceRect,
     scale_factor: <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.f32.html">f32</a>,
     message: <a class="struct" href="https://doc.rust-lang.org/1.85.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,
     default_value: <a class="enum" href="https://doc.rust-lang.org/1.85.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.85.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -70,7 +70,7 @@ then send user interaction result back to caller.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.http_basic_auth" class="method"><a class="src rightside" href="../../../src/versoview/webview/prompt.rs.html#248-257">Source</a><h4 class="code-header">pub fn <a href="#method.http_basic_auth" class="fn">http_basic_auth</a>(
     &amp;mut self,
     sender: &amp;Sender&lt;EmbedderToConstellationMessage&gt;,
-    rect: DeviceIntRect,
+    rect: DeviceRect,
     scale_factor: <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.f32.html">f32</a>,
     prompt_sender: IpcSender&lt;<a class="enum" href="https://doc.rust-lang.org/1.85.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;AuthenticationResponse&gt;&gt;,
 )</h4></section></summary><div class="docblock"><p>Show input prompt</p>
