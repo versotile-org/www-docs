@@ -855,22 +855,7 @@
 <a href="#854" id="854">854</a>
 <a href="#855" id="855">855</a>
 <a href="#856" id="856">856</a>
-<a href="#857" id="857">857</a>
-<a href="#858" id="858">858</a>
-<a href="#859" id="859">859</a>
-<a href="#860" id="860">860</a>
-<a href="#861" id="861">861</a>
-<a href="#862" id="862">862</a>
-<a href="#863" id="863">863</a>
-<a href="#864" id="864">864</a>
-<a href="#865" id="865">865</a>
-<a href="#866" id="866">866</a>
-<a href="#867" id="867">867</a>
-<a href="#868" id="868">868</a>
-<a href="#869" id="869">869</a>
-<a href="#870" id="870">870</a>
-<a href="#871" id="871">871</a>
-<a href="#872" id="872">872</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#857" id="857">857</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -968,22 +953,6 @@
             EmbedderMsg::WebViewFocused(w) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
                 <span class="self">self</span>.close_webview_menu(sender);
-
-                <span class="comment">// set navigation button enabled state
-                // FIXME: should place in Window::activate_tab, but it somehow stuck with execute_script
-                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="self">self</span>.panel.as_ref() {
-                    <span class="kw">let </span>history = <span class="self">self</span>.tab_manager.history(w).unwrap();
-                    <span class="kw">let </span>prev_btn_enabled = history.current_idx &gt; <span class="number">0</span>;
-                    <span class="kw">let </span>next_btn_enabled = history.current_idx &lt; history.list.len() - <span class="number">1</span>;
-                    <span class="kw">let _ </span>= execute_script(
-                        <span class="kw-2">&amp;</span>compositor.constellation_chan,
-                        <span class="kw-2">&amp;</span>panel.webview.webview_id,
-                        <span class="macro">format!</span>(
-                            <span class="string">"window.navbar.setNavBtnEnabled({}, {})"</span>,
-                            prev_btn_enabled, next_btn_enabled
-                        ),
-                    );
-                }
 
                 <span class="macro">log::debug!</span>(
                     <span class="string">"Verso Window {:?}'s webview {} has loaded completely."</span>,
@@ -1369,10 +1338,11 @@
 
                             <span class="kw">let </span>tab_id = request.id;
 
+                            <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
+
                             <span class="comment">// FIXME: set dirty flag, and only resize when flag is set
                             </span><span class="self">self</span>.activate_tab(compositor, tab_id, <span class="self">self</span>.tab_manager.count() &gt; <span class="number">1</span>);
 
-                            <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
                             <span class="kw">return </span><span class="bool-val">false</span>;
                         } <span class="kw">else if </span>message == <span class="string">"NEW_TAB" </span>{
                             <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
