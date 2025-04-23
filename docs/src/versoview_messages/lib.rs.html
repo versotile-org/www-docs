@@ -220,7 +220,20 @@
 <a href="#219" id="219">219</a>
 <a href="#220" id="220">220</a>
 <a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 <span class="kw">use </span>ipc_channel::ipc;
@@ -358,6 +371,8 @@
     </span><span class="kw">pub </span>transparent: bool,
     <span class="doccomment">/// Title of the initial winit window in the title bar.
     </span><span class="kw">pub </span>title: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Window icon of the initial winit window.
+    </span><span class="kw">pub </span>icon: <span class="prelude-ty">Option</span>&lt;Icon&gt;,
     <span class="doccomment">/// Port number to start a server to listen to remote Firefox devtools connections. 0 for random port.
     </span><span class="kw">pub </span>devtools_port: <span class="prelude-ty">Option</span>&lt;u16&gt;,
     <span class="doccomment">/// Servo time profile settings
@@ -386,6 +401,7 @@
             decorated: <span class="bool-val">false</span>,
             transparent: <span class="bool-val">true</span>,
             title: <span class="prelude-val">None</span>,
+            icon: <span class="prelude-val">None</span>,
             fullscreen: <span class="bool-val">false</span>,
             devtools_port: <span class="prelude-val">None</span>,
             profiler_settings: <span class="prelude-val">None</span>,
@@ -395,6 +411,16 @@
             resources_directory: <span class="prelude-val">None</span>,
         }
     }
+}
+
+<span class="attr">#[derive(Clone, Debug, Deserialize, Serialize)]
+</span><span class="kw">pub struct </span>Icon {
+    <span class="doccomment">/// RGBA bytes of the icon.
+    </span><span class="kw">pub </span>rgba: Vec&lt;u8&gt;,
+    <span class="doccomment">/// Icon width.
+    </span><span class="kw">pub </span>width: u32,
+    <span class="doccomment">/// Icon height.
+    </span><span class="kw">pub </span>height: u32,
 }
 
 <span class="attr">#[derive(Clone, Debug, Deserialize, Serialize)]

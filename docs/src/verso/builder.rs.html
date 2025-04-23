@@ -131,7 +131,13 @@
 <a href="#130" id="130">130</a>
 <a href="#131" id="131">131</a>
 <a href="#132" id="132">132</a>
-<a href="#133" id="133">133</a></pre></div><pre class="rust"><code><span class="kw">use </span>dpi::{Position, Size};
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a></pre></div><pre class="rust"><code><span class="kw">use </span>dpi::{Position, Size};
 <span class="kw">use </span>std::path::{Path, PathBuf};
 <span class="kw">use </span>versoview_messages::{ConfigFromController, ProfilerSettings, UserScript};
 
@@ -204,6 +210,12 @@
     <span class="doccomment">/// Sets the initial title of the window in the title bar.
     </span><span class="kw">pub fn </span>title(<span class="kw-2">mut </span><span class="self">self</span>, title: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.<span class="number">0</span>.title = <span class="prelude-val">Some</span>(title.into());
+        <span class="self">self
+    </span>}
+
+    <span class="doccomment">/// Sets the window icon.
+    </span><span class="kw">pub fn </span>icon(<span class="kw-2">mut </span><span class="self">self</span>, icon: versoview_messages::Icon) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.<span class="number">0</span>.icon = <span class="prelude-val">Some</span>(icon);
         <span class="self">self
     </span>}
 
