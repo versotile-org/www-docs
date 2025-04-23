@@ -2179,7 +2179,11 @@
 <a href="#2178" id="2178">2178</a>
 <a href="#2179" id="2179">2179</a>
 <a href="#2180" id="2180">2180</a>
-<a href="#2181" id="2181">2181</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2181" id="2181">2181</a>
+<a href="#2182" id="2182">2182</a>
+<a href="#2183" id="2183">2183</a>
+<a href="#2184" id="2184">2184</a>
+<a href="#2185" id="2185">2185</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -2368,6 +2372,9 @@
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     </span><span class="kw">pub </span>is_animating: bool,
+
+    <span class="doccomment">/// Show the bookmark bar or not
+    </span><span class="kw">pub </span>show_bookmark: bool,
 }
 
 <span class="attr">#[derive(Clone, Copy)]
@@ -2551,6 +2558,7 @@
             last_animation_tick: Instant::now(),
             is_animating: <span class="bool-val">false</span>,
             ready_to_present: <span class="bool-val">false</span>,
+            show_bookmark: <span class="bool-val">false</span>,
         };
 
         <span class="comment">// Make sure the GL state is OK
@@ -3436,7 +3444,7 @@
 
         <span class="kw">let </span>rect = DeviceRect::from_size(size);
         <span class="kw">let </span>show_tab_bar = window.tab_manager.count() &gt; <span class="number">1</span>;
-        <span class="kw">let </span>content_size = window.get_content_size(rect, show_tab_bar);
+        <span class="kw">let </span>content_size = window.get_content_size(rect, show_tab_bar, <span class="self">self</span>.show_bookmark);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = window.tab_manager.current_tab_id() {
             <span class="kw">let </span>(tab_id, prompt_id) = window.tab_manager.set_size(tab_id, content_size);
             <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = tab_id {

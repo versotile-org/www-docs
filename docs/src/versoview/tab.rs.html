@@ -299,7 +299,28 @@
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
 <a href="#300" id="300">300</a>
-<a href="#301" id="301">301</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use </span><span class="kw">crate</span>::webview::{WebView, prompt::PromptDialog};
 <span class="kw">use </span>base::id::WebViewId;
@@ -317,6 +338,8 @@
     </span>history: TabHistory,
     <span class="doccomment">/// Prompt
     </span>prompt: <span class="prelude-ty">Option</span>&lt;PromptDialog&gt;,
+    <span class="doccomment">/// Title
+    </span>title: String,
 }
 
 <span class="kw">impl </span>Tab {
@@ -330,6 +353,7 @@
                 current_idx: <span class="number">0</span>,
             },
             prompt: <span class="prelude-val">None</span>,
+            title: <span class="string">"null"</span>.to_string(),
         }
     }
 
@@ -389,6 +413,16 @@
             prompt.set_size(rect);
         }
     }
+
+    <span class="doccomment">/// Set tab title.
+    </span><span class="kw">pub fn </span>set_title(<span class="kw-2">&amp;mut </span><span class="self">self</span>, title: String) {
+        <span class="self">self</span>.title = title;
+    }
+
+    <span class="doccomment">/// Get tab title.
+    </span><span class="kw">pub fn </span>title(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="self">self</span>.title.clone()
+    }
 }
 
 <span class="doccomment">/// Tab manager to handle multiple tab in a window.
@@ -422,6 +456,14 @@
     </span><span class="kw">pub fn </span>current_tab(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Tab&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = <span class="self">self</span>.active_tab_id {
             <span class="self">self</span>.tab_map.get(<span class="kw-2">&amp;</span>tab_id)
+        } <span class="kw">else </span>{
+            <span class="prelude-val">None
+        </span>}
+    }
+    <span class="doccomment">/// Get current active tab as mutable.
+    </span><span class="kw">pub fn </span>current_tab_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Tab&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(tab_id) = <span class="self">self</span>.active_tab_id {
+            <span class="self">self</span>.tab_map.get_mut(<span class="kw-2">&amp;</span>tab_id)
         } <span class="kw">else </span>{
             <span class="prelude-val">None
         </span>}

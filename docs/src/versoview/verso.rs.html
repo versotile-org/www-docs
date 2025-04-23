@@ -1029,7 +1029,15 @@
 <a href="#1028" id="1028">1028</a>
 <a href="#1029" id="1029">1029</a>
 <a href="#1030" id="1030">1030</a>
-<a href="#1031" id="1031">1031</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#1031" id="1031">1031</a>
+<a href="#1032" id="1032">1032</a>
+<a href="#1033" id="1033">1033</a>
+<a href="#1034" id="1034">1034</a>
+<a href="#1035" id="1035">1035</a>
+<a href="#1036" id="1036">1036</a>
+<a href="#1037" id="1037">1037</a>
+<a href="#1038" id="1038">1038</a>
+<a href="#1039" id="1039">1039</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::HashMap,
     fmt::Debug,
     sync::{Arc, atomic::Ordering},
@@ -1075,6 +1083,7 @@
 };
 
 <span class="kw">use crate</span>::{
+    bookmark::BookmarkManager,
     compositor::{IOCompositor, InitialCompositorState, ShutdownState},
     config::{Config, parse_cli_args},
     webview::execute_script,
@@ -1095,6 +1104,7 @@
     <span class="doccomment">/// FIXME: It's None on wayland in Flatpak. Find a way to support this.
     </span>clipboard: <span class="prelude-ty">Option</span>&lt;Clipboard&gt;,
     config: Config,
+    bookmark_manager: BookmarkManager,
 }
 
 <span class="kw">impl </span>Verso {
@@ -1347,7 +1357,11 @@
         <span class="kw">if </span>with_panel {
             window.create_panel(<span class="kw-2">&amp;</span>constellation_sender, initial_url);
         } <span class="kw">else </span>{
-            window.create_tab(<span class="kw-2">&amp;</span>constellation_sender, initial_url.into());
+            window.create_tab(
+                <span class="kw-2">&amp;</span>constellation_sender,
+                initial_url.into(),
+                compositor.show_bookmark,
+            );
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>windows = HashMap::new();
@@ -1363,6 +1377,7 @@
             _js_engine_setup: js_engine_setup,
             clipboard: Clipboard::new().ok(),
             config,
+            bookmark_manager: BookmarkManager::new(),
         };
 
         verso.setup_logging();
@@ -1476,6 +1491,7 @@
                                     <span class="kw-2">&amp;</span><span class="self">self</span>.to_controller_sender,
                                     <span class="self">self</span>.clipboard.as_mut(),
                                     compositor,
+                                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.bookmark_manager,
                                 ) {
                                     <span class="kw">let </span><span class="kw-2">mut </span>window = Window::new_with_compositor(
                                         evl,
