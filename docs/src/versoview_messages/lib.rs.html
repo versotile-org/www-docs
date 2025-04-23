@@ -208,7 +208,19 @@
 <a href="#207" id="207">207</a>
 <a href="#208" id="208">208</a>
 <a href="#209" id="209">209</a>
-<a href="#210" id="210">210</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 <span class="kw">use </span>ipc_channel::ipc;
@@ -261,9 +273,9 @@
     <span class="doccomment">/// Moves the window with the left mouse button until the button is released
     </span>StartDragging,
     <span class="doccomment">/// Get the window's size, need a response with [`ToControllerMessage::GetSizeResponse`]
-    </span>GetSize(uuid::Uuid),
+    </span>GetSize(uuid::Uuid, SizeType),
     <span class="doccomment">/// Get the window's position, need a response with [`ToControllerMessage::GetPositionResponse`]
-    </span>GetPosition(uuid::Uuid),
+    </span>GetPosition(uuid::Uuid, PositionType),
     <span class="doccomment">/// Get if the window is currently maximized or not, need a response with [`ToControllerMessage::GetMaximizedResponse`]
     </span>GetMaximized(uuid::Uuid),
     <span class="doccomment">/// Get if the window is currently minimized or not, need a response with [`ToControllerMessage::GetMinimizedResponse`]
@@ -276,6 +288,18 @@
     </span>GetScaleFactor(uuid::Uuid),
     <span class="doccomment">/// Get the current URL of the webview, need a response with [`ToControllerMessage::GetCurrentUrlResponse`]
     </span>GetCurrentUrl(uuid::Uuid),
+}
+
+<span class="attr">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="kw">pub enum </span>PositionType {
+    Inner,
+    Outer,
+}
+
+<span class="attr">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="kw">pub enum </span>SizeType {
+    Inner,
+    Outer,
 }
 
 <span class="doccomment">/// Message sent from versoview to the controller

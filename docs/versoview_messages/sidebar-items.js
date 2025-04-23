@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["OutputOptions","ToControllerMessage","ToVersoMessage"],"struct":["ConfigFromController","ProfilerSettings","UserScript","WebResourceRequest","WebResourceRequestResponse"]};
+window.SIDEBAR_ITEMS = {"enum":["OutputOptions","PositionType","SizeType","ToControllerMessage","ToVersoMessage"],"struct":["ConfigFromController","ProfilerSettings","UserScript","WebResourceRequest","WebResourceRequestResponse"]};
