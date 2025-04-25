@@ -1171,7 +1171,9 @@
 <a href="#1170" id="1170">1170</a>
 <a href="#1171" id="1171">1171</a>
 <a href="#1172" id="1172">1172</a>
-<a href="#1173" id="1173">1173</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1173" id="1173">1173</a>
+<a href="#1174" id="1174">1174</a>
+<a href="#1175" id="1175">1175</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::EmbedderToConstellationMessage;
@@ -1275,6 +1277,8 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) focused_webview_id: <span class="prelude-ty">Option</span>&lt;WebViewId&gt;,
     <span class="doccomment">/// Window-wide menu. e.g. context menu(Wayland) and browsing history menu.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) webview_menu: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>WebViewMenu&gt;&gt;,
+    <span class="doccomment">/// Show the bookmark bar or not
+    </span><span class="kw">pub </span>show_bookmark: bool,
 }
 
 <span class="kw">impl </span>Window {
@@ -1326,7 +1330,8 @@
                 tab_manager: TabManager::new(),
                 focused_webview_id: <span class="prelude-val">None</span>,
                 webview_menu: <span class="prelude-val">None</span>,
-            },
+                show_bookmark: <span class="bool-val">false
+            </span>},
             rendering_context,
         )
     }
@@ -1371,7 +1376,8 @@
             tab_manager: TabManager::new(),
             focused_webview_id: <span class="prelude-val">None</span>,
             webview_menu: <span class="prelude-val">None</span>,
-        };
+            show_bookmark: <span class="bool-val">false
+        </span>};
         compositor.swap_current_window(<span class="kw-2">&amp;mut </span>window);
         window
     }
@@ -1434,14 +1440,13 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         constellation_sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
         initial_url: ServoUrl,
-        show_bookmark: bool,
     ) {
         <span class="kw">let </span>webview_id = WebViewId::new();
         <span class="kw">let </span>size = <span class="self">self</span>.size().to_f32();
         <span class="kw">let </span>rect = DeviceRect::from_size(size);
 
         <span class="kw">let </span>show_tab = <span class="self">self</span>.tab_manager.count() &gt;= <span class="number">1</span>;
-        <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, show_tab, show_bookmark);
+        <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, show_tab, <span class="self">self</span>.show_bookmark);
 
         <span class="kw">let </span>hidpi_scale_factor = Scale::new(<span class="self">self</span>.scale_factor() <span class="kw">as </span>f32);
         <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
@@ -1510,7 +1515,7 @@
     ) {
         <span class="kw">let </span>size = <span class="self">self</span>.size().to_f32();
         <span class="kw">let </span>rect = DeviceRect::from_size(size);
-        <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, show_tab, compositor.show_bookmark);
+        <span class="kw">let </span>content_size = <span class="self">self</span>.get_content_size(rect, show_tab, <span class="self">self</span>.show_bookmark);
         <span class="kw">let </span>(tab_id, prompt_id) = <span class="self">self</span>.tab_manager.set_size(tab_id, content_size);
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(prompt_id) = prompt_id {
@@ -1868,7 +1873,6 @@
                     (<span class="kw-2">*</span><span class="self">self</span>).create_tab(
                         <span class="kw-2">&amp;</span>compositor.constellation_chan,
                         ServoUrl::parse(<span class="string">"https://example.com"</span>).unwrap(),
-                        compositor.show_bookmark,
                     );
                     <span class="kw">return </span><span class="bool-val">true</span>;
                 }

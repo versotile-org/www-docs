@@ -911,8 +911,7 @@
 <a href="#910" id="910">910</a>
 <a href="#911" id="911">911</a>
 <a href="#912" id="912">912</a>
-<a href="#913" id="913">913</a>
-<a href="#914" id="914">914</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#913" id="913">913</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -1310,7 +1309,7 @@
                     text,
                     multiline,
                     position,
-                    compositor.show_bookmark,
+                    <span class="self">self</span>.show_bookmark,
                 );
             }
             EmbedderMsg::HideIME(_webview_id) =&gt; {
@@ -1364,7 +1363,6 @@
                     <span class="self">self</span>.create_tab(
                         sender,
                         <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone(),
-                        compositor.show_bookmark,
                     );
                 } <span class="kw">else </span>{
                     <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores NotifyLoadStatusChanged status: {status:?}"</span>);
@@ -1423,7 +1421,7 @@
                             <span class="kw">let </span>size = <span class="self">self</span>.size();
                             <span class="kw">let </span>rect = DeviceRect::from_size(size);
                             <span class="kw">let </span>content_size =
-                                <span class="self">self</span>.get_content_size(rect, <span class="bool-val">true</span>, compositor.show_bookmark);
+                                <span class="self">self</span>.get_content_size(rect, <span class="bool-val">true</span>, <span class="self">self</span>.show_bookmark);
                             <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
                             <span class="kw">let </span>webview = WebView::new(
                                 webview_id,
@@ -1517,11 +1515,11 @@
                                             );
                                         }
 
-                                        compositor.show_bookmark =
+                                        <span class="self">self</span>.show_bookmark =
                                             !bookmark_manager.bookmarks().is_empty();
                                         <span class="comment">// We need to refresh the window if the need for bookmark to be displayed
                                         // has changed.
-                                        </span><span class="kw">if </span>bookmark_previously_shown != compositor.show_bookmark {
+                                        </span><span class="kw">if </span>bookmark_previously_shown != <span class="self">self</span>.show_bookmark {
                                             compositor.resize(<span class="self">self</span>.size(), <span class="self">self</span>);
                                         }
                                     }
