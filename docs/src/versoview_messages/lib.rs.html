@@ -233,7 +233,11 @@
 <a href="#232" id="232">232</a>
 <a href="#233" id="233">233</a>
 <a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 <span class="kw">use </span>ipc_channel::ipc;
@@ -260,6 +264,8 @@
     </span>ListenToOnCloseRequested,
     <span class="doccomment">/// Navigate to this URL
     </span>NavigateTo(url::Url),
+    <span class="doccomment">/// Reload the current webview
+    </span>Reload,
     <span class="doccomment">/// Register a listener on versoview for getting notified on navigation starting,
     /// veroview will send a [`ToControllerMessage::OnNavigationStarting`] when that happens
     </span>ListenToOnNavigationStarting,
@@ -285,6 +291,8 @@
     </span>SetVisible(bool),
     <span class="doccomment">/// Moves the window with the left mouse button until the button is released
     </span>StartDragging,
+    <span class="doccomment">/// Bring the window to the front, and capture input focus
+    </span>Focus,
     <span class="doccomment">/// Get the window's size, need a response with [`ToControllerMessage::GetSizeResponse`]
     </span>GetSize(uuid::Uuid, SizeType),
     <span class="doccomment">/// Get the window's position, need a response with [`ToControllerMessage::GetPositionResponse`]

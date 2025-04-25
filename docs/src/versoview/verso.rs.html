@@ -1037,7 +1037,20 @@
 <a href="#1036" id="1036">1036</a>
 <a href="#1037" id="1037">1037</a>
 <a href="#1038" id="1038">1038</a>
-<a href="#1039" id="1039">1039</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#1039" id="1039">1039</a>
+<a href="#1040" id="1040">1040</a>
+<a href="#1041" id="1041">1041</a>
+<a href="#1042" id="1042">1042</a>
+<a href="#1043" id="1043">1043</a>
+<a href="#1044" id="1044">1044</a>
+<a href="#1045" id="1045">1045</a>
+<a href="#1046" id="1046">1046</a>
+<a href="#1047" id="1047">1047</a>
+<a href="#1048" id="1048">1048</a>
+<a href="#1049" id="1049">1049</a>
+<a href="#1050" id="1050">1050</a>
+<a href="#1051" id="1051">1051</a>
+<a href="#1052" id="1052">1052</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::HashMap,
     fmt::Debug,
     sync::{Arc, atomic::Ordering},
@@ -1651,6 +1664,14 @@
                     );
                 }
             }
+            ToVersoMessage::Reload =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(webview_id) = <span class="self">self</span>.first_webview_id() {
+                    send_to_constellation(
+                        <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                        EmbedderToConstellationMessage::Reload(webview_id),
+                    );
+                }
+            }
             ToVersoMessage::ListenToOnNavigationStarting =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window_mut() {
                     window.event_listeners.on_navigation_starting = <span class="bool-val">true</span>;
@@ -1742,6 +1763,11 @@
             ToVersoMessage::StartDragging =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
                     <span class="kw">let _ </span>= window.window.drag_window();
+                }
+            }
+            ToVersoMessage::Focus =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(window) = <span class="self">self</span>.first_window() {
+                    window.window.focus_window();
                 }
             }
             ToVersoMessage::GetSize(id, size_type) =&gt; {
