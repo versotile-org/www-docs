@@ -563,7 +563,8 @@
 <a href="#562" id="562">562</a>
 <a href="#563" id="563">563</a>
 <a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fs,
     path::{Path, PathBuf},
 };
@@ -982,7 +983,8 @@
 
         <span class="comment">// Set the preferences of Servo.
         </span>servo_config::prefs::set(Preferences {
-            devtools_server_enabled,
+            dom_svg_enabled: <span class="bool-val">true</span>, <span class="comment">// Some pages fail to render if this is disabled
+            </span>devtools_server_enabled,
             devtools_server_port: devtools_port <span class="kw">as </span>i64,
             dom_notification_enabled: <span class="bool-val">true</span>, <span class="comment">// experimental feature
             </span>user_agent: <span class="self">self</span>.user_agent.clone(),

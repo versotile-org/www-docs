@@ -911,7 +911,67 @@
 <a href="#910" id="910">910</a>
 <a href="#911" id="911">911</a>
 <a href="#912" id="912">912</a>
-<a href="#913" id="913">913</a></pre></div><pre class="rust"><code><span class="kw">use </span>arboard::Clipboard;
+<a href="#913" id="913">913</a>
+<a href="#914" id="914">914</a>
+<a href="#915" id="915">915</a>
+<a href="#916" id="916">916</a>
+<a href="#917" id="917">917</a>
+<a href="#918" id="918">918</a>
+<a href="#919" id="919">919</a>
+<a href="#920" id="920">920</a>
+<a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
+<a href="#940" id="940">940</a>
+<a href="#941" id="941">941</a>
+<a href="#942" id="942">942</a>
+<a href="#943" id="943">943</a>
+<a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
+<a href="#946" id="946">946</a>
+<a href="#947" id="947">947</a>
+<a href="#948" id="948">948</a>
+<a href="#949" id="949">949</a>
+<a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
+<a href="#970" id="970">970</a>
+<a href="#971" id="971">971</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::str::FromStr;
+
+<span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 <span class="kw">use </span>crossbeam_channel::Sender;
@@ -930,8 +990,9 @@
 <span class="kw">use crate</span>::{
     bookmark::BookmarkManager,
     compositor::IOCompositor,
+    download::{DownloadId, check_should_download, download_body},
     tab::{TabActivateRequest, TabCloseRequest, TabCreateResponse},
-    verso::send_to_constellation,
+    verso::{VersoInternalMsg, send_to_constellation},
     webview::{
         history_menu::{HistoryMenuUIResponse, OpenHistoryMenuRequest},
         prompt::{HttpBasicAuthInputResult, PromptDialog, PromptInputResult, PromptSender},
@@ -1056,7 +1117,7 @@
                         <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
                             to_controller_sender.send(ToControllerMessage::OnNavigationStarting(
                                 bincode::serialize(<span class="kw-2">&amp;</span>id).unwrap(),
-                                url.into_url(),
+                                url.clone().into_url(),
                             ))
                         {
                             <span class="macro">log::error!</span>(
@@ -1069,10 +1130,32 @@
                         }
                     }
                 }
-                send_to_constellation(
-                    sender,
-                    EmbedderToConstellationMessage::AllowNavigationResponse(id, <span class="bool-val">true</span>),
-                );
+
+                <span class="comment">// If it's in Verso Browser, check if we should download the url
+                </span><span class="kw">if </span><span class="self">self</span>.panel.is_some() {
+                    <span class="kw">let </span>sender = sender.clone();
+                    <span class="kw">let </span>url = url.into_url();
+                    <span class="kw">let </span>client = <span class="self">self</span>.reqwest_client.clone();
+                    <span class="kw">let </span>verso_internal_sender = <span class="self">self</span>.verso_internal_sender.clone();
+
+                    tokio::spawn(<span class="kw">async move </span>{
+                        <span class="kw">let </span>(should_download, resp) = check_should_download(<span class="kw-2">&amp;</span>client, <span class="kw-2">&amp;</span>url).<span class="kw">await</span>;
+                        <span class="kw">if </span>should_download &amp;&amp; resp.is_some() {
+                            download_body(url, resp.unwrap(), verso_internal_sender).<span class="kw">await</span>;
+                        } <span class="kw">else </span>{
+                            send_to_constellation(
+                                <span class="kw-2">&amp;</span>sender,
+                                EmbedderToConstellationMessage::AllowNavigationResponse(id, <span class="bool-val">true</span>),
+                            );
+                        }
+                    });
+                } <span class="kw">else </span>{
+                    <span class="comment">// If it's not in Verso Browser, just allow the navigation
+                    </span>send_to_constellation(
+                        sender,
+                        EmbedderToConstellationMessage::AllowNavigationResponse(id, <span class="bool-val">true</span>),
+                    );
+                }
             }
             EmbedderMsg::WebResourceRequested(_webview_id, request, sender) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(to_controller_sender) = to_controller_sender {
@@ -1214,6 +1297,24 @@
                             default,
                             response_sender,
                         } =&gt; {
+                            <span class="comment">// If the prompt is come from Verso's Downloads page, update the status
+                            </span><span class="kw">if </span>message == <span class="string">"VERSO::DOWNLOAD_STATUS_GET" </span>{
+                                <span class="kw">let _ </span>= <span class="self">self
+                                    </span>.verso_internal_sender
+                                    .send(VersoInternalMsg::UpdateDownloadsPage(response_sender));
+                                <span class="kw">return</span>;
+                            } <span class="kw">else if </span>message.starts_with(<span class="string">"VERSO::ABORT_DOWNLOAD::"</span>) {
+                                <span class="kw">if let </span><span class="prelude-val">Some</span>(id) = message.strip_prefix(<span class="string">"VERSO::ABORT_DOWNLOAD::"</span>) {
+                                    <span class="kw">let _ </span>= response_sender.send(PromptResponse::Cancel);
+                                    <span class="kw">let _ </span>= <span class="self">self</span>.verso_internal_sender.send(
+                                        VersoInternalMsg::AbortDownload(
+                                            DownloadId::from_str(id).unwrap(),
+                                        ),
+                                    );
+                                }
+                                <span class="kw">return</span>;
+                            }
+
                             prompt.input(
                                 sender,
                                 rect,
@@ -1329,7 +1430,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         panel_id: WebViewId,
         message: EmbedderMsg,
-        sender: <span class="kw-2">&amp;</span>Sender&lt;EmbedderToConstellationMessage&gt;,
+        sender: Sender&lt;EmbedderToConstellationMessage&gt;,
         clipboard: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>Clipboard&gt;,
         compositor: <span class="kw-2">&amp;mut </span>IOCompositor,
         bookmark_manager: <span class="kw-2">&amp;mut </span>BookmarkManager,
@@ -1345,7 +1446,7 @@
             }
             EmbedderMsg::WebViewFocused(webview_id) =&gt; {
                 <span class="self">self</span>.focused_webview_id = <span class="prelude-val">Some</span>(webview_id);
-                <span class="self">self</span>.close_webview_menu(sender);
+                <span class="self">self</span>.close_webview_menu(<span class="kw-2">&amp;</span>sender);
                 <span class="macro">log::debug!</span>(
                     <span class="string">"Verso Window {:?}'s panel {} has loaded completely."</span>,
                     <span class="self">self</span>.id(),
@@ -1356,14 +1457,11 @@
                 <span class="kw">if </span>status == LoadStatus::Complete {
                     <span class="self">self</span>.window.request_redraw();
                     send_to_constellation(
-                        sender,
+                        <span class="kw-2">&amp;</span>sender,
                         EmbedderToConstellationMessage::FocusWebView(panel_id),
                     );
 
-                    <span class="self">self</span>.create_tab(
-                        sender,
-                        <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone(),
-                    );
+                    <span class="self">self</span>.create_tab(<span class="kw-2">&amp;</span>sender, <span class="self">self</span>.panel.as_ref().unwrap().initial_url.clone());
                 } <span class="kw">else </span>{
                     <span class="macro">log::trace!</span>(<span class="string">"Verso Panel ignores NotifyLoadStatusChanged status: {status:?}"</span>);
                 }
@@ -1371,7 +1469,7 @@
             EmbedderMsg::AllowNavigationRequest(_webview_id, id, _url) =&gt; {
                 <span class="comment">// The panel shouldn't navigate to other pages.
                 </span>send_to_constellation(
-                    sender,
+                    <span class="kw-2">&amp;</span>sender,
                     EmbedderToConstellationMessage::AllowNavigationResponse(id, <span class="bool-val">false</span>),
                 );
             }
@@ -1394,7 +1492,7 @@
                             <span class="comment">// close the tab
                             </span><span class="kw">if </span><span class="self">self</span>.tab_manager.tab(request.id).is_some() {
                                 send_to_constellation(
-                                    sender,
+                                    <span class="kw-2">&amp;</span>sender,
                                     EmbedderToConstellationMessage::CloseWebView(request.id),
                                 );
                             }
@@ -1435,7 +1533,7 @@
 
                             <span class="kw">let </span>size = content_size.size().to_f32() / hidpi_scale_factor;
                             send_to_constellation(
-                                sender,
+                                <span class="kw-2">&amp;</span>sender,
                                 EmbedderToConstellationMessage::NewWebView(
                                     ServoUrl::parse(<span class="string">"https://example.com"</span>).unwrap(),
                                     webview_id,
@@ -1457,7 +1555,7 @@
                                 .expect(<span class="string">"Failed to parse OpenHistoryMenuRequest"</span>);
                             <span class="kw">let _ </span>= response_sender.send(PromptResponse::default());
 
-                            <span class="kw">if let </span><span class="prelude-val">Some</span>(menu) = <span class="self">self</span>.show_history_menu(sender, request) {
+                            <span class="kw">if let </span><span class="prelude-val">Some</span>(menu) = <span class="self">self</span>.show_history_menu(<span class="kw-2">&amp;</span>sender, request) {
                                 <span class="self">self</span>.webview_menu = <span class="prelude-val">Some</span>(Box::new(menu));
                             }
 
@@ -1485,6 +1583,13 @@
                                 <span class="kw">let _ </span>= <span class="self">self</span>.window.drag_window();
                                 <span class="kw">return </span><span class="bool-val">false</span>;
                             }
+                            <span class="string">"DOWNLOAD" </span>=&gt; {
+                                <span class="self">self</span>.create_tab(
+                                    <span class="kw-2">&amp;</span>sender,
+                                    ServoUrl::parse(<span class="string">"verso://resources/components/downloads.html"</span>)
+                                        .unwrap(),
+                                );
+                            }
                             <span class="string">"BOOKMARK" </span>=&gt; {
                                 <span class="kw">if let </span><span class="prelude-val">Some</span>(tab) = <span class="self">self</span>.tab_manager.current_tab() {
                                     <span class="kw">if let </span><span class="prelude-val">Some</span>(url) =
@@ -1509,7 +1614,7 @@
                                         );
                                         <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="self">self</span>.panel.as_ref() {
                                             <span class="kw">let _ </span>= execute_script(
-                                                sender,
+                                                <span class="kw-2">&amp;</span>sender,
                                                 <span class="kw-2">&amp;</span>panel.webview.webview_id,
                                                 script,
                                             );
@@ -1546,18 +1651,29 @@
                                     }
                                 };
 
-                                send_to_constellation(
-                                    sender,
-                                    EmbedderToConstellationMessage::LoadUrl(
-                                        id,
-                                        ServoUrl::from_url(url),
-                                    ),
-                                );
+                                <span class="kw">let </span>client = <span class="self">self</span>.reqwest_client.clone();
+                                <span class="kw">let </span>verso_internal_sender = <span class="self">self</span>.verso_internal_sender.clone();
+                                tokio::spawn(<span class="kw">async move </span>{
+                                    <span class="kw">let </span>(should_download, resp) =
+                                        check_should_download(<span class="kw-2">&amp;</span>client, <span class="kw-2">&amp;</span>url).<span class="kw">await</span>;
+                                    <span class="kw">if </span>should_download &amp;&amp; resp.is_some() {
+                                        download_body(url, resp.unwrap(), verso_internal_sender)
+                                            .<span class="kw">await</span>;
+                                    } <span class="kw">else </span>{
+                                        send_to_constellation(
+                                            <span class="kw-2">&amp;</span>sender,
+                                            EmbedderToConstellationMessage::LoadUrl(
+                                                id,
+                                                ServoUrl::from_url(url.clone()),
+                                            ),
+                                        );
+                                    }
+                                });
                             } <span class="kw">else </span>{
                                 <span class="kw">match </span>message.as_str() {
                                     <span class="string">"PREV" </span>=&gt; {
                                         send_to_constellation(
-                                            sender,
+                                            <span class="kw-2">&amp;</span>sender,
                                             EmbedderToConstellationMessage::TraverseHistory(
                                                 id,
                                                 TraversalDirection::Back(<span class="number">1</span>),
@@ -1567,7 +1683,7 @@
                                     </span>}
                                     <span class="string">"FORWARD" </span>=&gt; {
                                         send_to_constellation(
-                                            sender,
+                                            <span class="kw-2">&amp;</span>sender,
                                             EmbedderToConstellationMessage::TraverseHistory(
                                                 id,
                                                 TraversalDirection::Forward(<span class="number">1</span>),
@@ -1577,7 +1693,7 @@
                                     </span>}
                                     <span class="string">"REFRESH" </span>=&gt; {
                                         send_to_constellation(
-                                            sender,
+                                            <span class="kw-2">&amp;</span>sender,
                                             EmbedderToConstellationMessage::Reload(id),
                                         );
                                     }
@@ -1615,7 +1731,7 @@
                 <span class="attr">#[cfg(linux)]
                 </span><span class="kw">if </span><span class="self">self</span>.webview_menu.is_none() {
                     <span class="self">self</span>.webview_menu =
-                        <span class="prelude-val">Some</span>(Box::new(<span class="self">self</span>.show_context_menu(sender, servo_sender)));
+                        <span class="prelude-val">Some</span>(Box::new(<span class="self">self</span>.show_context_menu(<span class="kw-2">&amp;</span>sender, servo_sender)));
                 } <span class="kw">else </span>{
                     <span class="kw">let _ </span>= servo_sender.send(ContextMenuResult::Ignored);
                 }
@@ -1624,7 +1740,7 @@
                     <span class="kw">let </span>context_menu = <span class="self">self</span>.show_context_menu(servo_sender);
                     <span class="comment">// FIXME: there's chance to lose the event since the channel is async.
                     </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(event) = <span class="self">self</span>.menu_event_receiver.try_recv() {
-                        <span class="self">self</span>.handle_context_menu_event(context_menu, sender, event);
+                        <span class="self">self</span>.handle_context_menu_event(context_menu, <span class="kw-2">&amp;</span>sender, event);
                     }
                 }
             }

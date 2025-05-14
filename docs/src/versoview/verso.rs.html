@@ -1049,7 +1049,104 @@
 <a href="#1048" id="1048">1048</a>
 <a href="#1049" id="1049">1049</a>
 <a href="#1050" id="1050">1050</a>
-<a href="#1051" id="1051">1051</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#1051" id="1051">1051</a>
+<a href="#1052" id="1052">1052</a>
+<a href="#1053" id="1053">1053</a>
+<a href="#1054" id="1054">1054</a>
+<a href="#1055" id="1055">1055</a>
+<a href="#1056" id="1056">1056</a>
+<a href="#1057" id="1057">1057</a>
+<a href="#1058" id="1058">1058</a>
+<a href="#1059" id="1059">1059</a>
+<a href="#1060" id="1060">1060</a>
+<a href="#1061" id="1061">1061</a>
+<a href="#1062" id="1062">1062</a>
+<a href="#1063" id="1063">1063</a>
+<a href="#1064" id="1064">1064</a>
+<a href="#1065" id="1065">1065</a>
+<a href="#1066" id="1066">1066</a>
+<a href="#1067" id="1067">1067</a>
+<a href="#1068" id="1068">1068</a>
+<a href="#1069" id="1069">1069</a>
+<a href="#1070" id="1070">1070</a>
+<a href="#1071" id="1071">1071</a>
+<a href="#1072" id="1072">1072</a>
+<a href="#1073" id="1073">1073</a>
+<a href="#1074" id="1074">1074</a>
+<a href="#1075" id="1075">1075</a>
+<a href="#1076" id="1076">1076</a>
+<a href="#1077" id="1077">1077</a>
+<a href="#1078" id="1078">1078</a>
+<a href="#1079" id="1079">1079</a>
+<a href="#1080" id="1080">1080</a>
+<a href="#1081" id="1081">1081</a>
+<a href="#1082" id="1082">1082</a>
+<a href="#1083" id="1083">1083</a>
+<a href="#1084" id="1084">1084</a>
+<a href="#1085" id="1085">1085</a>
+<a href="#1086" id="1086">1086</a>
+<a href="#1087" id="1087">1087</a>
+<a href="#1088" id="1088">1088</a>
+<a href="#1089" id="1089">1089</a>
+<a href="#1090" id="1090">1090</a>
+<a href="#1091" id="1091">1091</a>
+<a href="#1092" id="1092">1092</a>
+<a href="#1093" id="1093">1093</a>
+<a href="#1094" id="1094">1094</a>
+<a href="#1095" id="1095">1095</a>
+<a href="#1096" id="1096">1096</a>
+<a href="#1097" id="1097">1097</a>
+<a href="#1098" id="1098">1098</a>
+<a href="#1099" id="1099">1099</a>
+<a href="#1100" id="1100">1100</a>
+<a href="#1101" id="1101">1101</a>
+<a href="#1102" id="1102">1102</a>
+<a href="#1103" id="1103">1103</a>
+<a href="#1104" id="1104">1104</a>
+<a href="#1105" id="1105">1105</a>
+<a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
+<a href="#1127" id="1127">1127</a>
+<a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
+<a href="#1131" id="1131">1131</a>
+<a href="#1132" id="1132">1132</a>
+<a href="#1133" id="1133">1133</a>
+<a href="#1134" id="1134">1134</a>
+<a href="#1135" id="1135">1135</a>
+<a href="#1136" id="1136">1136</a>
+<a href="#1137" id="1137">1137</a>
+<a href="#1138" id="1138">1138</a>
+<a href="#1139" id="1139">1139</a>
+<a href="#1140" id="1140">1140</a>
+<a href="#1141" id="1141">1141</a>
+<a href="#1142" id="1142">1142</a>
+<a href="#1143" id="1143">1143</a>
+<a href="#1144" id="1144">1144</a>
+<a href="#1145" id="1145">1145</a>
+<a href="#1146" id="1146">1146</a>
+<a href="#1147" id="1147">1147</a>
+<a href="#1148" id="1148">1148</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::HashMap,
     fmt::Debug,
     sync::{Arc, atomic::Ordering},
@@ -1069,7 +1166,7 @@
 <span class="kw">use </span>crossbeam_channel::{Receiver, Sender, unbounded};
 <span class="kw">use </span>devtools;
 <span class="kw">use </span>embedder_traits::{
-    AllowOrDeny, EmbedderMsg, EmbedderProxy, EventLoopWaker, WebResourceResponse,
+    AllowOrDeny, EmbedderMsg, EmbedderProxy, EventLoopWaker, PromptResponse, WebResourceResponse,
     WebResourceResponseMsg, user_content_manager::UserContentManager,
 };
 <span class="kw">use </span>euclid::Scale;
@@ -1081,6 +1178,7 @@
 <span class="kw">use </span>net::resource_thread;
 <span class="kw">use </span>profile;
 <span class="kw">use </span>script::{<span class="self">self</span>, JSEngineSetup};
+<span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>servo_config::{opts, pref};
 <span class="kw">use </span>servo_url::ServoUrl;
 <span class="kw">use </span>style;
@@ -1098,6 +1196,7 @@
     bookmark::BookmarkManager,
     compositor::{IOCompositor, InitialCompositorState, ShutdownState},
     config::{Config, parse_cli_args},
+    download::{DownloadId, DownloadItem, UpdateDownloadState},
     webview::execute_script,
     window::Window,
 };
@@ -1109,6 +1208,7 @@
     constellation_sender: Sender&lt;EmbedderToConstellationMessage&gt;,
     to_controller_sender: <span class="prelude-ty">Option</span>&lt;IpcSender&lt;ToControllerMessage&gt;&gt;,
     embedder_receiver: Receiver&lt;EmbedderMsg&gt;,
+    verso_internal_sender: IpcSender&lt;VersoInternalMsg&gt;,
     <span class="doccomment">/// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -1117,6 +1217,33 @@
     </span>clipboard: <span class="prelude-ty">Option</span>&lt;Clipboard&gt;,
     config: Config,
     bookmark_manager: BookmarkManager,
+    downloads: HashMap&lt;DownloadId, DownloadItem&gt;,
+}
+
+<span class="doccomment">/// Message for Verso internal communication
+</span><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub enum </span>VersoInternalMsg {
+    <span class="doccomment">/// Abort a download
+    </span>AbortDownload(DownloadId),
+    <span class="doccomment">/// Create a download state in Verso.
+    </span>CreateDownload(DownloadItem),
+    <span class="doccomment">/// Update a specific download state.
+    </span>UpdateDownload(DownloadId, UpdateDownloadState),
+    <span class="doccomment">/// Send current downloads' states to the frontend Downloads page.
+    </span>UpdateDownloadsPage(IpcSender&lt;PromptResponse&gt;),
+}
+
+<span class="kw">impl </span>Debug <span class="kw">for </span>VersoInternalMsg {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="kw">match </span><span class="self">self </span>{
+            VersoInternalMsg::AbortDownload(<span class="kw">_</span>) =&gt; <span class="macro">write!</span>(f, <span class="string">"AbortDownload"</span>),
+            VersoInternalMsg::CreateDownload(<span class="kw">_</span>) =&gt; <span class="macro">write!</span>(f, <span class="string">"CreateDownload"</span>),
+            VersoInternalMsg::UpdateDownload(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="macro">write!</span>(f, <span class="string">"UpdateDownload"</span>),
+            VersoInternalMsg::UpdateDownloadsPage(<span class="kw">_</span>) =&gt; {
+                <span class="macro">write!</span>(f, <span class="string">"UpdateDownloadsPageStatus"</span>)
+            }
+        }
+    }
 }
 
 <span class="kw">impl </span>Verso {
@@ -1138,6 +1265,7 @@
     /// - Image Cache: Enabled
     </span><span class="kw">pub fn </span>new(evl: <span class="kw-2">&amp;</span>ActiveEventLoop, proxy: EventLoopProxy&lt;EventLoopProxyMessage&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>(config, to_controller_sender) = try_connect_ipc_and_get_config(<span class="kw-2">&amp;</span>proxy);
+        <span class="kw">let </span>(verso_internal_sender, verso_internal_receiver) = ipc_channel::ipc::channel().unwrap();
 
         <span class="comment">// Initialize configurations and Verso window
         </span><span class="kw">let </span>protocols = config.create_protocols();
@@ -1150,8 +1278,9 @@
         config.init();
         <span class="comment">// Reserving a namespace to create WebViewId.
         </span>PipelineNamespace::install(PipelineNamespaceId(<span class="number">0</span>));
-        <span class="kw">let </span>(<span class="kw-2">mut </span>window, rendering_context) = Window::new(evl, window_settings);
-        <span class="kw">let </span>event_loop_waker = Box::new(Waker(proxy));
+        <span class="kw">let </span>(<span class="kw-2">mut </span>window, rendering_context) =
+            Window::new(evl, window_settings, verso_internal_sender.clone());
+        <span class="kw">let </span>event_loop_waker = Box::new(Waker(proxy.clone()));
         <span class="kw">let </span>opts = opts::get();
 
         <span class="comment">// Set Stylo flags
@@ -1369,14 +1498,26 @@
         <span class="kw">if </span>with_panel {
             window.create_panel(<span class="kw-2">&amp;</span>constellation_sender, initial_url);
         } <span class="kw">else </span>{
-            window.create_tab(
-                <span class="kw-2">&amp;</span>constellation_sender,
-                initial_url.into(),
-            );
+            window.create_tab(<span class="kw-2">&amp;</span>constellation_sender, initial_url.into());
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>windows = HashMap::new();
         windows.insert(window.id(), (window, webrender_document));
+
+        <span class="kw">let </span>proxy_clone = proxy.clone();
+        ROUTER.add_typed_route(
+            verso_internal_receiver,
+            Box::new(<span class="kw">move </span>|message| <span class="kw">match </span>message {
+                <span class="prelude-val">Ok</span>(message) =&gt; {
+                    <span class="kw">if let </span><span class="prelude-val">Err</span>(e) =
+                        proxy_clone.send_event(EventLoopProxyMessage::VersoInternalMessage(message))
+                    {
+                        <span class="macro">log::error!</span>(<span class="string">"Failed to send controller message to Verso: {e}"</span>);
+                    }
+                }
+                <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">log::error!</span>(<span class="string">"Failed to receive controller message: {e}"</span>),
+            }),
+        );
 
         <span class="comment">// Create Verso instance
         </span><span class="kw">let </span>verso = Verso {
@@ -1389,6 +1530,8 @@
             clipboard: Clipboard::new().ok(),
             config,
             bookmark_manager: BookmarkManager::new(),
+            downloads: HashMap::new(),
+            verso_internal_sender,
         };
 
         verso.setup_logging();
@@ -1498,7 +1641,7 @@
                                 <span class="kw">if </span>window.handle_servo_message(
                                     <span class="kw-2">*</span>webview_id,
                                     msg,
-                                    <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                                    <span class="self">self</span>.constellation_sender.clone(),
                                     <span class="kw-2">&amp;</span><span class="self">self</span>.to_controller_sender,
                                     <span class="self">self</span>.clipboard.as_mut(),
                                     compositor,
@@ -1508,6 +1651,7 @@
                                         evl,
                                         <span class="self">self</span>.config.window_attributes.clone(),
                                         compositor,
+                                        <span class="self">self</span>.verso_internal_sender.clone(),
                                     );
                                     window.create_panel(
                                         <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
@@ -1580,6 +1724,54 @@
             evl.set_control_flow(ControlFlow::Poll);
         } <span class="kw">else </span>{
             evl.set_control_flow(ControlFlow::Wait);
+        }
+    }
+
+    <span class="doccomment">/// Handle message from the Verso internal channel
+    </span><span class="kw">pub fn </span>handle_verso_internal_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: VersoInternalMsg) {
+        <span class="kw">match </span>message {
+            VersoInternalMsg::AbortDownload(id) =&gt; {
+                <span class="kw">let </span>download = <span class="self">self</span>.downloads.get_mut(<span class="kw-2">&amp;</span>id);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(download) = download {
+                    download.abort();
+                }
+            }
+            VersoInternalMsg::CreateDownload(download) =&gt; {
+                <span class="kw">let _ </span>= <span class="self">self</span>.downloads.insert(download.id().clone(), download);
+
+                <span class="comment">// update all window's panel status
+                </span><span class="kw">for </span>(window, <span class="kw">_</span>) <span class="kw">in </span><span class="self">self</span>.windows.values() {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span>window.panel {
+                        <span class="kw">let _ </span>= execute_script(
+                            <span class="kw-2">&amp;</span><span class="self">self</span>.constellation_sender,
+                            <span class="kw-2">&amp;</span>panel.webview.webview_id,
+                            <span class="string">"window.navbar.showDownloadBtn(true)"</span>.to_string(),
+                        );
+                    }
+                }
+            }
+            VersoInternalMsg::UpdateDownload(id, new_state) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(download) = <span class="self">self</span>.downloads.get_mut(<span class="kw-2">&amp;</span>id) {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(status) = new_state.status {
+                        download.status = status;
+                    }
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(progress) = new_state.progress {
+                        download.progress = progress;
+                    }
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(stopped) = new_state.stopped {
+                        download.stopped = stopped;
+                    }
+                }
+            }
+            VersoInternalMsg::UpdateDownloadsPage(sender) =&gt; {
+                <span class="kw">let </span>download_status = <span class="self">self</span>.downloads.clone();
+                <span class="kw">if let </span><span class="prelude-val">Ok</span>(download_status_json) = serde_json::to_string(<span class="kw-2">&amp;</span>download_status) {
+                    <span class="kw">let _ </span>= sender.send(PromptResponse::Ok(download_status_json));
+                } <span class="kw">else </span>{
+                    <span class="macro">log::error!</span>(<span class="string">"Failed to serialize download status"</span>);
+                    <span class="kw">let _ </span>= sender.send(PromptResponse::Cancel);
+                }
+            }
         }
     }
 
@@ -1978,6 +2170,8 @@
     </span>Wake,
     <span class="doccomment">/// Message coming from the webview controller
     </span>IpcMessage(Box&lt;ToVersoMessage&gt;),
+    <span class="doccomment">/// Message coming from the internal channel
+    </span>VersoInternalMessage(VersoInternalMsg),
 }
 
 <span class="attr">#[derive(Debug, Clone)]
