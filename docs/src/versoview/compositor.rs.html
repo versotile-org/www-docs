@@ -2179,7 +2179,26 @@
 <a href="#2178" id="2178">2178</a>
 <a href="#2179" id="2179">2179</a>
 <a href="#2180" id="2180">2180</a>
-<a href="#2181" id="2181">2181</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#2181" id="2181">2181</a>
+<a href="#2182" id="2182">2182</a>
+<a href="#2183" id="2183">2183</a>
+<a href="#2184" id="2184">2184</a>
+<a href="#2185" id="2185">2185</a>
+<a href="#2186" id="2186">2186</a>
+<a href="#2187" id="2187">2187</a>
+<a href="#2188" id="2188">2188</a>
+<a href="#2189" id="2189">2189</a>
+<a href="#2190" id="2190">2190</a>
+<a href="#2191" id="2191">2191</a>
+<a href="#2192" id="2192">2192</a>
+<a href="#2193" id="2193">2193</a>
+<a href="#2194" id="2194">2194</a>
+<a href="#2195" id="2195">2195</a>
+<a href="#2196" id="2196">2196</a>
+<a href="#2197" id="2197">2197</a>
+<a href="#2198" id="2198">2198</a>
+<a href="#2199" id="2199">2199</a>
+<a href="#2200" id="2200">2200</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::ffi::c_void;
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -3509,11 +3528,21 @@
             <span class="self">self</span>.constellation_chan
                 .send(EmbedderToConstellationMessage::ForwardInputEvent(
                     webview_id,
-                    event,
+                    event.clone(),
                     <span class="prelude-val">Some</span>(result),
                 ))
         {
             <span class="macro">warn!</span>(<span class="string">"Sending event to constellation failed ({error:?})."</span>);
+        }
+
+        <span class="comment">// If the event is a mouse button, send FocusWebView event to the constellation.
+        // the webview will update current focused webview_id in the EmbedderMsg::WebViewFocused event.
+        </span><span class="kw">if let </span>InputEvent::MouseButton(event) = <span class="kw-2">&amp;</span>event {
+            <span class="kw">if </span>event.action == MouseButtonAction::Click {
+                <span class="kw">let _ </span>= <span class="self">self
+                    </span>.constellation_chan
+                    .send(EmbedderToConstellationMessage::FocusWebView(webview_id));
+            }
         }
     }
 
@@ -3549,6 +3578,15 @@
             }
         }
         <span class="self">self</span>.dispatch_input_event(webview_id, event);
+    }
+
+    <span class="doccomment">/// Get the webview id from a point.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>webview_id_from_point(<span class="kw-2">&amp;</span><span class="self">self</span>, point: DevicePoint) -&gt; <span class="prelude-ty">Option</span>&lt;WebViewId&gt; {
+        <span class="self">self</span>.hit_test_at_point(point)
+            .map(|result| result.pipeline_id)
+            .and_then(|pipeline_id| <span class="self">self</span>.pipeline_details.get(<span class="kw-2">&amp;</span>pipeline_id))
+            .and_then(|details| details.pipeline.clone())
+            .map(|pipeline| pipeline.webview_id)
     }
 
     <span class="kw">fn </span>hit_test_at_point(<span class="kw-2">&amp;</span><span class="self">self</span>, point: DevicePoint) -&gt; <span class="prelude-ty">Option</span>&lt;CompositorHitTestResult&gt; {

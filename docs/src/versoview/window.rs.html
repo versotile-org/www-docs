@@ -1182,9 +1182,7 @@
 <a href="#1181" id="1181">1181</a>
 <a href="#1182" id="1182">1182</a>
 <a href="#1183" id="1183">1183</a>
-<a href="#1184" id="1184">1184</a>
-<a href="#1185" id="1185">1185</a>
-<a href="#1186" id="1186">1186</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1184" id="1184">1184</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::EmbedderToConstellationMessage;
@@ -1705,16 +1703,14 @@
                     }
                 };
 
-                <span class="kw">let </span>webview_id = <span class="kw">match </span><span class="self">self</span>.focused_webview_id {
-                    <span class="prelude-val">Some</span>(webview_id) =&gt; webview_id,
-                    <span class="prelude-val">None </span>=&gt; {
-                        <span class="macro">log::trace!</span>(<span class="string">"No focused webview, skipping MouseInput event."</span>);
-                        <span class="kw">return</span>;
-                    }
+                <span class="kw">let </span><span class="prelude-val">Some</span>(webview_id) = <span class="kw-2">&amp;</span>compositor.webview_id_from_point(point) <span class="kw">else </span>{
+                    <span class="macro">log::trace!</span>(<span class="string">"No webview at point, skipping MouseInput event."</span>);
+                    <span class="kw">return</span>;
                 };
+
                 forward_input_event(
                     compositor,
-                    webview_id,
+                    <span class="kw-2">*</span>webview_id,
                     sender,
                     InputEvent::MouseButton(event),
                 );
@@ -1728,7 +1724,7 @@
                     };
                     forward_input_event(
                         compositor,
-                        webview_id,
+                        <span class="kw-2">*</span>webview_id,
                         sender,
                         InputEvent::MouseButton(event),
                     );
