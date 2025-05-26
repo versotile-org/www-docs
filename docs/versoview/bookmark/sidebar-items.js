@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Bookmark","BookmarkManager"]};
+window.SIDEBAR_ITEMS = {"struct":["Bookmark","BookmarkId","BookmarkManager"]};
