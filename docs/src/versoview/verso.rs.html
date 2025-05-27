@@ -1173,7 +1173,32 @@
 <a href="#1172" id="1172">1172</a>
 <a href="#1173" id="1173">1173</a>
 <a href="#1174" id="1174">1174</a>
-<a href="#1175" id="1175">1175</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#1175" id="1175">1175</a>
+<a href="#1176" id="1176">1176</a>
+<a href="#1177" id="1177">1177</a>
+<a href="#1178" id="1178">1178</a>
+<a href="#1179" id="1179">1179</a>
+<a href="#1180" id="1180">1180</a>
+<a href="#1181" id="1181">1181</a>
+<a href="#1182" id="1182">1182</a>
+<a href="#1183" id="1183">1183</a>
+<a href="#1184" id="1184">1184</a>
+<a href="#1185" id="1185">1185</a>
+<a href="#1186" id="1186">1186</a>
+<a href="#1187" id="1187">1187</a>
+<a href="#1188" id="1188">1188</a>
+<a href="#1189" id="1189">1189</a>
+<a href="#1190" id="1190">1190</a>
+<a href="#1191" id="1191">1191</a>
+<a href="#1192" id="1192">1192</a>
+<a href="#1193" id="1193">1193</a>
+<a href="#1194" id="1194">1194</a>
+<a href="#1195" id="1195">1195</a>
+<a href="#1196" id="1196">1196</a>
+<a href="#1197" id="1197">1197</a>
+<a href="#1198" id="1198">1198</a>
+<a href="#1199" id="1199">1199</a>
+<a href="#1200" id="1200">1200</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::HashMap,
     fmt::Debug,
     sync::{Arc, atomic::Ordering},
@@ -1224,6 +1249,7 @@
     compositor::{IOCompositor, InitialCompositorState, ShutdownState},
     config::{Config, parse_cli_args},
     download::{DownloadId, DownloadItem, UpdateDownloadState},
+    storage::Storage,
     webview::execute_script,
     window::Window,
 };
@@ -1243,6 +1269,7 @@
     <span class="doccomment">/// FIXME: It's None on wayland in Flatpak. Find a way to support this.
     </span>clipboard: <span class="prelude-ty">Option</span>&lt;Clipboard&gt;,
     config: Config,
+    storage: Storage,
     bookmark_manager: BookmarkManager,
     downloads: HashMap&lt;DownloadId, DownloadItem&gt;,
 }
@@ -1566,10 +1593,34 @@
             bookmark_manager: BookmarkManager::new(),
             downloads: HashMap::new(),
             verso_internal_sender,
+            storage: Storage::new(),
         };
 
         verso.setup_logging();
         verso
+    }
+
+    <span class="doccomment">/// Initialize Verso instance.
+    ///
+    /// This function is called when the Verso instance is created.
+    </span><span class="kw">pub fn </span>init(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="comment">// Load bookmarks from disk
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(bookmark_storage) = <span class="self">self</span>.storage.bookmark_storage() {
+            <span class="kw">let </span>bookmarks = bookmark_storage.load_from_file();
+            <span class="kw">if let </span><span class="prelude-val">Ok</span>(bookmarks) = bookmarks {
+                <span class="self">self</span>.bookmark_manager.set_bookmarks(bookmarks);
+            }
+        }
+    }
+
+    <span class="doccomment">/// Task to be done before shutting down.
+    ///
+    /// This function is called when the Verso instance is shutting down.
+    </span><span class="kw">pub fn </span>before_shutdown(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="comment">// Save bookmarks to disk
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(bookmark_storage) = <span class="self">self</span>.storage.bookmark_storage() {
+            <span class="kw">let _ </span>= bookmark_storage.save_to_file(<span class="self">self</span>.bookmark_manager.bookmarks());
+        }
     }
 
     <span class="doccomment">/// Handle Winit window events. The strategy to handle event are different between platforms
@@ -1816,13 +1867,12 @@
                 }
             }
             VersoInternalMsg::BookmarkRemove(id) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(<span class="kw">_</span>) = <span class="self">self</span>.bookmark_manager.remove_bookmark(id) {
+                <span class="kw">if </span><span class="self">self</span>.bookmark_manager.remove_bookmark(id).is_err() {
                     <span class="macro">log::error!</span>(<span class="string">"Failed to remove bookmarks"</span>);
                 }
             }
-            VersoInternalMsg::BookmarkRename(id, name) =&gt; 
-            {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(<span class="kw">_</span>) = <span class="self">self</span>.bookmark_manager.rename_bookmark(id, name) {
+            VersoInternalMsg::BookmarkRename(id, name) =&gt; {
+                <span class="kw">if </span><span class="self">self</span>.bookmark_manager.rename_bookmark(id, name).is_err() {
                     <span class="macro">log::error!</span>(<span class="string">"Failed to rename bookmarks"</span>);
                 }
             }

@@ -1043,14 +1043,7 @@
 <a href="#1042" id="1042">1042</a>
 <a href="#1043" id="1043">1043</a>
 <a href="#1044" id="1044">1044</a>
-<a href="#1045" id="1045">1045</a>
-<a href="#1046" id="1046">1046</a>
-<a href="#1047" id="1047">1047</a>
-<a href="#1048" id="1048">1048</a>
-<a href="#1049" id="1049">1049</a>
-<a href="#1050" id="1050">1050</a>
-<a href="#1051" id="1051">1051</a>
-<a href="#1052" id="1052">1052</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::str::FromStr;
+<a href="#1045" id="1045">1045</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::str::FromStr;
 
 <span class="kw">use </span>arboard::Clipboard;
 <span class="kw">use </span>base::id::WebViewId;
@@ -1380,7 +1373,7 @@
                         } =&gt; {
                             <span class="kw">if </span>message.starts_with(<span class="string">"VERSO::"</span>) {
                                 <span class="self">self</span>.handle_verso_internal_messages_with_webview(
-                                    <span class="kw-2">&amp;</span>message.strip_prefix(<span class="string">"VERSO::"</span>).unwrap(),
+                                    message.strip_prefix(<span class="string">"VERSO::"</span>).unwrap(),
                                     response_sender,
                                     sender,
                                     tab,
@@ -1651,11 +1644,7 @@
                                     }
                                     <span class="kw">let </span>bookmark_previously_shown =
                                         !bookmark_manager.bookmarks().is_empty();
-                                    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw">_</span>) = bookmark_manager
-                                        .bookmarks()
-                                        .iter()
-                                        .position(|b| b.url == url)
-                                    {
+                                    <span class="kw">if </span>bookmark_manager.bookmarks().iter().any(|b| b.url == url) {
                                         <span class="kw">let _ </span>= bookmark_manager.remove_bookmark(
                                             BookmarkId::from_str(url.as_str()).unwrap(),
                                         );
@@ -1747,10 +1736,8 @@
                             } <span class="kw">else if </span>message == <span class="string">"OPEN_BOOKMARK_MANAGER" </span>{
                                 <span class="self">self</span>.create_tab(
                                     <span class="kw-2">&amp;</span>sender,
-                                    ServoUrl::parse(
-                                        <span class="string">"verso://resources/components/bookmark.html"
-                                    </span>)
-                                    .unwrap(),
+                                    ServoUrl::parse(<span class="string">"verso://resources/components/bookmark.html"</span>)
+                                        .unwrap(),
                                 );
                             } <span class="kw">else </span>{
                                 <span class="kw">match </span>message.as_str() {
@@ -2018,7 +2005,6 @@
             <span class="kw">let _ </span>= <span class="self">self
                 </span>.verso_internal_sender
                 .send(VersoInternalMsg::UpdateDownloadsPage(response_sender));
-            <span class="kw">return</span>;
         } <span class="kw">else if </span>message.starts_with(<span class="string">"ABORT_DOWNLOAD::"</span>) {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(id) = message.strip_prefix(<span class="string">"ABORT_DOWNLOAD::"</span>) {
                 <span class="kw">let _ </span>= response_sender.send(PromptResponse::Cancel);
@@ -2078,7 +2064,7 @@
                 }
             };
             send_to_constellation(
-                <span class="kw-2">&amp;</span>sender,
+                sender,
                 EmbedderToConstellationMessage::LoadUrl(tab.id(), ServoUrl::from_url(url.clone())),
             );
             <span class="kw">return</span>;

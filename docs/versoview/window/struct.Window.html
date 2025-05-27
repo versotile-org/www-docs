@@ -3,7 +3,7 @@
     <span class="comment">/* private fields */</span>
 }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A Verso window is a Winit window containing several web views.</p>
 </div></details><h2 id="fields" class="fields section-header">Fields<a href="#fields" class="anchor">§</a></h2><span id="structfield.show_bookmark" class="structfield section-header"><a href="#structfield.show_bookmark" class="anchor field">§</a><code>show_bookmark: <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.bool.html">bool</a></code></span><div class="docblock"><p>Show the bookmark bar or not</p>
-</div><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-Window" class="impl"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#79-1035">Source</a><a href="#impl-Window" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.Window.html" title="struct versoview::window::Window">Window</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_webview" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#81-447">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_webview" class="fn">handle_servo_messages_with_webview</a>(
+</div><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-Window" class="impl"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#79-1028">Source</a><a href="#impl-Window" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.Window.html" title="struct versoview::window::Window">Window</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_webview" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#81-447">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_webview" class="fn">handle_servo_messages_with_webview</a>(
     &amp;mut self,
     webview_id: WebViewId,
     message: EmbedderMsg,
@@ -12,7 +12,7 @@
     clipboard: <a class="enum" href="https://doc.rust-lang.org/1.85.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;mut Clipboard&gt;,
     compositor: &amp;mut <a class="struct" href="../compositor/struct.IOCompositor.html" title="struct versoview::compositor::IOCompositor">IOCompositor</a>,
 )</h4></section></summary><div class="docblock"><p>Handle servo messages with corresponding web view ID.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_panel" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#450-783">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_panel" class="fn">handle_servo_messages_with_panel</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_panel" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#450-777">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_panel" class="fn">handle_servo_messages_with_panel</a>(
     &amp;mut self,
     panel_id: WebViewId,
     message: EmbedderMsg,
@@ -21,7 +21,7 @@
     compositor: &amp;mut <a class="struct" href="../compositor/struct.IOCompositor.html" title="struct versoview::compositor::IOCompositor">IOCompositor</a>,
     bookmark_manager: &amp;mut <a class="struct" href="../bookmark/struct.BookmarkManager.html" title="struct versoview::bookmark::BookmarkManager">BookmarkManager</a>,
 ) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Handle servo messages with main panel. Return true it requests a new window.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_webview_menu" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#786-842">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_webview_menu" class="fn">handle_servo_messages_with_webview_menu</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_webview_menu" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#780-836">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_webview_menu" class="fn">handle_servo_messages_with_webview_menu</a>(
     &amp;mut self,
     webview_id: WebViewId,
     message: EmbedderMsg,
@@ -29,7 +29,7 @@
     _clipboard: <a class="enum" href="https://doc.rust-lang.org/1.85.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;mut Clipboard&gt;,
     _compositor: &amp;mut <a class="struct" href="../compositor/struct.IOCompositor.html" title="struct versoview::compositor::IOCompositor">IOCompositor</a>,
 ) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Handle servo messages with webview menu. Return true it requests a new window.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_prompt" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#845-955">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_prompt" class="fn">handle_servo_messages_with_prompt</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_servo_messages_with_prompt" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#839-949">Source</a><h4 class="code-header">pub fn <a href="#method.handle_servo_messages_with_prompt" class="fn">handle_servo_messages_with_prompt</a>(
     &amp;mut self,
     webview_id: WebViewId,
     message: EmbedderMsg,
@@ -37,7 +37,7 @@
     _clipboard: <a class="enum" href="https://doc.rust-lang.org/1.85.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;mut Clipboard&gt;,
     _compositor: &amp;mut <a class="struct" href="../compositor/struct.IOCompositor.html" title="struct versoview::compositor::IOCompositor">IOCompositor</a>,
 ) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Handle servo messages with prompt. Return true it requests a new window.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_verso_internal_messages_with_webview" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#957-1034">Source</a><h4 class="code-header">pub fn <a href="#method.handle_verso_internal_messages_with_webview" class="fn">handle_verso_internal_messages_with_webview</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.handle_verso_internal_messages_with_webview" class="method"><a class="src rightside" href="../../src/versoview/webview/webview.rs.html#951-1027">Source</a><h4 class="code-header">pub fn <a href="#method.handle_verso_internal_messages_with_webview" class="fn">handle_verso_internal_messages_with_webview</a>(
     &amp;self,
     message: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.85.0/std/primitive.str.html">str</a>,
     response_sender: IpcSender&lt;PromptResponse&gt;,

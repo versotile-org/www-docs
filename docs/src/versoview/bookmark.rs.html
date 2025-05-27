@@ -99,12 +99,53 @@
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
 <a href="#100" id="100">100</a>
-<a href="#101" id="101">101</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::str::FromStr;
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{fs::File, path::PathBuf, str::FromStr};
 
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="doccomment">/// A struct representing a bookmark with a name and URL.
-</span><span class="attr">#[derive(Debug, Clone, Serialize)]
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>Bookmark {
     <span class="doccomment">/// The ID of the bookmark.
     </span><span class="kw">pub </span>id: BookmarkId,
@@ -137,12 +178,24 @@
     <span class="doccomment">/// A vector of bookmarks.
     </span>bookmarks: Vec&lt;Bookmark&gt;,
 }
+
+<span class="kw">impl </span>Default <span class="kw">for </span>BookmarkManager {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self</span>::new()
+    }
+}
+
 <span class="kw">impl </span>BookmarkManager {
     <span class="doccomment">/// Creates a new `BookmarkManager`.
     </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             bookmarks: Vec::new(),
         }
+    }
+
+    <span class="doccomment">/// Set bookmarks from a vector of bookmarks.
+    </span><span class="kw">pub fn </span>set_bookmarks(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bookmarks: Vec&lt;Bookmark&gt;) {
+        <span class="self">self</span>.bookmarks = bookmarks;
     }
 
     <span class="doccomment">/// Adds a bookmark to the manager.
@@ -160,7 +213,7 @@
             <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">"Bookmark with ID {} not found"</span>, id.<span class="number">0</span>))
         }
     }
-    
+
     <span class="doccomment">/// Renames a bookmark
     </span><span class="kw">pub fn </span>rename_bookmark(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: BookmarkId, new_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(bookmark) = <span class="self">self</span>.bookmarks.iter_mut().find(|bookmark| bookmark.id == id) {
@@ -198,6 +251,35 @@
 <span class="kw">impl </span>Default <span class="kw">for </span>BookmarkId {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::new()
+    }
+}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>BookmarkStorage {
+    config_dir_path: PathBuf,
+}
+
+<span class="kw">impl </span>BookmarkStorage {
+    <span class="doccomment">/// Create a new `BookmarkStorage`.
+    </span><span class="kw">pub fn </span>new(config_dir_path: PathBuf) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ config_dir_path }
+    }
+
+    <span class="kw">fn </span>bookmark_file_path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
+        <span class="self">self</span>.config_dir_path.join(<span class="string">"bookmarks.json"</span>)
+    }
+
+    <span class="doccomment">/// Load bookmarks from disk.
+    </span><span class="kw">pub fn </span>load_from_file(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Bookmark&gt;, std::io::Error&gt; {
+        <span class="kw">let </span>file = File::open(<span class="self">self</span>.bookmark_file_path())<span class="question-mark">?</span>;
+        <span class="kw">let </span>bookmarks: Vec&lt;Bookmark&gt; = serde_json::from_reader(file)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(bookmarks)
+    }
+
+    <span class="doccomment">/// Save bookmarks to disk.
+    </span><span class="kw">pub fn </span>save_to_file(<span class="kw-2">&amp;</span><span class="self">self</span>, bookmarks: <span class="kw-2">&amp;</span>Vec&lt;Bookmark&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::io::Error&gt; {
+        <span class="kw">let </span>file = File::create(<span class="self">self</span>.bookmark_file_path())<span class="question-mark">?</span>;
+        serde_json::to_writer(file, bookmarks)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 }
 </code></pre></div></section></main></body></html>
