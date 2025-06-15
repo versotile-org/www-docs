@@ -1182,7 +1182,25 @@
 <a href="#1181" id="1181">1181</a>
 <a href="#1182" id="1182">1182</a>
 <a href="#1183" id="1183">1183</a>
-<a href="#1184" id="1184">1184</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
+<a href="#1184" id="1184">1184</a>
+<a href="#1185" id="1185">1185</a>
+<a href="#1186" id="1186">1186</a>
+<a href="#1187" id="1187">1187</a>
+<a href="#1188" id="1188">1188</a>
+<a href="#1189" id="1189">1189</a>
+<a href="#1190" id="1190">1190</a>
+<a href="#1191" id="1191">1191</a>
+<a href="#1192" id="1192">1192</a>
+<a href="#1193" id="1193">1193</a>
+<a href="#1194" id="1194">1194</a>
+<a href="#1195" id="1195">1195</a>
+<a href="#1196" id="1196">1196</a>
+<a href="#1197" id="1197">1197</a>
+<a href="#1198" id="1198">1198</a>
+<a href="#1199" id="1199">1199</a>
+<a href="#1200" id="1200">1200</a>
+<a href="#1201" id="1201">1201</a>
+<a href="#1202" id="1202">1202</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, collections::HashMap};
 
 <span class="kw">use </span>base::id::WebViewId;
 <span class="kw">use </span>constellation_traits::EmbedderToConstellationMessage;
@@ -1900,6 +1918,24 @@
                     }
                     <span class="kw">return </span><span class="bool-val">true</span>;
                 }
+                (modifiers, Code::KeyL) <span class="kw">if </span>modifiers == control_or_meta =&gt; {
+                    <span class="comment">// focus on navigation input
+                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(panel) = <span class="kw-2">&amp;</span><span class="self">self</span>.panel {
+                        <span class="kw">let </span>webview_id = <span class="kw-2">&amp;</span>panel.webview.webview_id;
+
+                        <span class="kw">let _ </span>= compositor.constellation_chan.send(
+                            EmbedderToConstellationMessage::FocusWebView(webview_id.clone()),
+                        );
+
+                        <span class="kw">let _ </span>= execute_script(
+                            <span class="kw-2">&amp;</span>compositor.constellation_chan,
+                            webview_id,
+                            <span class="string">"window.navbar.focusUrlInput()"</span>.to_string(),
+                        );
+                    }
+                    <span class="kw">return </span><span class="bool-val">true</span>;
+                }
+
                 <span class="kw">_ </span>=&gt; (),
             }
         }
